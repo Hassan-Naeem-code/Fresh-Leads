@@ -1,0 +1,30 @@
+{
+  "name": "leadradar",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "pretest": "esbuild lib/score.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/score.mjs && esbuild lib/sources/index.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/sources.mjs && esbuild lib/lead-view.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/lead-view.mjs && esbuild lib/access.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/access.mjs && esbuild lib/audit.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/audit.mjs && esbuild lib/icp-parse.ts --bundle --format=esm --platform=node --log-level=error --external:@anthropic-ai/sdk --outfile=test/.build/icp-parse.mjs && esbuild lib/verify/contact.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/contact.mjs && esbuild lib/pricing.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/pricing.mjs && esbuild lib/volume-bonus.ts --bundle --format=esm --platform=node --log-level=error --outfile=test/.build/volume-bonus.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:sql": "./test/sql/run.sh"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.2",
+    "libphonenumber-js": "^1.13.8",
+    "next": "^15.5.20",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "stripe": "^22.3.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "@types/react": "19.0.7",
+    "esbuild": "^0.25.0",
+    "typescript": "5.7.3"
+  }
+}

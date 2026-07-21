@@ -1,0 +1,19 @@
+node_modules
+.next
+.vercel
+*.log
+.DS_Store
+
+# local env / secrets — never commit
+.env
+.env.local
+.env*.local
+
+# lockfile: standardized on npm (package-lock.json)
+yarn.lock
+
+# TypeScript incremental build info
+tsconfig.tsbuildinfo
+
+# Generated test bundles (npm run pretest)
+test/.build/
