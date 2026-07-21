@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="flfav" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff8a5c"/>
+      <stop offset="1" stop-color="#e2431a"/>
+    </linearGradient>
+  </defs>
+  <!-- Warm-black tile: holds the mark on both light and dark browser chrome. -->
+  <rect width="48" height="48" rx="11" fill="#230800"/>
+  <!-- Radar rings. Opacity runs higher than the in-app mark's (.2/.45) because at
+       16px in a tab those faint strokes disappear entirely. -->
+  <circle cx="24" cy="24" r="18.5" fill="none" stroke="url(#flfav)" stroke-width="2.5" opacity="0.38"/>
+  <circle cx="24" cy="24" r="13" fill="none" stroke="url(#flfav)" stroke-width="2.5" opacity="0.62"/>
+  <!-- Solid centre + verification check. -->
+  <circle cx="24" cy="24" r="9" fill="url(#flfav)"/>
+  <path d="M19.5 24.3 L22.6 27.4 L28.7 20.6" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
