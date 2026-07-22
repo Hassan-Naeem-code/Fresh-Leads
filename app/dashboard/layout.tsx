@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { getAccess } from "@/lib/access";
+import { getSiteSettings } from "@/lib/site-settings.server";
+import { BrandMark, BrandName } from "../brand";
+import { CreditPill } from "./CreditPill";
+
+// Private, signed-in surface. robots.txt disallows the path, but a page-level
+// noindex is what actually keeps it out of the index if the URL is ever shared.
+export const metadata: Metadata = {
+  title: "Dashboard",
+  robots: { index: false, follow: false },
+};
+
+// The real gate for the app. Middleware does a coarse auth redirect; this re-checks
+// the user server-side.
+//
+// Nobody is bounced out of the dashboard for being out of credits or unsubscribed.
+// The only redirect here is for not being signed in; the search itself enforces the
+// two requirements (platform access AND a credit balance) and answers with which one
+// is missing, so the prompt appears in context instead of as a wall in front of the
+// whole app.
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login?next=/dashboard");
+
+  const [settings, access] = await Promise.all([getSiteSettings(), getAccess(user.id)]);
+
+  return (
+    <div>
+      <header className="topbar">
+        <div className="topinner">
+          <div className="topleft">
+            <Link href="/dashboard" className="topbrand">
+              <span className="logo sm">
+                <BrandMark settings={settings} size={16} />
+              </span>
+              <BrandName settings={settings} />
+            </Link>
+            <nav className="topnav">
+              <Link href="/dashboard">Search</Link>
+              <Link href="/dashboard/history">History</Link>
+              <Link href="/dashboard/billing">Billing</Link>
+            </nav>
+          </div>
+          <div className="topright">
+            {/* The balance is always visible: it is the thing users spend and the
+                thing they need to top up. Client component so an unlock can tick it
+                down without a page reload. */}
+            <CreditPill
+              initialCredits={access.credits}
+              subscribed={access.subscribed}
+              canBuyCredits={access.canBuyCredits}
+            />
+            <span className="topuser">
+              <span className="avatar">{(user.email ?? "?")[0].toUpperCase()}</span>
+              <span className="uemail">{user.email}</span>
+            </span>
+            <form action="/auth/signout" method="post">
+              <button className="ghost sm" type="submit">
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+      </header>
+      {children}
+    </div>
+  );
+}
