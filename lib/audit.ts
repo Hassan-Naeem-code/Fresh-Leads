@@ -223,7 +223,7 @@ export function pickBestEmail(html: string, lower: string, finalUrl: string): st
   return bestScore > 0 ? best : "";
 }
 
-async function fetchOnce(url: string, timeoutMs: number): Promise<Response | null> {
+export async function fetchOnce(url: string, timeoutMs: number): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {

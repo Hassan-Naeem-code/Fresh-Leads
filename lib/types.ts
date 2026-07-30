@@ -91,6 +91,17 @@ export type Lead = {
    * being billed to us a second time.
    */
   contactVerifiedAt: string | null;
+  // --- owner and business detail, filled at unlock time (lib/enrich.ts) ---
+  /** The person who runs it, where the business says so on its own pages. */
+  ownerName?: string | null;
+  ownerRole?: string | null;
+  /** Only ever an address ZeroBounce confirmed. A guessed one never gets this far. */
+  ownerEmail?: string | null;
+  socials?: Record<string, string> | null;
+  hiring?: boolean | null;
+  hiringUrl?: string | null;
+  /** When the owner/socials/hiring crawl last ran, so we only pay for it once. */
+  enrichedAt?: string | null;
   // scoring
   score: number;
   /**
