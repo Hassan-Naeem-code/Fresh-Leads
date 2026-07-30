@@ -8,6 +8,7 @@ import {
   MIN_CREDIT_PURCHASE,
   VOLUME_BONUS_MIN_CREDITS,
   VOLUME_BONUS_CREDITS,
+  PURCHASE_BONUSES,
 } from "@/lib/pricing";
 import { MarketingNav } from "../MarketingNav";
 import { MarketingFooter } from "../MarketingFooter";
@@ -140,6 +141,10 @@ export default async function PricingPage() {
               <li>
                 <Check size={14} className="i-cool" /> Buy {VOLUME_BONUS_MIN_CREDITS} credits in a
                 month and we add {VOLUME_BONUS_CREDITS} free
+              </li>
+              <li>
+                <Check size={14} className="i-cool" /> Bigger top-ups earn bonus credits:{" "}
+                {PURCHASE_BONUSES.slice().reverse().map((b) => `${b.min} gets +${b.bonus}`).join(", ")}
               </li>
             </ul>
             <Link

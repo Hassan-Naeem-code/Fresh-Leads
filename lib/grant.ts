@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { createAdminClient } from "./supabase/admin";
 import { grantCredits } from "./credits";
 import { maybeGrantVolumeBonus } from "./volume-bonus";
+import { bonusForPurchase } from "./pricing";
 
 // Turning Stripe events into access. This is the ONLY place access is granted: the
 // success page is UX, the webhook is truth.
@@ -62,6 +63,16 @@ export async function handleCheckoutCompleted(session: Stripe.Checkout.Session):
     // Keyed on the session id, so a redelivered webhook grants nothing.
     const balance = await grantCredits(userId, credits, "purchase", session.id);
     console.log(`[grant] +${credits} credits for ${userId}, balance ${balance}`);
+
+    // Volume bonus on this basket. Keyed on the same session id under its own reason,
+    // so it is granted exactly once however many times Stripe redelivers the event.
+    // Computed here from the purchased amount rather than trusted from metadata: the
+    // bonus is money, and it is decided server side from the price of record.
+    const extra = bonusForPurchase(credits);
+    if (extra > 0) {
+      await grantCredits(userId, extra, "purchase_bonus", session.id);
+      console.log(`[grant] +${extra} bonus credits for ${userId} on a ${credits} credit basket`);
+    }
 
     // Runs after the purchase is in the ledger, because the purchase we just granted
     // is part of the month's total that decides whether a bonus is owed. Anything it

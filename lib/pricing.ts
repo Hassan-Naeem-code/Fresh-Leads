@@ -49,6 +49,41 @@ export const CREDIT_PACKS = [5, 25, 50, 100, 250];
 export const VOLUME_BONUS_MIN_CREDITS = 300;
 export const VOLUME_BONUS_CREDITS = 50;
 
+/**
+ * PURCHASE BONUSES: buy a bigger basket in one go, get extra credits on top.
+ *
+ * This is how the effective price falls with volume WITHOUT touching the $1 headline.
+ * A tiered price per credit would mean the number on the pricing page stops matching
+ * the number on the invoice, and it would put a second price into creditCostCents,
+ * which is the one function allowed to turn credits into money. Bonus credits keep one
+ * price and one multiplication, and they reuse the grant path that is already proven
+ * idempotent against redelivered Stripe webhooks.
+ *
+ * Stacks with the monthly VOLUME_BONUS above, deliberately: a 300 credit purchase
+ * earns both, landing near 77 cents a lead, which still leaves a very wide margin
+ * against a marginal cost of about 4 cents.
+ *
+ * Ordered largest first so bonusForPurchase can return on the first match.
+ */
+export const PURCHASE_BONUSES: Array<{ min: number; bonus: number }> = [
+  { min: 1000, bonus: 250 },
+  { min: 500, bonus: 100 },
+  { min: 250, bonus: 40 },
+  { min: 100, bonus: 10 },
+];
+
+/** Extra credits earned by buying `credits` in a single purchase. */
+export function bonusForPurchase(credits: number): number {
+  if (!Number.isFinite(credits)) return 0;
+  return PURCHASE_BONUSES.find((b) => credits >= b.min)?.bonus ?? 0;
+}
+
+/** What a basket really costs per lead once its bonus credits are counted. */
+export function effectiveCentsPerLead(credits: number): number {
+  const total = credits + bonusForPurchase(credits);
+  return total > 0 ? creditCostCents(credits) / total : CREDIT_PRICE_CENTS;
+}
+
 /** What `n` credits cost, in cents. The one place credits become money. */
 export const creditCostCents = (n: number) => n * CREDIT_PRICE_CENTS;
 

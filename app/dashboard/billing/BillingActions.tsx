@@ -9,6 +9,8 @@ import {
   MAX_CREDIT_PURCHASE,
   VOLUME_BONUS_MIN_CREDITS,
   VOLUME_BONUS_CREDITS,
+  bonusForPurchase,
+  effectiveCentsPerLead,
   creditCostCents,
   formatMoney,
 } from "@/lib/pricing";
@@ -97,6 +99,9 @@ export function BillingActions({
               onClick={() => setAmount(n)}
             >
               {n} <span className="muted">· {formatMoney(creditCostCents(n))}</span>
+              {bonusForPurchase(n) > 0 && (
+                <span className="packbonus">+{bonusForPurchase(n)} free</span>
+              )}
             </button>
           ))}
         </div>
@@ -127,6 +132,14 @@ export function BillingActions({
             ? "Starting checkout…"
             : `Buy ${amount} credits, ${formatMoney(creditCostCents(amount))}`}
         </button>
+
+        {bonusForPurchase(amount) > 0 && (
+          <span className="muted sm">
+            This basket earns <b>{bonusForPurchase(amount)} bonus credits</b>, so you get{" "}
+            {amount + bonusForPurchase(amount)} leads for {formatMoney(creditCostCents(amount))}.
+            That works out at {formatMoney(Math.round(effectiveCentsPerLead(amount)))} a lead.
+          </span>
+        )}
 
         <span className="muted sm">
           One credit opens one lead, and it stays yours. Minimum top-up is{" "}

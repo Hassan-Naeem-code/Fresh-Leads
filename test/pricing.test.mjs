@@ -9,6 +9,8 @@ import {
   VOLUME_BONUS_CREDITS,
   creditCostCents,
   formatMoney,
+  bonusForPurchase,
+  effectiveCentsPerLead,
 } from "./.build/pricing.mjs";
 
 // Pricing is the one place where an off-by-one is money, so the invariants that hold
@@ -84,6 +86,43 @@ test("the bonus keeps the effective price comfortably above cost", () => {
   const leads = VOLUME_BONUS_MIN_CREDITS + VOLUME_BONUS_CREDITS;
   const cost = leads * COST_PER_LEAD_CENTS;
   assert.ok(net > cost * 5, `bonus tier margin too thin: net ${net}c vs cost ${cost}c`);
+});
+
+test("purchase bonuses pick the largest bracket the basket qualifies for", () => {
+  assert.equal(bonusForPurchase(99), 0);
+  assert.equal(bonusForPurchase(100), 10);
+  assert.equal(bonusForPurchase(249), 10);
+  assert.equal(bonusForPurchase(250), 40);
+  assert.equal(bonusForPurchase(500), 100);
+  assert.equal(bonusForPurchase(1000), 250);
+  assert.equal(bonusForPurchase(5000), 250, "above the top bracket still earns the top bonus");
+});
+
+test("a bigger basket is never worse value than a smaller one", () => {
+  // The whole point of the brackets. A tier that inverted would mean a customer is
+  // punished for spending more, which is the kind of thing nobody notices until a
+  // customer does.
+  let last = Infinity;
+  for (const n of [100, 250, 500, 1000]) {
+    const per = effectiveCentsPerLead(n);
+    assert.ok(per <= last, `${n} credits costs ${per}c a lead, worse than the tier below`);
+    last = per;
+  }
+});
+
+test("bonuses never take the effective price below what a lead costs us", () => {
+  // Marginal cost is about 4c a lead once owner enrichment is counted. If a bracket
+  // ever dropped under that, volume would lose money on every sale.
+  for (const n of CREDIT_PACKS.concat([1000, 5000])) {
+    assert.ok(
+      effectiveCentsPerLead(n) > COST_PER_LEAD_CENTS * 5,
+      `${n} credits nets ${effectiveCentsPerLead(n)}c a lead, too close to cost`
+    );
+  }
+});
+
+test("the headline price still holds for a basket with no bonus", () => {
+  assert.equal(effectiveCentsPerLead(MIN_CREDIT_PURCHASE), CREDIT_PRICE_CENTS);
 });
 
 test("prices render without a stray trailing zero or a lost cent", () => {

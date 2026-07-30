@@ -3,6 +3,7 @@ import { LEGACY_ATTAINABLE, bandFor, gradePct } from "@/lib/score";
 import { bandFor as freshnessBandFor } from "@/lib/freshness";
 import {
   Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Building, ChevronRight, Dot, Check,
+  User, Briefcase,
 } from "./icons";
 
 // Shared presentational lead card, used by the live dashboard results and the
@@ -29,6 +30,19 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
             <Dot /> {fband.label} · listing updated {l.freshnessLabel}
           </span>
         </div>
+        {/* The named decision maker, when their own site says who runs it. This is the
+            difference between "is the manager in?" and "morning, is that Aaron?", and
+            it is the single field competitors charge the most for. */}
+        {l.ownerName && (
+          <div className="owner">
+            <User size={14} />
+            <b>{l.ownerName}</b>
+            {l.ownerRole ? <span className="ownerrole">{l.ownerRole}</span> : null}
+            {l.ownerEmail && (
+              <a href={`mailto:${l.ownerEmail}`} className="owneremail">{l.ownerEmail}</a>
+            )}
+          </div>
+        )}
         <div className="meta">
           {l.phone && <span><Phone size={14} /> <a href={`tel:${l.phone}`}>{l.phone}</a></span>}
           {l.email && <span><Mail size={14} /> <a href={`mailto:${l.email}`}>{l.email}</a></span>}
@@ -45,7 +59,21 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
           {l.emailStatus === "undeliverable" && <span className="vbadge bad"><Mail size={11} /> email unreachable</span>}
           {l.activeStatus === "active" && <span className="vbadge"><Building size={11} /> active</span>}
           {l.activeStatus === "likely_closed" && <span className="vbadge bad">may be closed</span>}
+          {/* Hiring is a growth signal and a genuine reason to call this week, so it
+              sits with the other verified facts rather than in the need signals. */}
+          {l.hiring === true && (
+            l.hiringUrl
+              ? <a className="vbadge good" href={l.hiringUrl} target="_blank" rel="noreferrer"><Briefcase size={11} /> hiring</a>
+              : <span className="vbadge good"><Briefcase size={11} /> hiring</span>
+          )}
         </div>
+        {l.socials && Object.keys(l.socials).length > 0 && (
+          <div className="socials">
+            {Object.entries(l.socials).map(([k, url]) => (
+              <a key={k} href={url} target="_blank" rel="noreferrer" className="soc">{k}</a>
+            ))}
+          </div>
+        )}
         <div className="signals">
           {l.needSignals.map((s, i) => (
             <span key={i} className={`sig ${/no |not |down|outdated|insecure/i.test(s) ? "bad" : ""}`}>{s}</span>

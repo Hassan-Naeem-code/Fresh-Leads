@@ -117,8 +117,9 @@ export async function POST(req: NextRequest) {
 }
 
 const COLUMNS = [
-  "name", "category", "grade", "tier", "verified", "phone", "phoneVerified", "email",
-  "emailStatus", "website", "address", "city", "activeStatus", "needSignals",
+  "name", "category", "grade", "tier", "verified", "owner", "ownerRole", "ownerEmail",
+  "phone", "phoneVerified", "email", "emailStatus", "website", "address", "city",
+  "activeStatus", "hiring", "facebook", "instagram", "linkedin", "needSignals",
   "gradeBreakdown", "freshness", "listingUpdated", "pitch", "mapUrl",
 ] as const;
 
@@ -130,6 +131,20 @@ function cell(l: Lead, col: (typeof COLUMNS)[number]): string | number {
       return l.deliverable ? "yes" : "no";
     case "phoneVerified":
       return l.phoneValid ? "yes" : "no";
+    case "owner":
+      return l.ownerName ?? "";
+    case "ownerRole":
+      return l.ownerRole ?? "";
+    case "ownerEmail":
+      return l.ownerEmail ?? "";
+    case "hiring":
+      // Blank rather than "no" when we never managed to read their site: an empty
+      // cell is honest about not knowing, "no" is a claim we cannot support.
+      return l.hiring === null || l.hiring === undefined ? "" : l.hiring ? "yes" : "no";
+    case "facebook":
+    case "instagram":
+    case "linkedin":
+      return l.socials?.[col] ?? "";
     case "needSignals":
       return l.needSignals.join("; ");
     case "gradeBreakdown":

@@ -164,6 +164,20 @@ export const Building = (p: IconProps) => (
   </Svg>
 );
 
+export const User = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+  </Svg>
+);
+
+export const Briefcase = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="2" y="7" width="20" height="14" rx="2" />
+    <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+  </Svg>
+);
+
 export const Search = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="11" cy="11" r="8" />

@@ -40,7 +40,7 @@ const FK_VIOLATION = "23503";
 export async function grantCredits(
   userId: string,
   amount: number,
-  reason: "signup_bonus" | "purchase" | "admin_grant" | "volume_bonus",
+  reason: "signup_bonus" | "purchase" | "admin_grant" | "volume_bonus" | "purchase_bonus",
   ref?: string | null
 ): Promise<number> {
   const admin = createAdminClient();
