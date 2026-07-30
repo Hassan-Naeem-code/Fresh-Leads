@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { geocode } from "@/lib/geocode";
 import { resolveNiche } from "@/lib/niche";
-import { auditWebsite } from "@/lib/audit";
+import { auditWebsite, type Audit } from "@/lib/audit";
+import { observeAndDiff } from "@/lib/snapshots";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
 import { assessFreshness } from "@/lib/freshness";
 import type { Lead, ResultLead, SearchResult } from "@/lib/types";
@@ -221,6 +222,9 @@ export async function POST(req: NextRequest) {
     const withSite = leads.filter((l) => l.hasWebsite && l.website);
     const auditDeadline = Date.now() + AUDIT_BUDGET_MS;
     let auditsSkipped = 0;
+    // Kept so the crawl can be filed as a dated observation once the batch is done.
+    // Change over time is the one signal a live query cannot produce (lib/snapshots.ts).
+    const auditByKey = new Map<string, Audit>();
     await mapPool(withSite, 24, async (lead) => {
       if (Date.now() > auditDeadline) {
         auditsSkipped++;
@@ -228,6 +232,7 @@ export async function POST(req: NextRequest) {
       }
       const audit = await auditWebsite(lead.website);
       if (audit) {
+        auditByKey.set(lead.id, audit);
         lead.siteAudited = true;
         lead.siteReachable = audit.reachable;
         lead.hasSSL = audit.hasSSL;
@@ -249,6 +254,19 @@ export async function POST(req: NextRequest) {
         `${auditsSkipped} website${auditsSkipped === 1 ? "" : "s"} could not be checked in time, ` +
           `those leads are graded on contact details only.`
       );
+    }
+
+    // File today's crawl and pick up anything that changed since we last saw these
+    // businesses. Awaited rather than fired and forgotten: work left running after the
+    // response is returned gets killed on serverless, and a lost observation is a diff
+    // we can never compute later. observeAndDiff swallows its own failures, so a
+    // database problem here costs the signal, never the search.
+    //
+    // Nothing consumes these triggers yet. Snapshots have to accumulate before any
+    // business has two of them, so this is storing history now to sell it later.
+    const changes = await observeAndDiff(leads, auditByKey);
+    if (changes.size > 0) {
+      console.log(`[leads] ${changes.size} business${changes.size === 1 ? "" : "es"} changed since last seen`);
     }
 
     // Verify contact channels + active status, then set the "deliverable" gate.
