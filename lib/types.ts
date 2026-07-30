@@ -149,7 +149,14 @@ export type LockedLead = {
 /** An unlocked lead: the full record, plus where it lives. */
 export type UnlockedLead = Lead & { locked: false; dbId: string | null };
 
-export type ResultLead = LockedLead | UnlockedLead;
+/**
+ * Set when the search ran against a watchlist: true for a business that watchlist has
+ * never shown before. Safe on a locked lead, because "we have not shown you this one"
+ * reveals nothing about the business itself.
+ */
+export type NewFlag = { isNew?: boolean };
+
+export type ResultLead = (LockedLead | UnlockedLead) & NewFlag;
 
 export type SearchResult = {
   niche: string;
@@ -159,6 +166,10 @@ export type SearchResult = {
   count: number;
   leads: ResultLead[];
   notes: string[];
+  /** The watchlist this run was scoped to, when there was one. */
+  watchlistId?: string | null;
+  /** How many of these businesses that watchlist had never shown before. */
+  newCount?: number;
   /** ISO time this search ran, the "scanned at" clock for every lead in it. */
   scannedAt: string;
   /** The user's credit balance after this search (searching itself is free). */

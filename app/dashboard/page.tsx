@@ -7,6 +7,7 @@ import { LeadModal } from "./LeadModal";
 import { CheckoutReturn } from "./CheckoutReturn";
 import { IcpBox, type IcpResult } from "./IcpBox";
 import { setCredits, useCredits } from "./credit-store";
+import type { Watchlist } from "@/lib/watchlists";
 import { PROBLEMS, problemById } from "@/lib/problems";
 import { PLAYBOOKS, DEFAULT_PLAYBOOK, playbookById, playbookFactors, type PlaybookId } from "@/lib/playbooks";
 import { GRADE_SCALE, FACTOR_CATALOG, MAX_ATTAINABLE, LEGACY_ATTAINABLE, TIER_RANK, bandFor, gradePct } from "@/lib/score";
@@ -20,7 +21,7 @@ import {
 import {
   Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Download, Info,
   AlertTriangle, Clock, Flame, Gauge, Building, Search, ChevronDown,
-  ChevronRight, ArrowRight, RotateCcw, Dot, Check, Coin,
+  ChevronRight, ArrowRight, RotateCcw, Dot, Check, Coin, Plus, X,
 } from "../icons";
 
 
@@ -57,6 +58,10 @@ export default function Home() {
   // dbIds paid for during this session via export, so their cards stop advertising
   // a charge that would not happen.
   const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
+  // Markets this account is watching. The reason to come back next week.
+  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
+  const [activeWatchlist, setActiveWatchlist] = useState<string | null>(null);
+  const [savingWatch, setSavingWatch] = useState(false);
   const credits = useCredits();
 
   // --- filters ---
@@ -137,15 +142,73 @@ export default function Home() {
   // `overrides` exists because a problem chip both sets state AND re-runs the
   // search: reading `problem` here would still see the previous value, since React
   // has not applied the update yet.
+  async function loadWatchlists() {
+    try {
+      const res = await fetch("/api/watchlists");
+      if (res.ok) setWatchlists((await res.json()).watchlists ?? []);
+    } catch {
+      // A watchlist strip that fails to load must not break the search page.
+    }
+  }
+
+  useEffect(() => {
+    loadWatchlists();
+  }, []);
+
+  /** Save the search on screen as a market to watch. */
+  async function saveWatchlist() {
+    setSavingWatch(true);
+    try {
+      const res = await fetch("/api/watchlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ niche, location, playbook, problem }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Could not save that watchlist.");
+        return;
+      }
+      setWatchlists((w) => [data.watchlist, ...w]);
+      setActiveWatchlist(data.watchlist.id);
+    } finally {
+      setSavingWatch(false);
+    }
+  }
+
+  async function removeWatchlist(id: string) {
+    await fetch(`/api/watchlists?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    setWatchlists((w) => w.filter((x) => x.id !== id));
+    if (activeWatchlist === id) setActiveWatchlist(null);
+  }
+
+  /** Re-run a watched market and show what is new since last time. */
+  function openWatchlist(w: Watchlist) {
+    setNiche(w.niche);
+    setLocation(w.location);
+    setActiveWatchlist(w.id);
+    if (w.problem) setProblem(w.problem);
+    run(undefined, {
+      niche: w.niche,
+      location: w.location,
+      problem: w.problem ?? "any",
+      playbook: (w.playbook as PlaybookId) ?? playbook,
+      watchlistId: w.id,
+    });
+  }
+
   async function run(
     e?: React.FormEvent,
-    overrides?: { problem?: string; playbook?: PlaybookId; niche?: string; location?: string }
+    overrides?: { problem?: string; playbook?: PlaybookId; niche?: string; location?: string; watchlistId?: string | null }
   ) {
     e?.preventDefault();
     const activeProblem = overrides?.problem ?? problem;
     const activePlaybook = overrides?.playbook ?? playbook;
     const activeNiche = overrides?.niche ?? niche;
     const activeLocation = overrides?.location ?? location;
+    // Explicitly passed on a watchlist click, because React state is not applied yet
+    // at the moment the handler runs.
+    const activeWatch = overrides?.watchlistId !== undefined ? overrides.watchlistId : activeWatchlist;
     setLoading(true);
     setError("");
     setResult(null);
@@ -162,9 +225,11 @@ export default function Home() {
           problem: activeProblem,
           requiredFactors: [...reqFactors],
           playbook: activePlaybook,
+          watchlistId: activeWatch ?? undefined,
         }),
       });
       const data = await res.json();
+      if (res.ok && activeWatch) loadWatchlists();
       if (!res.ok) {
         if (typeof data.credits === "number") setCredits(data.credits);
         // 402 means a purchase is needed. Which one depends on what is missing: the
@@ -448,6 +513,34 @@ export default function Home() {
         <button className="go" disabled={loading}>{loading ? "Scanning…" : "Find Leads"}</button>
       </form>
 
+      {/* WATCHED MARKETS. The difference between a search box and a service: a saved
+          market re-runs and tells you what is new since the last time you looked. */}
+      <div className="watchrow">
+        <div className="watchchips">
+          {watchlists.map((w) => (
+            <span key={w.id} className={`watchchip ${activeWatchlist === w.id ? "on" : ""}`}>
+              <button type="button" className="watchopen" onClick={() => openWatchlist(w)} title={`${w.niche} in ${w.location}`}>
+                {w.name}
+                {w.lastRunAt && w.lastNewCount > 0 && <b className="watchnew">{w.lastNewCount} new</b>}
+                {!w.lastRunAt && <span className="muted"> not run yet</span>}
+              </button>
+              <button type="button" className="watchdel" onClick={() => removeWatchlist(w.id)} aria-label={`Stop watching ${w.name}`}>
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="watchsave"
+          onClick={saveWatchlist}
+          disabled={savingWatch || !niche.trim() || !location.trim()}
+          title="Watch this market and see what changes"
+        >
+          <Plus size={13} /> {savingWatch ? "Saving..." : "Watch this market"}
+        </button>
+      </div>
+
       <div className="chips">
         {/* Business types this kind of seller usually targets, rather than one generic list. */}
         {playbookById(playbook).niches.map((ex) => (
@@ -645,16 +738,19 @@ export default function Home() {
             )}
             {visible.map((l) =>
               l.locked ? (
-                <LockedLeadCard
-                  key={l.id}
+                <div key={l.id} className="newwrap">
+                  {l.isNew && <span className="newflag">new</span>}
+                  <LockedLeadCard
                   lead={l}
                   alreadyPaid={Boolean(l.dbId && paidIds.has(l.dbId))}
                   busy={unlocking === l.id}
                   disabled={unlocking !== null}
                   onUnlock={() => unlock(l)}
-                />
+                  />
+                </div>
               ) : (
-                <div key={l.id} className="leadclick" onClick={() => { setJustUnlocked(false); setOpen(l); }}>
+                <div key={l.id} className="leadclick newwrap" onClick={() => { setJustUnlocked(false); setOpen(l); }}>
+                  {l.isNew && <span className="newflag">new</span>}
                   <LeadCard lead={l} />
                 </div>
               )

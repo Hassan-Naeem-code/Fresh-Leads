@@ -3,6 +3,7 @@ import { geocode } from "@/lib/geocode";
 import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
 import { observeAndDiff } from "@/lib/snapshots";
+import { seenKeys, markSeen } from "@/lib/watchlists";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
 import { assessFreshness } from "@/lib/freshness";
 import type { Lead, ResultLead, SearchResult } from "@/lib/types";
@@ -134,6 +135,7 @@ export async function POST(req: NextRequest) {
       problem = "any",
       requiredFactors = [],
       playbook = DEFAULT_PLAYBOOK,
+      watchlistId,
     }: {
       niche?: string;
       location?: string;
@@ -142,6 +144,8 @@ export async function POST(req: NextRequest) {
       requiredFactors?: string[];
       /** What the caller sells; decides which signals are scored and shown. */
       playbook?: PlaybookId;
+      /** Scope this run to a watched market, so results can be flagged as new. */
+      watchlistId?: string;
     } = await req.json();
     if (!niche || !location) {
       return NextResponse.json({ error: "niche and location are required" }, { status: 400 });
@@ -175,7 +179,7 @@ export async function POST(req: NextRequest) {
           {
             error: needsSubscription
               ? "Your free credits are used up. Subscribe for $30/year to keep using Fresh Leads."
-              : "You have no credits. Leads are five for $1, and you need at least one to search.",
+              : "You have no credits. Credits are $1 each, and you need at least one to search.",
             code: needsSubscription ? "subscription_required" : "credits_required",
             credits: access.credits,
           },
@@ -385,15 +389,33 @@ export async function POST(req: NextRequest) {
     // shows everything rather than locking the operator out of their own instance.
     const everythingOpen = !stripeConfigured();
 
-    const resultLeads: ResultLead[] = top.map((l) =>
-      viewLead(l, {
+    // WATCHLIST: which of these has this market never shown before?
+    //
+    // Read before anything is marked seen, because the instant a business is recorded
+    // it stops being new. This is the whole point of a watchlist: the second visit has
+    // to be able to say "these four are new" or there is no reason to come back.
+    let seen = new Set<string>();
+    if (user && watchlistId) seen = await seenKeys(watchlistId);
+    const isNewKey = (key: string) => Boolean(watchlistId) && !seen.has(key);
+
+    const resultLeads: ResultLead[] = top.map((l) => ({
+      ...viewLead(l, {
         dbId: rowIdByLeadId.get(l.id) ?? null,
         // A Lead's id IS its cross-search business key ("<source>:<source_id>").
         leadKey: l.id,
         unlockedKeys: unlocked,
         everythingOpen,
-      })
-    );
+      }),
+      isNew: isNewKey(l.id),
+    }));
+
+    const newCount = resultLeads.filter((l) => l.isNew).length;
+    if (user && watchlistId) {
+      // Awaited, not fired and forgotten: work left running after the response is
+      // returned gets killed on serverless, and a run that failed to record itself
+      // would announce the same businesses as new all over again next week.
+      await markSeen(user.id, watchlistId, top.map((l) => l.id), newCount);
+    }
 
     const result: SearchResult = {
       niche,
@@ -406,6 +428,8 @@ export async function POST(req: NextRequest) {
       scannedAt,
       credits: access?.credits ?? 0,
       searchId,
+      watchlistId: watchlistId ?? null,
+      newCount,
     };
 
     return NextResponse.json(result);
