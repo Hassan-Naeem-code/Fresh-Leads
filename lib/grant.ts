@@ -67,7 +67,7 @@ export async function handleCheckoutCompleted(session: Stripe.Checkout.Session):
     // is part of the month's total that decides whether a bonus is owed. Anything it
     // throws is left to propagate: the webhook answers 500, Stripe retries, and both
     // the purchase and the bonus are idempotent, so a retry cannot double-grant. The
-    // alternative — swallowing it — would quietly owe a paying customer 50 credits.
+    // alternative (swallowing it) would quietly owe a paying customer 50 credits.
     await maybeGrantVolumeBonus(userId);
     return;
   }

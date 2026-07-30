@@ -8,7 +8,7 @@ import { VOLUME_BONUS_MIN_CREDITS, VOLUME_BONUS_CREDITS } from "./pricing";
 // accumulates across every top-up in that month rather than needing one large order.
 //
 // The bonus credits are ordinary credits: no expiry, no clawback, no separate
-// counter. That is a deliberate choice — a second kind of credit with its own
+// counter. That is a deliberate choice, a second kind of credit with its own
 // lifetime would be a second source of truth for money, and the balance on
 // profiles.credits would stop being the whole answer.
 //
@@ -16,14 +16,14 @@ import { VOLUME_BONUS_MIN_CREDITS, VOLUME_BONUS_CREDITS } from "./pricing";
 // (user_id, reason, ref), so writing the bonus with ref = the month key means a
 // redelivered Stripe webhook, two purchases landing at once, or a manual replay all
 // converge on exactly one bonus row for that month. We never have to check whether
-// we already paid it — the database refuses the second write.
+// we already paid it, the database refuses the second write.
 
 /**
  * The month a purchase counts toward, as "YYYY-MM".
  *
  * UTC, not the customer's local time. The boundary has to be the same one the SQL
  * range query uses, and it has to be stable no matter which region a serverless
- * instance wakes up in — a bonus that depends on where the code ran is a bug that
+ * instance wakes up in, a bonus that depends on where the code ran is a bug that
  * only shows up in production.
  */
 export function monthKey(at: Date): string {

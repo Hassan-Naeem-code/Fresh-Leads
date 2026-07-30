@@ -39,7 +39,7 @@ export const CREDIT_PACKS = [5, 25, 50, 100, 250];
  *
  * It accumulates across every top-up in the month rather than requiring one large
  * order, so someone who buys in three chunks is rewarded the same as someone who
- * buys once — the spend is what we are thanking them for, not the click count.
+ * buys once, the spend is what we are thanking them for, not the click count.
  *
  * Deliberately NOT a discounted credit price: the headline stays exactly $1 per
  * credit, and creditCostCents() below stays a single multiplication. A tiered price

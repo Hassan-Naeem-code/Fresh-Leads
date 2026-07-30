@@ -1,10 +1,10 @@
--- Fresh Leads — migration 003: dedicated admin credential (separate from user auth).
+-- Fresh Leads: migration 003: dedicated admin credential (separate from user auth).
 -- Run once in the Supabase SQL editor. Safe to re-run.
 --
 -- The admin is NOT a Supabase auth user. It's a single fixed credential kept here.
 -- The row is created automatically on the admin's first login (bootstrapped from
 -- the ADMIN_EMAIL / ADMIN_PASSWORD env vars), and the password can then be changed
--- from /admin/account — which updates this row. There is no way to create a second
+-- from /admin/account, which updates this row. There is no way to create a second
 -- admin from the app.
 
 create table if not exists public.admin_accounts (

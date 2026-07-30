@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     // Twilio and ZeroBounce, so this is where we spend it (see lib/verify/contact.ts).
     //
     // It runs BEFORE the charge, deliberately: once the line has actually been dialled
-    // and the mailbox actually checked, we know whether this lead is reachable — and
+    // and the mailbox actually checked, we know whether this lead is reachable, and
     // billing a credit for a lead we just proved unreachable would be indefensible.
     // `contactVerifiedAt` makes it a one-time cost: re-opening a lead never re-bills us.
     const alreadyOwned = await hasUnlocked(user.id, leadKey);

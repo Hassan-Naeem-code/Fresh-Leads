@@ -3,9 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_COOKIE } from "@/lib/admin/constants";
 
 // Routes that require a logged-in user. Credit and subscription checks live deeper
-// (lib/access.ts, used by /api/leads and the unlock/export routes) — middleware only
+// (lib/access.ts, used by /api/leads and the unlock/export routes), middleware only
 // does the coarse auth redirect.
-// NOTE: /admin is NOT here — it uses a separate admin session (see below), not user auth.
+// NOTE: /admin is NOT here: it uses a separate admin session (see below), not user auth.
 const PROTECTED_PREFIXES = ["/dashboard"];
 
 export async function middleware(request: NextRequest) {
@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
 
   // Admin pages use their own session cookie (separate from user auth). Missing
   // cookie -> send to the admin login. The signature is fully verified server-side
-  // in app/admin/* and /api/admin/* — this is just the coarse edge guard. The login
+  // in app/admin/* and /api/admin/*, this is just the coarse edge guard. The login
   // page itself must stay reachable.
   if (
     pathname.startsWith("/admin") &&

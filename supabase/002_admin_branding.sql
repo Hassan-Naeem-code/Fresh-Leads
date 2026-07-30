@@ -1,11 +1,11 @@
--- Fresh Leads — migration 002: site-wide branding settings + logo storage.
+-- Fresh Leads: migration 002: site-wide branding settings + logo storage.
 -- Run once in the Supabase SQL editor, after schema.sql. Safe to re-run.
 --
--- Admin identity is NOT stored here — admins are an env allowlist (ADMIN_EMAILS),
+-- Admin identity is NOT stored here: admins are an env allowlist (ADMIN_EMAILS),
 -- checked server-side. This migration only adds the branding surface.
 
 -- ---------------------------------------------------------------------------
--- site_settings — a single-row table (id is pinned to 1) holding the live theme.
+-- site_settings, a single-row table (id is pinned to 1) holding the live theme.
 -- Public SELECT (theme/brand are public anyway). Writes go through the service
 -- role only (admin API), mirroring the quotes/orders policy shape in schema.sql.
 -- ---------------------------------------------------------------------------
@@ -14,7 +14,7 @@ create table if not exists public.site_settings (
   brand_name  text not null default 'Fresh Leads',
   tagline     text not null default 'Verified local business leads, on demand.',
   logo_url    text,
-  -- palette — 1:1 with the CSS custom properties in app/globals.css
+  -- palette, 1:1 with the CSS custom properties in app/globals.css
   bg          text not null default '#0a0e17',
   panel       text not null default '#121826',
   panel2      text not null default '#1a2233',

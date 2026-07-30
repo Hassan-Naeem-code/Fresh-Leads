@@ -14,7 +14,7 @@ const Body = z.object({
   sells: z.string().max(500).optional(),
   targets: z.array(z.string().max(80)).max(12).optional(),
   location: z.string().max(160).optional(),
-  /** Free-text "describe your ideal customer" — parsed into the fields above. */
+  /** Free-text "describe your ideal customer", parsed into the fields above. */
   describe: z.string().max(2000).optional(),
 });
 
@@ -31,7 +31,7 @@ export async function GET() {
 
 /**
  * Save the buyer profile. Accepts either explicit fields (the playbook picker) or a
- * free-text `describe` string, which is parsed into the same fields — so the
+ * free-text `describe` string, which is parsed into the same fields, so the
  * natural-language box and the picker write identical state.
  */
 export async function POST(req: NextRequest) {

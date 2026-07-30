@@ -4,7 +4,7 @@ node_modules
 *.log
 .DS_Store
 
-# local env / secrets — never commit
+# local env / secrets, never commit
 .env
 .env.local
 .env*.local

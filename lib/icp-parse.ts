@@ -7,8 +7,8 @@ import { PLAYBOOKS, DEFAULT_PLAYBOOK, type PlaybookId } from "./playbooks";
 // neither is a special case downstream.
 //
 // Two tiers, deliberately:
-//   1. Claude, when ANTHROPIC_API_KEY is set — handles real sentences.
-//   2. A deterministic keyword parser otherwise — no key, no cost, still useful.
+//   1. Claude, when ANTHROPIC_API_KEY is set: handles real sentences.
+//   2. A deterministic keyword parser otherwise: no key, no cost, still useful.
 // The fallback matters: without it, the box would simply not work until someone
 // configures billing, and a half-working input is worse than a plain form.
 
@@ -73,7 +73,7 @@ const SCHEMA = {
 
 const SYSTEM = `You turn a salesperson's description of their ideal customer into search fields for a local-business lead tool.
 
-Extract only what they actually said. If they did not state a location, leave it empty and list "location" in missing — never invent a city. The playbook is about what THEY SELL, not about the businesses they are targeting: someone selling card terminals to restaurants is payments_pos, not general_smb.`;
+Extract only what they actually said. If they did not state a location, leave it empty and list "location" in missing, never invent a city. The playbook is about what THEY SELL, not about the businesses they are targeting: someone selling card terminals to restaurants is payments_pos, not general_smb.`;
 
 /** Claude-backed parse. Returns null if unavailable or if the call fails. */
 async function parseWithClaude(description: string): Promise<ParsedIcp | null> {

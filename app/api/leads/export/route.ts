@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Paid verification, once per lead, before anything is charged — the same rule the
+    // Paid verification, once per lead, before anything is charged, the same rule the
     // single-lead unlock follows (see lib/verify/persist.ts). An export of 200 leads is
     // an export of 200 credits, so it is exactly where charging for a dead phone number
     // would hurt most. Leads already paid for skip this: they were verified when bought.
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       verifyAndPersist(r.raw as unknown as Lead, r.id as string)
     );
 
-    // Drop the ones we just proved unreachable, unless they are already owned — those
+    // Drop the ones we just proved unreachable, unless they are already owned, those
     // were bought and stay in the file whatever the re-check says.
     const isDead = (r: (typeof usable)[number]) =>
       !(r.raw as unknown as Lead).deliverable && !owned.has(`${r.source}:${r.source_id}`);
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "None of those leads passed verification — their phones and emails are dead. " +
+            "None of those leads passed verification, their phones and emails are dead. " +
             "You haven't been charged.",
           code: "unverifiable",
           skipped: dead.length,

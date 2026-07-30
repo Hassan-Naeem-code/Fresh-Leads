@@ -4,7 +4,7 @@ import type { Lead } from "../types";
 
 // Run the paid verification once per lead, ever, and write the verdict back.
 //
-// Both paying paths need this — unlocking one lead and exporting a batch — and both
+// Both paying paths need this (unlocking one lead and exporting a batch) and both
 // need it to be idempotent, because `contactVerifiedAt` is the only thing standing
 // between us and paying Twilio again every time someone re-opens a lead they own.
 

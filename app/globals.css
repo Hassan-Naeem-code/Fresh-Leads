@@ -548,7 +548,7 @@ button.ghost, button.go { display: inline-flex; align-items: center; justify-con
 .pr-cardicon { transition: transform .35s cubic-bezier(.22,.61,.36,1); }
 .pr-card:hover .pr-cardicon { transform: scale(1.08) rotate(-4deg); }
 
-/* Testimonial cards — hover flips to the dark panel (Primer careers) */
+/* Testimonial cards: hover flips to the dark panel (Primer careers) */
 .pr-quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
 @media (max-width: 900px) { .pr-quotes { grid-template-columns: 1fr; } }
 .pr-quote { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 32px; cursor: default; transition: transform .4s cubic-bezier(.22,.61,.36,1), background .4s ease, box-shadow .4s ease, border-color .4s ease; }
@@ -563,7 +563,7 @@ button.ghost, button.go { display: inline-flex; align-items: center; justify-con
 .pr-quote:hover .pr-quotename { color: #fff; }
 .pr-quote:hover .pr-quoterole { color: rgba(255,255,255,.6); }
 
-/* Values cards — dark panel wipes up from the bottom on hover */
+/* Values cards: dark panel wipes up from the bottom on hover */
 .pr-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
 @media (max-width: 800px) { .pr-values { grid-template-columns: 1fr; } }
 .pr-value { position: relative; overflow: hidden; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 30px; transition: border-color .4s ease; isolation: isolate; }
@@ -645,10 +645,10 @@ html { scroll-behavior: smooth; }
 .pr-dark .pill { background: rgba(255,255,255,.06); }
 
 /* ============================================================
-   STAGE 2 — App design system
+   STAGE 2: App design system
    The landing speaks Primer (pill buttons, big radii, warm sand,
    layered shadows). Everything below teaches the *product* screens
-   — dashboard, auth, quote, onboarding, admin — the same language.
+   (dashboard, auth, quote, onboarding, admin) the same language.
    ============================================================ */
 :root {
   --r-sm: 10px;
@@ -656,7 +656,7 @@ html { scroll-behavior: smooth; }
   --r-lg: 20px;
   --r-xl: 26px;
   --pill: 999px;
-  /* Warm-tinted elevation. Shadows are brown, never grey — on sand,
+  /* Warm-tinted elevation. Shadows are brown, never grey. On sand,
      neutral shadows read as dirt. */
   --sh-1: 0 1px 2px rgba(35,8,0,.04), 0 1px 3px rgba(35,8,0,.05);
   --sh-2: 0 2px 4px rgba(35,8,0,.04), 0 12px 28px -14px rgba(35,8,0,.14);
@@ -795,7 +795,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .status { font-size: 14px; }
 
 /* ============================================================
-   Auth — split screen: form on sand, proof on the dark panel
+   Auth split screen: form on sand, proof on the dark panel
    ============================================================ */
 .authwrap { display: grid; grid-template-columns: 1.05fr .95fr; place-items: stretch; padding: 0; }
 @media (max-width: 900px) { .authwrap { grid-template-columns: 1fr; } }
@@ -848,7 +848,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .onboard .obform { gap: 22px; }
 
 /* ============================================================
-   Admin — same language, denser
+   Admin: same language, denser
    ============================================================ */
 .adm-side { padding: 22px 16px; gap: 26px; background: var(--panel); }
 .adm-brand { font-size: 15.5px; font-weight: 700; letter-spacing: -.02em; gap: 11px; }
@@ -873,7 +873,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .adm-brandcard { border-radius: var(--r-lg); box-shadow: var(--sh-1); }
 .adm-logoprev { border-radius: var(--r-md); }
 
-/* Admin sign-in stays a single centred card — no marketing panel behind the gate. */
+/* Admin sign-in stays a single centred card: no marketing panel behind the gate. */
 .authwrap.solo { grid-template-columns: 1fr; place-items: center; padding: 32px 20px; }
 .authwrap.solo .authcard {
   background: var(--panel); border: 1px solid var(--border);
@@ -882,12 +882,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .authwrap.solo .brand { margin-bottom: 4px; }
 .authwrap.solo .brand h1 { font-size: 22px; }
 
-/* Brand lockups are links now — they must not pick up default link chrome. */
+/* Brand lockups are links now: they must not pick up default link chrome. */
 a.brand, a.brand:visited { color: var(--text); text-decoration: none; }
 a.brand h1 { transition: color .18s ease; }
 a.brand:hover h1 { color: var(--accent); }
 
-/* Chrome's autofill paints fields cornflower blue — repaint them in-palette. */
+/* Chrome's autofill paints fields cornflower blue: repaint them in-palette. */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
@@ -897,7 +897,7 @@ input:-webkit-autofill:focus {
   transition: background-color 9999s ease-out;
 }
 
-/* Above-the-fold entrance. Pure CSS so the hero paints on the first frame —
+/* Above-the-fold entrance. Pure CSS so the hero paints on the first frame -
    a JS-gated reveal leaves the top of the page blank until hydration. */
 .enter { animation: enterUp .72s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes enterUp {
@@ -925,7 +925,7 @@ input:-webkit-autofill:focus {
 }
 
 /* Admin table is a fixed 5-column grid. Rather than restack every row,
-   let the table scroll sideways inside its own container — the columns
+   let the table scroll sideways inside its own container, the columns
    stay aligned and nothing bleeds off the page. */
 @media (max-width: 720px) {
   .adm-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -958,7 +958,7 @@ input:-webkit-autofill:focus {
 .app-eyebrow .dot { color: currentColor; }
 
 /* ============================================================
-   Marketing pages — pricing, about, contact, shared footer
+   Marketing pages: pricing, about, contact, shared footer
    Reuses the .pr-* landing language (warm sand, pill buttons,
    layered shadows) so the public site reads as one system.
    ============================================================ */
@@ -1120,7 +1120,7 @@ input:-webkit-autofill:focus {
 }
 
 /* ==========================================================================
-   STAGE 3 — Credits, unlocking, billing
+   STAGE 3: Credits, unlocking, billing
 
    The pay-as-you-go model: a balance in the header, locked lead cards, the
    unlock dialog, and the billing screen. Reuses the Stage 2 tokens, so nothing
@@ -1315,7 +1315,7 @@ input:-webkit-autofill:focus {
 .price-note b { color: var(--text); }
 
 /* ==========================================================================
-   STAGE 4 — "Describe your ideal customer"
+   STAGE 4: "Describe your ideal customer"
 
    The one-box front door onto the playbook model. Writes the same fields as the
    picker below it, so the two are interchangeable.
@@ -1361,7 +1361,7 @@ input:-webkit-autofill:focus {
   font-size: 12.5px; color: var(--muted);
 }
 .icp-chip b { color: var(--text); font-weight: 600; }
-/* Something we could not determine — say so rather than guessing a value. */
+/* Something we could not determine: say so rather than guessing a value. */
 .icp-chip.warn {
   background: color-mix(in srgb, var(--warm) 10%, var(--panel));
   border-color: color-mix(in srgb, var(--warm) 34%, transparent);

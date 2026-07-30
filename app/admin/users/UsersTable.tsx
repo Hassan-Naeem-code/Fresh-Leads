@@ -149,7 +149,7 @@ function UserRow({
     <div className={`adm-rowwrap ${open ? "open" : ""}`}>
       <button className="adm-tr adm-row" onClick={onToggle} type="button">
         <span className="adm-user">
-          <b>{row.email ?? "—"}</b>
+          <b>{row.email ?? "-"}</b>
           <small>{row.full_name || row.company_name || "No name"}</small>
         </span>
         <span>

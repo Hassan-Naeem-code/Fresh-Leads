@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
     //
     // FREE TIER ONLY. The paid Twilio and ZeroBounce lookups wait until someone spends
     // a credit on the lead (app/api/leads/unlock), because we discover ~40 leads per
-    // search and get paid for the few that are opened — see lib/verify/contact.ts.
+    // search and get paid for the few that are opened, see lib/verify/contact.ts.
     await mapPool(leads, 12, (lead) => verifyContact(lead, "free"));
 
     for (const lead of leads) {
@@ -305,7 +305,7 @@ export async function POST(req: NextRequest) {
     const genuine = top.filter((l) => l.deliverable).length;
     // "Contact found", not "verified": only the free checks have run at this point. The
     // carrier and mailbox lookups fire when a lead is opened, and the promise attached
-    // to that is the one worth stating — nobody pays for a lead that fails it.
+    // to that is the one worth stating, nobody pays for a lead that fails it.
     notes.push(
       `${genuine} of ${top.length} leads have a contact we can reach and look open. ` +
         `We confirm the phone and mailbox live when you open one, and you are not charged if it fails.`

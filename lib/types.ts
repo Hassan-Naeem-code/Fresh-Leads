@@ -1,7 +1,7 @@
 import type { FreshnessLevel } from "./freshness";
 import type { VendorMatch } from "./vendors";
 
-/** One line item of the 0–100 grade: what fired, and how many points it contributed. */
+/** One line item of the 0-100 grade: what fired, and how many points it contributed. */
 export type ScoreFactor = {
   key: string;
   label: string;

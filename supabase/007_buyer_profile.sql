@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- 007. BUYER PROFILE — what the user sells
+-- 007. BUYER PROFILE: what the user sells
 --
 -- The single most important thing to know about a customer, and until now it was
 -- client-side state that reset on every reload. A Shift4 card-terminal reseller and

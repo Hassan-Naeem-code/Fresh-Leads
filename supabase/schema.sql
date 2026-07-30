@@ -1,9 +1,9 @@
--- Fresh Leads — full database schema (run once in the Supabase SQL editor).
+-- Fresh Leads: full database schema (run once in the Supabase SQL editor).
 -- Safe to re-run: guarded with "if not exists" / "drop ... if exists" where practical.
 --
 -- Security model: RLS is ON for every table. Users can read/write their OWN rows for
 -- profiles/business_profiles/saved_searches. Money & entitlement tables (quotes, orders)
--- are READ-ONLY to users — all privileged writes go through the service-role key
+-- are READ-ONLY to users, all privileged writes go through the service-role key
 -- (Stripe webhook + quote engine), which bypasses RLS. This means a client can never
 -- self-grant access or inflate a quota.
 

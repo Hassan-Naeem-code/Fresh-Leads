@@ -569,7 +569,7 @@ export default function Home() {
                 <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
                   <option value="score">Highest grade</option>
                   <option value="freshest">Freshest listing</option>
-                  <option value="name">Name (A–Z)</option>
+                  <option value="name">Name (A-Z)</option>
                 </select>
               </div>
               <div className="fgroup">
@@ -694,14 +694,14 @@ function GradeScale({
 
       {open && (
         <div className="scalebody">
-          <h4>The 0–100 scale</h4>
+          <h4>The 0-100 scale</h4>
           {/* Bands are percentages of MAX_ATTAINABLE, so this stays accurate as
               factors are added to the catalog. */}
           <div className="bands">
             {GRADE_SCALE.map((b) => (
               <div className={`band ${b.tier}`} key={b.tier}>
                 <div className="bandhead">
-                  <b><Dot /> {b.label}</b><span>{b.min}–{b.max}</span>
+                  <b><Dot /> {b.label}</b><span>{b.min}-{b.max}</span>
                 </div>
                 <p>{b.meaning}</p>
                 <p className="act"><ArrowRight size={13} /> {b.action}</p>

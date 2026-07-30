@@ -1,6 +1,6 @@
 -- Contact form submissions from the public /contact page.
 -- Written by the service-role client only (the public API route), so no RLS
--- policies are granted to anon/authenticated — the table stays invisible to the
+-- policies are granted to anon/authenticated, the table stays invisible to the
 -- browser and is read from the admin panel via the service-role client.
 
 create table if not exists public.contact_messages (

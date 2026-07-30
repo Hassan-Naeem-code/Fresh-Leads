@@ -75,7 +75,7 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
             </div>
             <div className="bar"><i className={l.tier} style={{ width: `${pct}%` }} /></div>
             <div className="brknote">
-              <b>{band.label}</b> ({band.min}–{band.max}): {band.meaning} <em>{band.action}</em>
+              <b>{band.label}</b> ({band.min}-{band.max}): {band.meaning} <em>{band.action}</em>
             </div>
           </div>
         </details>

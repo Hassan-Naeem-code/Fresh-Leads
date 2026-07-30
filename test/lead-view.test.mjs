@@ -82,7 +82,7 @@ test("a locked lead exposes none of what the credit pays for", () => {
   for (const field of PAID_FIELDS) {
     assert.ok(
       !(field in locked),
-      `locked lead must not carry "${field}" — that is what the customer pays to see`
+      `locked lead must not carry "${field}": that is what the customer pays to see`
     );
   }
 });

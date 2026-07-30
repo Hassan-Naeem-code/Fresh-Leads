@@ -77,7 +77,7 @@ async function zeroBounce(email: string): Promise<EmailStatus | null> {
 /**
  * True when a cached verdict came from the free tier but ZeroBounce could still
  * improve it. Only a syntax-and-MX pass ever reaches the paid tier, and that always
- * caps out at "risky" — so anything already ruled undeliverable offline is final and
+ * caps out at "risky", so anything already ruled undeliverable offline is final and
  * must NOT be re-billed.
  *
  * Without this the cache would silently defeat verify-on-unlock: the search caches a

@@ -33,7 +33,7 @@ export const FRESHNESS_SCALE: FreshnessBand[] = [
     level: "AGING",
     maxDays: 730,
     label: "Aging",
-    meaning: "1–2 years since anyone touched the record. Phone may have changed.",
+    meaning: "1-2 years since anyone touched the record. Phone may have changed.",
   },
   {
     level: "STALE",

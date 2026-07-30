@@ -10,7 +10,7 @@ import { verifyContact } from "./.build/contact.mjs";
 //
 // These tests deliberately use phone-only leads. With no TWILIO_* / ZEROBOUNCE_API_KEY
 // in the environment both paid lookups bail out before making a request, so the tier
-// PLUMBING is what's under test here, not the vendors — and nothing touches the network.
+// PLUMBING is what's under test here, not the vendors, and nothing touches the network.
 
 const lead = (o = {}) => ({
   phone: "",

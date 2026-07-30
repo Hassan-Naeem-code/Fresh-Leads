@@ -21,7 +21,7 @@ const MISSING_LABEL: Record<string, string> = {
 };
 
 /**
- * "Describe your ideal customer" — one box instead of a form.
+ * "Describe your ideal customer", one box instead of a form.
  *
  * It writes exactly the same fields the playbook picker does (see /api/profile), so
  * the two are interchangeable rather than parallel paths. Whatever it can't work out
@@ -86,12 +86,12 @@ export function IcpBox({
           {!aiParsing && " (Basic matching for now.)"}
         </span>
         {/* `aiParsing` only says a key is CONFIGURED. `result.ai` says the AI call
-            actually succeeded. When they disagree — an expired key, no API credit, a
-            timeout — say so, because otherwise the box silently drops to keyword
+            actually succeeded. When they disagree (an expired key, no API credit, a
+            timeout), say so, because otherwise the box silently drops to keyword
             matching while still looking like it read the sentence properly. */}
         {aiParsing && result && !result.ai && (
           <span className="icp-hint warn">
-            <AlertTriangle size={12} /> Read with basic keyword matching — the AI parser
+            <AlertTriangle size={12} /> Read with basic keyword matching, the AI parser
             didn&rsquo;t respond. Check the Claude API key and its credit balance.
           </span>
         )}
@@ -120,7 +120,7 @@ export function IcpBox({
           )}
           {result.missing.length > 0 && (
             <span className="icp-chip warn">
-              Still need {result.missing.map((m) => MISSING_LABEL[m] ?? m).join(" and ")} — fill it in
+              Still need {result.missing.map((m) => MISSING_LABEL[m] ?? m).join(" and ")}, fill it in
               below.
             </span>
           )}

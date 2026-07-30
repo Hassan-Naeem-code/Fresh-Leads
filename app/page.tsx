@@ -137,7 +137,7 @@ export default async function Landing() {
             <p>Run searches in a filterable dashboard, grade every prospect, and export only the genuine ones.</p>
             <div className="pr-stepproof">
               <span className="pr-schip"><Download size={12} /> Export CSV</span>
-              <span className="pr-schip">0–100 grade</span>
+              <span className="pr-schip">0-100 grade</span>
             </div>
           </div>
         </Reveal>
@@ -151,7 +151,7 @@ export default async function Landing() {
         cards={[
           { icon: <Phone size={22} />, num: "01", title: "Reachable or it doesn't count", body: "If we can't verify the email and phone, the lead never reaches you. No filler, no dead ends, just contacts you can actually work." },
           { icon: <Clock size={22} />, num: "02", title: "Fresh, never stale", body: "Every listing is age-checked and re-confirmed active, so you're never chasing a business that closed months ago." },
-          { icon: <Gauge size={22} />, num: "03", title: "Graded, so you know who to call", body: "A 0–100 opportunity score on every prospect with a plain-English reason, so your team always works the best leads first." },
+          { icon: <Gauge size={22} />, num: "03", title: "Graded, so you know who to call", body: "A 0-100 opportunity score on every prospect with a plain-English reason, so your team always works the best leads first." },
           { icon: <Check size={22} />, num: "04", title: "You only pay for real", body: "Verified, deliverable leads are the only ones that count against your quota. Bounces and dead lines are on us." },
         ]}
       />

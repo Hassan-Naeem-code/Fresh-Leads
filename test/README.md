@@ -4,11 +4,11 @@
 
 Covers the pure logic where a bug costs money or credibility:
 
-- **`score.test.mjs`** — the grade. That an unknown signal is never sold as an
+- **`score.test.mjs`**: the grade. That an unknown signal is never sold as an
   absence, that the reputation slot picks one pitch, that a website we could not
   fetch is not reported as a clean one, and that the tier bands stay calibrated as
   factors are added to the catalog.
-- **`merge.test.mjs`** — cross-source dedupe. That the same business found twice
+- **`merge.test.mjs`**: cross-source dedupe. That the same business found twice
   collapses into one lead (it used to come back twice and bill the customer's quota
   twice), and that complementary fields from OpenStreetMap and Google Places are
   combined rather than one record being discarded.

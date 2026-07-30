@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { parseIcpHeuristic } from "./.build/icp-parse.mjs";
 
 // The keyword parser is what runs until an Anthropic key is configured, so it has to
-// be genuinely useful on its own — and, above all, must never invent a location.
+// be genuinely useful on its own, and, above all, must never invent a location.
 
 test("the Shift4 reseller case routes to payments, not general", () => {
   const r = parseIcpHeuristic(
