@@ -48,9 +48,35 @@ export type VendorContact = {
  */
 const OWNER_TITLES = [
   "owner", "co-owner", "founder", "co-founder", "proprietor", "president",
-  "principal", "ceo", "managing director", "partner", "director", "practice manager",
-  "general manager", "manager",
+  "principal", "ceo", "managing director", "partner",
 ];
+
+/**
+ * Titles that are NOT ownership, however senior they sound.
+ *
+ * Measured against 40 real local businesses: every single name the vendor returned
+ * held a title from this list, including a "vice president of finance" and a "mobile
+ * developer". Accepting them would put a stranger's name on the lead under the word
+ * "Owner", which is worse than leaving it blank: the rep opens the call addressing
+ * the wrong person and immediately sounds like a cold list.
+ */
+const NOT_OWNERSHIP = [
+  "vice president", "vp ", "director", "manager", "developer", "engineer",
+  "coordinator", "assistant", "associate", "receptionist", "hygienist",
+  "marketing", "sales", "finance", "clinical", "operations", "office",
+];
+
+/** True only when the stated title actually means this person runs the business. */
+export function isOwnerTitle(position: string | null | undefined): boolean {
+  const p = (position ?? "").toLowerCase().trim();
+  if (!p) return false;
+  // Checked first: "managing director" is ownership, "marketing director" is not, and
+  // both contain "director".
+  if (OWNER_TITLES.some((t) => p.includes(t))) {
+    return !NOT_OWNERSHIP.some((n) => p.includes(n) && !OWNER_TITLES.some((t) => p.includes(t) && t.includes(n)));
+  }
+  return false;
+}
 
 const titleRank = (position: string | null | undefined): number => {
   const p = (position ?? "").toLowerCase();
@@ -84,9 +110,11 @@ export function pickOwnerContact(contacts: VendorContact[]): VendorContact | nul
       (b.confidence ?? 0) - (a.confidence ?? 0)
   );
 
-  const best = sorted[0];
-  // A named contact with no recognisable title is still worth having, but one the
-  // vendor is unsure about is not: it would be published as fact.
+  // ONLY a stated ownership title counts. This was originally lenient, accepting any
+  // named contact, and the measurement showed exactly what that produces on local
+  // businesses: a marketing director presented to the customer as the owner.
+  const best = sorted.find((c) => isOwnerTitle(c.position));
+  if (!best) return null;
   if ((best.confidence ?? 0) < MIN_OWNER_CONFIDENCE) return null;
   return best;
 }

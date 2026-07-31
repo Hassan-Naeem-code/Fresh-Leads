@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pickOwnerContact, toOwnerLookup, MIN_OWNER_CONFIDENCE } from "./.build/owner-lookup.mjs";
+import { pickOwnerContact, toOwnerLookup, isOwnerTitle, MIN_OWNER_CONFIDENCE } from "./.build/owner-lookup.mjs";
 
 // A vendor typically returns several people at one domain. Whoever this function picks
 // is the name a rep says out loud, and we are paying for the privilege, so the ranking
@@ -57,9 +57,31 @@ test("exactly at the confidence floor is accepted", () => {
   assert.equal(picked.first_name, "Ash");
 });
 
-test("a named contact with no title still counts when nobody senior is listed", () => {
-  const picked = pickOwnerContact([c({ first_name: "Robin", position: null, confidence: 88 })]);
-  assert.equal(picked.first_name, "Robin");
+test("a named contact with no title is NOT presented as the owner", () => {
+  // Being lenient here is what produced a marketing director labelled "Owner" on a
+  // real dental practice. No stated ownership, no owner.
+  assert.equal(pickOwnerContact([c({ first_name: "Robin", position: null, confidence: 88 })]), null);
+});
+
+test("senior sounding titles that are not ownership are rejected", () => {
+  // Every one of these came back from the live vendor trial on real local businesses.
+  for (const title of [
+    "vice president of finance", "general manager", "clinical director",
+    "marketing director", "mobile developer", "office manager",
+  ]) {
+    assert.equal(isOwnerTitle(title), false, `${title} must not count as ownership`);
+    assert.equal(
+      pickOwnerContact([c({ first_name: "Sam", position: title, confidence: 99 })]),
+      null,
+      `${title} must not be returned as the owner`
+    );
+  }
+});
+
+test("genuine ownership titles are still accepted", () => {
+  for (const title of ["Owner", "Co-Founder", "Proprietor", "President", "Managing Director", "CEO"]) {
+    assert.equal(isOwnerTitle(title), true, `${title} should count as ownership`);
+  }
 });
 
 test("the vendor record is mapped onto our own shape", () => {
