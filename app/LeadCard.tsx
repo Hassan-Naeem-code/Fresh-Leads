@@ -1,6 +1,7 @@
 import type { Lead } from "@/lib/types";
 import { LEGACY_ATTAINABLE, bandFor, gradePct } from "@/lib/score";
 import { bandFor as freshnessBandFor } from "@/lib/freshness";
+import { estimateSize } from "@/lib/size";
 import {
   Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Building, ChevronRight, Dot, Check,
   User, Briefcase,
@@ -16,6 +17,7 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
   // scoreMax existed keep the scale they were originally graded on.
   const attainable = l.scoreMax || LEGACY_ATTAINABLE;
   const pct = gradePct(l.score, attainable);
+  const size = estimateSize(l);
 
   return (
     <div className="lead">
@@ -73,6 +75,14 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
           {l.emailStatus === "undeliverable" && <span className="vbadge bad"><Mail size={11} /> email unreachable</span>}
           {l.activeStatus === "active" && <span className="vbadge"><Building size={11} /> active</span>}
           {l.activeStatus === "likely_closed" && <span className="vbadge bad">may be closed</span>}
+          {/* Modelled, and labelled as such in the tooltip. Nobody publishes headcount
+              for an independent business, so every size figure in this category is an
+              estimate, including the ones printed as facts elsewhere. */}
+          {size && (
+            <span className="vbadge" title={`${size.staff}, ${size.basis}`}>
+              <Building size={11} /> {size.label}
+            </span>
+          )}
           {/* Hiring is a growth signal and a genuine reason to call this week, so it
               sits with the other verified facts rather than in the need signals. */}
           {l.hiring === true && (

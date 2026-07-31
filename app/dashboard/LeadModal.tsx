@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { UnlockedLead } from "@/lib/types";
 import { LeadCard } from "../LeadCard";
+import { estimateSize } from "@/lib/size";
 import { X, Check } from "../icons";
 
 // The payoff for spending a credit: everything we know about the lead, in a dialog.
@@ -20,6 +21,12 @@ function Fact({ label, value }: { label: string; value: string | null | undefine
       <dd>{value}</dd>
     </div>
   );
+}
+
+/** The size band with its evidence, or nothing when we hold no review data. */
+function sizeText(lead: UnlockedLead): string | null {
+  const s = estimateSize(lead);
+  return s ? `${s.label}, ${s.staff} (${s.basis})` : null;
 }
 
 /** Tri-state, so "we could not check" never renders as a confident "No". */
@@ -93,6 +100,7 @@ export function LeadModal({
             <dl className="lm-facts">
               <Fact label="Full address" value={lead.address} />
               <Fact label="City" value={lead.city} />
+              <Fact label="Estimated size" value={sizeText(lead)} />
               <Fact
                 label="Google rating"
                 value={lead.rating !== null ? `${lead.rating} out of 5${lead.reviewCount ? ` from ${lead.reviewCount.toLocaleString()} reviews` : ""}` : null}

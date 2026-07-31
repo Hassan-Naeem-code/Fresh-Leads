@@ -79,6 +79,41 @@ test("real names measured in the wild still pass", () => {
   assert.equal(looksLikeName("Kyleen Chen"), true);
 });
 
+test("a named practitioner is found, with their real credential as the role", () => {
+  // Dental and medical practices were the largest group we could name nobody at.
+  // The role is the credential, never "owner": an associate at a group practice is a
+  // real possibility and claiming ownership we have not established would be a lie.
+  assert.deepEqual(extractOwner("<h2>Dr. Kyleen Chen</h2>"), { name: "Kyleen Chen", role: "doctor" });
+  assert.deepEqual(extractOwner("<p>Dr Amina Rahman, our lead dentist</p>"), {
+    name: "Amina Rahman", role: "doctor",
+  });
+  assert.equal(extractOwner("<li>Marcus Webb, DDS</li>").role, "dds");
+  assert.equal(extractOwner("<li>Elena Cruz DMD</li>").name, "Elena Cruz");
+});
+
+test("the word do is not the D.O. credential", () => {
+  // Measured: matching credentials case-insensitively turned ordinary prose into
+  // practitioner names, giving "Wellness Plan" and "Booking How" as real leads.
+  assert.equal(extractOwner("<p>Wellness Plan do more for you</p>"), null);
+  assert.equal(extractOwner("<p>Booking How do I book</p>"), null);
+});
+
+test("headings beside a name are not absorbed into it", () => {
+  // "Dr. Zahedi Testimonials" came from a heading following the name.
+  assert.equal(extractOwner("<h2>Dr. Zahedi Testimonials</h2>"), null);
+});
+
+test("a practitioner name in image alt text is found", () => {
+  // Practice sites caption headshots and put the only occurrence of the name there.
+  const html = '<img src="/team/1.jpg" alt="Dr. Priya Nair" />';
+  assert.equal(extractOwner(html).name, "Priya Nair");
+});
+
+test("an explicit owner label still beats a practitioner credential", () => {
+  const html = "<p>Sarah Milton, Owner</p><p>Dr. Tom Hardy</p>";
+  assert.deepEqual(extractOwner(html), { name: "Sarah Milton", role: "owner" });
+});
+
 test("place names are not people", () => {
   assert.equal(looksLikeName("New York"), false);
   assert.equal(looksLikeName("Main Street"), false);

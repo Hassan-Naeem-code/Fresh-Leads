@@ -50,7 +50,10 @@ export const EMPTY_ENRICHMENT: Enrichment = {
 const PAGE_HINTS = [
   /\/about[-_a-z]*\/?$/i,
   /\/(our-)?team\/?$/i,
+  // Professional practices put the principal here rather than on an About page.
+  /\/(doctors?|dentists?|providers?|physicians?|practitioners?|surgeons?)\/?$/i,
   /\/(meet|staff|people|leadership|owners?)[-_a-z]*\/?$/i,
+  /\/(our-story|who-we-are)\/?$/i,
   /\/contact[-_a-z]*\/?$/i,
   /\/(careers?|jobs?|join-us|were-hiring)\/?$/i,
 ];
@@ -69,6 +72,19 @@ const OWNER_ROLES = [
   "proprietor", "president", "principal", "managing director", "ceo",
 ];
 
+/**
+ * Professional credentials. On a one or two chair practice the named practitioner is
+ * the person who decides, and these appear where an "Owner" label never does.
+ *
+ * Found by measuring: dental practices were the single largest group we could not name
+ * anyone at, and every one of their sites says "Dr. Someone" on a /doctors page.
+ *
+ * The role is stored as the credential itself, never as "owner", because an associate
+ * dentist at a group practice is a real possibility and claiming ownership we have not
+ * established would be a lie on the lead.
+ */
+const PRACTITIONER_TITLES = ["DDS", "DMD", "MD", "DVM", "OD", "DC", "PhD", "CPA", "Esq"];
+
 // A person's name stays CASE SENSITIVE: capitalisation is most of what separates
 // "Jane Doe" from a run of ordinary words. The role is matched loosely here and
 // checked properly in isOwnerRole below, because a single regex cannot be case
@@ -85,6 +101,17 @@ const NAME_THEN_ROLE = new RegExp(`(${NAME})${SEP}(?:[Tt]he\\s+)?(${ROLEISH})`, 
 
 // "Owner: Jane Doe"  /  "Meet our Owner - Jane Doe"  /  "Founder, Jane Doe"
 const ROLE_THEN_NAME = new RegExp(`\\b(${ROLEISH})${SEP}(${NAME})`, "g");
+
+// "Dr. Jane Smith" / "Dr Jane Smith". The honorific is the title.
+const DOCTOR_NAME = new RegExp(String.raw`\bDr\.?\s+(${NAME})`, "g");
+
+// "Jane Smith, DDS" / "Jane Smith DMD"
+// CASE SENSITIVE on purpose. These are written in capitals in the real world, and
+// matching them loosely turned the word "do" into the D.O. credential.
+const CREDENTIAL_NAME = new RegExp(
+  String.raw`(${NAME})\s*,?\s+(${PRACTITIONER_TITLES.join("|")})\b`,
+  "g"
+);
 
 // "Meet Jane Doe"  /  "founded by Jane Doe"  /  "owned and operated by Jane Doe"
 const PROSE_NAME = new RegExp(
@@ -136,6 +163,11 @@ const NEVER_IN_A_NAME = new Set([
   "group", "center", "centre", "associates", "partners", "company", "solutions",
   "dental", "medical", "health", "care", "smiles", "studio", "salon", "spa",
   "family", "welcome", "meet", "about", "contact", "home", "menu", "hours",
+  // Measured: "Dr. Zahedi Testimonials" and "Booking How" were produced by headings
+  // sitting immediately after a name.
+  "testimonials", "reviews", "plan", "plans", "how", "booking", "book", "wellness",
+  "appointment", "appointments", "insurance", "financing", "gallery", "blog", "faq",
+  "new", "patients", "patient", "emergency", "specials", "offers",
   // The role words themselves. "Lee, Owner" was being captured as the two-word name
   // "Lee Owner", so the title has to be disqualifying inside a name as well as
   // recognised beside one.
@@ -198,6 +230,9 @@ export function looksLikeName(raw: string): boolean {
 
 const cleanText = (html: string): string =>
   html
+    // Keep alt text: practice sites caption headshots "Dr. Jane Smith" and stripping
+    // tags outright threw away the one place the name appeared.
+    .replace(/<img[^>]*\balt=["']([^"']{3,80})["'][^>]*>/gi, " $1 ")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]+>/g, " ")
@@ -240,7 +275,22 @@ export function extractOwner(html: string): { name: string; role: string } | nul
     }
   }
 
-  // 3. "founded by Jane Doe". No role stated, so it is recorded as owner by implication.
+  // 3. Named practitioners. Checked before the loose prose pattern because the title
+  // is explicit here and merely implied there.
+  DOCTOR_NAME.lastIndex = 0;
+  for (const m of text.matchAll(DOCTOR_NAME)) {
+    const name = m[1]?.trim();
+    if (name && looksLikeName(name)) return { name: name.replace(/\s+/g, " "), role: "doctor" };
+  }
+  CREDENTIAL_NAME.lastIndex = 0;
+  for (const m of text.matchAll(CREDENTIAL_NAME)) {
+    const name = m[1]?.trim();
+    if (name && looksLikeName(name)) {
+      return { name: name.replace(/\s+/g, " "), role: m[2].toLowerCase() };
+    }
+  }
+
+  // 4. "founded by Jane Doe". No role stated, so it is recorded as owner by implication.
   PROSE_NAME.lastIndex = 0;
   for (const m of text.matchAll(PROSE_NAME)) {
     const name = m[1]?.trim();
