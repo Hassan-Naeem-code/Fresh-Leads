@@ -4,6 +4,7 @@ import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
 import { observeAndDiff } from "@/lib/snapshots";
 import { seenKeys, markSeen } from "@/lib/watchlists";
+import { userIdForApiKey } from "@/lib/api-keys";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
 import { assessFreshness } from "@/lib/freshness";
 import type { Lead, ResultLead, SearchResult } from "@/lib/types";
@@ -170,14 +171,29 @@ export async function POST(req: NextRequest) {
     //
     // Which requirement is missing is reported back, so the client can prompt for the
     // right purchase instead of guessing.
+    // TWO WAYS IN, ONE IMPLEMENTATION. The dashboard sends a session cookie; a
+    // programmatic caller sends an API key. Everything after this point is identical,
+    // which is the point: a second copy of "what is a lead" would drift, and the copy
+    // nobody watches would drift first.
     const supabase = await createClient();
     const {
-      data: { user },
+      data: { user: cookieUser },
     } = await supabase.auth.getUser();
+
+    let user: { id: string } | null = cookieUser ? { id: cookieUser.id } : null;
+    if (!user) {
+      const apiUserId = await userIdForApiKey(req.headers.get("authorization"));
+      if (apiUserId) user = { id: apiUserId };
+    }
 
     let access: Access | null = null;
     if (stripeConfigured()) {
-      if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+      if (!user) {
+        return NextResponse.json(
+          { error: "Please sign in, or send an API key as Authorization: Bearer fl_live_..." },
+          { status: 401 }
+        );
+      }
 
       access = await getAccess(user.id);
       if (!access.canSearch) {

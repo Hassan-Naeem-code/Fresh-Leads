@@ -15,9 +15,33 @@ export const runtime = "nodejs";
 
 const Body = z.object({
   leadIds: z.array(z.string().uuid()).min(1).max(1000),
-  /** csv for a CRM, pdf for a call sheet. PDF is a subscriber feature. */
-  format: z.enum(["csv", "pdf"]).default("csv"),
+  /**
+   * csv for a spreadsheet, json for a system, pdf for a call sheet.
+   * The two CRM variants are the same rows under the column names HubSpot and
+   * Salesforce expect, so an import maps itself instead of asking the customer to
+   * match 26 fields by hand.
+   */
+  format: z.enum(["csv", "json", "pdf", "hubspot", "salesforce"]).default("csv"),
 });
+
+/**
+ * Column names the big CRMs import without being told.
+ * Anything not listed keeps our own name and lands as a custom property.
+ */
+const CRM_HEADERS: Record<"hubspot" | "salesforce", Record<string, string>> = {
+  hubspot: {
+    name: "Company name", phone: "Phone Number", email: "Email",
+    website: "Website URL", address: "Street Address", city: "City",
+    owner: "Contact owner name", ownerEmail: "Contact email", ownerPhone: "Contact phone",
+    category: "Industry", grade: "Lead Score", pitch: "Notes",
+  },
+  salesforce: {
+    name: "Account Name", phone: "Phone", email: "Email",
+    website: "Website", address: "Billing Street", city: "Billing City",
+    owner: "Contact Full Name", ownerEmail: "Contact Email", ownerPhone: "Contact Phone",
+    category: "Industry", grade: "Rating", pitch: "Description",
+  },
+};
 
 // Export leads to CSV. One credit per lead, and leads already unlocked are FREE,
 // because a credit buys a business permanently, not one view of it.
@@ -140,13 +164,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const csv = toCsv(exportLeads);
+    if (parsed.data.format === "json") {
+      // The whole record, so a system reading this is not limited to the columns a
+      // spreadsheet happens to want.
+      return new NextResponse(JSON.stringify({ exported: stamp, count: exportLeads.length, leads: exportLeads }, null, 2), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Disposition": `attachment; filename="fresh-leads-${stamp}.json"`,
+          "X-Credits-Remaining": String(credits),
+          "X-Leads-Skipped": String(dead.length),
+        },
+      });
+    }
+
+    const crm = parsed.data.format === "hubspot" || parsed.data.format === "salesforce"
+      ? CRM_HEADERS[parsed.data.format]
+      : null;
+    const csv = toCsv(exportLeads, crm);
 
     return new NextResponse(csv, {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="fresh-leads-${stamp}.csv"`,
+        "Content-Disposition": `attachment; filename="fresh-leads-${stamp}${crm ? "-" + parsed.data.format : ""}.csv"`,
         // So the client can update the balance in the header without a refetch.
         "X-Credits-Remaining": String(credits),
         // How many were left out for failing verification, so the UI can say so
@@ -210,7 +251,7 @@ function cell(l: Lead, col: (typeof COLUMNS)[number]): string | number {
   }
 }
 
-function toCsv(leads: Lead[]): string {
+function toCsv(leads: Lead[], headerMap: Record<string, string> | null = null): string {
   // Prefix anything Excel would treat as a formula, so a business name starting
   // with = or + can't turn into one when the file is opened.
   const esc = (v: string | number) => {
@@ -218,7 +259,9 @@ function toCsv(leads: Lead[]): string {
     const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
     return `"${safe.replace(/"/g, '""')}"`;
   };
-  const header = COLUMNS.join(",");
+  // Rename only the columns the CRM knows; the rest keep our names and import as
+  // custom properties rather than being dropped.
+  const header = COLUMNS.map((c) => esc(headerMap?.[c] ?? c)).join(",");
   const body = leads.map((l) => COLUMNS.map((c) => esc(cell(l, c))).join(","));
   return [header, ...body].join("\r\n");
 }
