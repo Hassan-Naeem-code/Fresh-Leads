@@ -97,6 +97,18 @@ export type Lead = {
   ownerRole?: string | null;
   /** Only ever an address ZeroBounce confirmed. A guessed one never gets this far. */
   ownerEmail?: string | null;
+  /** Public profile for the decision maker, when a lookup returns one. */
+  ownerLinkedin?: string | null;
+  /** A direct line, distinct from the business switchboard in `phone`. */
+  ownerPhone?: string | null;
+  /**
+   * Where the owner details came from: our own crawl of their site, or a paid vendor.
+   * Shown to the customer, because "their website says so" and "a database says so"
+   * are different levels of certainty and they should know which they have.
+   */
+  ownerSource?: "site" | "vendor" | null;
+  /** Vendor confidence 0 to 100. Null when we read it off their own site. */
+  ownerConfidence?: number | null;
   socials?: Record<string, string> | null;
   hiring?: boolean | null;
   hiringUrl?: string | null;

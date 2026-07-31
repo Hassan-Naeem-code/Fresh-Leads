@@ -99,6 +99,18 @@ export function LeadModal({
               />
               <Fact label="Owner" value={lead.ownerName ? `${lead.ownerName}${lead.ownerRole ? `, ${lead.ownerRole}` : ""}` : null} />
               <Fact label="Owner email" value={lead.ownerEmail} />
+              <Fact label="Owner direct line" value={lead.ownerPhone} />
+              <Fact label="Owner LinkedIn" value={lead.ownerLinkedin} />
+              <Fact
+                label="Owner detail from"
+                value={
+                  lead.ownerSource === "vendor"
+                    ? `business records${lead.ownerConfidence ? `, ${lead.ownerConfidence}% confidence` : ""}`
+                    : lead.ownerSource === "site"
+                      ? "their own website"
+                      : null
+                }
+              />
               <Fact label="Hiring" value={lead.hiring === null || lead.hiring === undefined ? null : lead.hiring ? "Yes, advertising roles" : "No roles advertised"} />
               <Fact label="Business status" value={statusLabel(lead)} />
               <Fact label="Listing last updated" value={lead.lastUpdated ? new Date(lead.lastUpdated).toLocaleDateString() : null} />

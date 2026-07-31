@@ -1,6 +1,7 @@
 import { createAdminClient } from "../supabase/admin";
 import { verifyContact } from "./contact";
 import type { Lead } from "../types";
+import { hostOf } from "../snapshots";
 
 // Run the paid verification once per lead, ever, and write the verdict back.
 //
@@ -59,6 +60,29 @@ async function enrichOnce(lead: Lead): Promise<void> {
     lead.socials = Object.keys(e.socials).length ? e.socials : null;
     lead.hiring = e.hiring;
     lead.hiringUrl = e.hiringUrl;
+    if (e.ownerName) lead.ownerSource = "site";
+
+    // Paid fallback, only where the free crawl came up short and only when a key is
+    // configured. Measured: our own crawl names an owner on 8% of sites, so this is
+    // the difference between a name and no name on most leads. It runs after the free
+    // pass so we never pay for something the business already published.
+    const { ownerLookupConfigured, lookupOwner } = await import("../owner-lookup");
+    const domain = hostOf(lead.website);
+    if (ownerLookupConfigured() && domain && (!lead.ownerName || !lead.email)) {
+      const found = await lookupOwner(domain);
+      if (found) {
+        if (!lead.ownerName && found.name) {
+          lead.ownerName = found.name;
+          lead.ownerRole = found.role;
+          lead.ownerSource = "vendor";
+          lead.ownerConfidence = found.confidence;
+        }
+        if (!lead.ownerEmail && found.email) lead.ownerEmail = found.email;
+        if (found.linkedin) lead.ownerLinkedin = found.linkedin;
+        if (found.phone) lead.ownerPhone = found.phone;
+      }
+    }
+
     lead.enrichedAt = new Date().toISOString();
 
     // A confirmed owner address is better than anything we scraped, and better than

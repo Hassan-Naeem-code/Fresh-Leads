@@ -1692,3 +1692,8 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 @media (max-width: 640px) {
   .icpfilters { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
 }
+.ownersrc {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); background: var(--panel2);
+  border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px;
+}

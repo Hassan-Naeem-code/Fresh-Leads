@@ -41,6 +41,20 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
             {l.ownerEmail && (
               <a href={`mailto:${l.ownerEmail}`} className="owneremail">{l.ownerEmail}</a>
             )}
+            {l.ownerPhone && (
+              <a href={`tel:${l.ownerPhone}`} className="owneremail">{l.ownerPhone}</a>
+            )}
+            {l.ownerLinkedin && (
+              <a href={l.ownerLinkedin} target="_blank" rel="noreferrer" className="soc">LinkedIn</a>
+            )}
+            {/* Where it came from. A name printed on their own site is a fact; a name
+                from a database is a strong hint, and a rep should know the difference
+                before they open with it. */}
+            {l.ownerSource === "vendor" && (
+              <span className="ownersrc" title={l.ownerConfidence ? `${l.ownerConfidence}% confidence` : undefined}>
+                from records
+              </span>
+            )}
           </div>
         )}
         <div className="meta">

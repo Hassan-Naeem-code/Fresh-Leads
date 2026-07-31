@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
 
 const COLUMNS = [
   "name", "category", "grade", "tier", "verified", "owner", "ownerRole", "ownerEmail",
+  "ownerPhone", "ownerLinkedin", "ownerSource",
   "phone", "phoneVerified", "email", "emailStatus", "website", "address", "city",
   "activeStatus", "hiring", "facebook", "instagram", "linkedin", "needSignals",
   "gradeBreakdown", "freshness", "listingUpdated", "pitch", "mapUrl",
@@ -182,6 +183,12 @@ function cell(l: Lead, col: (typeof COLUMNS)[number]): string | number {
       return l.ownerRole ?? "";
     case "ownerEmail":
       return l.ownerEmail ?? "";
+    case "ownerPhone":
+      return l.ownerPhone ?? "";
+    case "ownerLinkedin":
+      return l.ownerLinkedin ?? "";
+    case "ownerSource":
+      return l.ownerSource ?? "";
     case "hiring":
       // Blank rather than "no" when we never managed to read their site: an empty
       // cell is honest about not knowing, "no" is a claim we cannot support.

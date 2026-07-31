@@ -131,8 +131,16 @@ export async function buildLeadsPdf(
     y -= 14;
 
     if (lead.ownerName) {
-      text(`Owner: ${lead.ownerName}${lead.ownerRole ? ` (${lead.ownerRole})` : ""}`, M + 56, 9.5, reg);
+      const direct = lead.ownerPhone ? `  direct ${lead.ownerPhone}` : "";
+      text(
+        `Owner: ${lead.ownerName}${lead.ownerRole ? ` (${lead.ownerRole})` : ""}${direct}`,
+        M + 56, 9.5, reg
+      );
       y -= 12;
+      if (lead.ownerEmail) {
+        text(lead.ownerEmail, M + 56, 8.5, reg, MUTED);
+        y -= 12;
+      }
     }
     if (lead.website) {
       text(lead.website, M + 56, 8.5, reg, MUTED);
