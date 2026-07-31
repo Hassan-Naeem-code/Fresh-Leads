@@ -1743,3 +1743,92 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
    rather than clamping the whole document. */
 .chips, .problem-chips, .watchchips, .sidenav { max-width: 100%; }
 .scroller, .ftable-wrap { overflow-x: auto; }
+
+/* ============================================================
+   STAGE 12: Enrich a list, and API keys
+   ============================================================ */
+.enrichcard { display: flex; flex-direction: column; gap: 18px; }
+
+.enrichdrop {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 34px 20px; cursor: pointer; text-align: center;
+  border: 2px dashed var(--border); border-radius: var(--r-lg);
+  background: var(--panel2);
+  transition: border-color .16s var(--ease), background .16s var(--ease);
+}
+.enrichdrop:hover { border-color: var(--accent); background: var(--panel); }
+.enrichdrop input { display: none; }
+.enrichdrop svg { color: var(--accent); }
+.enrichdrop b { font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+.enrichdrop span { font-size: 13px; color: var(--muted); }
+
+.enrichcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; }
+.enrichcols h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 8px; }
+.enrichcols p { font-size: 13.5px; line-height: 1.55; margin: 0 0 6px; }
+
+.enrichcost {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: var(--r-md);
+  background: rgba(31,158,122,.08); border: 1px solid rgba(31,158,122,.3);
+  font-size: 13.5px;
+}
+.enrichcost svg { color: var(--cool); flex: none; margin-top: 2px; }
+.enrichcost.short { background: rgba(245,83,61,.08); border-color: rgba(245,83,61,.35); }
+.enrichcost.short svg { color: var(--hot); }
+
+.enricherr {
+  display: flex; align-items: center; gap: 9px; margin-top: 12px;
+  padding: 11px 14px; border-radius: var(--r-md);
+  background: rgba(245,83,61,.08); border: 1px solid rgba(245,83,61,.35);
+  color: var(--hot); font-size: 13.5px;
+}
+.enricherr svg { flex: none; }
+
+.enrichdone {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: var(--r-lg);
+  background: rgba(31,158,122,.09); border: 1px solid rgba(31,158,122,.35);
+}
+.enrichdone svg { color: var(--cool); flex: none; }
+.enrichdone > div { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.enrichdone b { font-size: 14px; font-weight: 650; }
+.enrichdone span { font-size: 12.5px; color: var(--muted); }
+
+.enrichactions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* --- API keys --- */
+.keycreate { display: flex; gap: 10px; flex-wrap: wrap; }
+.keycreate input { flex: 1; min-width: 220px; }
+.keyfresh { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; border-color: var(--accent); }
+.keyfresh > b { font-size: 15px; }
+.keyvalue {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 12px 14px; border-radius: var(--r-md);
+  background: var(--panel2); border: 1px solid var(--border);
+}
+.keyvalue code { font-size: 12.5px; overflow-wrap: anywhere; flex: 1; font-family: ui-monospace, Menlo, monospace; }
+
+.keylist { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.keylist li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.keylist li:last-child { border-bottom: 0; }
+.keylist li svg { color: var(--muted); flex: none; }
+.keylist li > div { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.keylist li b { font-size: 13.5px; font-weight: 600; }
+
+.keydocs { margin-top: 18px; }
+.keydocs h3 { font-size: 13px; margin: 0 0 6px; }
+.keydocs pre {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 14px; margin: 10px 0 14px;
+  font-size: 12px; line-height: 1.6; overflow-x: auto;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+@media (max-width: 560px) {
+  .enrichactions .go { width: 100%; justify-content: center; }
+  .enrichdone { flex-wrap: wrap; }
+  .enrichdone .go { width: 100%; justify-content: center; }
+}

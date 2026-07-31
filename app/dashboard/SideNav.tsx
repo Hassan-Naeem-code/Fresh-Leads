@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Clock, Coin } from "../icons";
+import { Search, Clock, Coin, Upload, Key } from "../icons";
 
 // The signed-in navigation, as a left rail rather than a top strip.
 //
@@ -13,7 +13,9 @@ import { Search, Clock, Coin } from "../icons";
 const LINKS = [
   { href: "/dashboard", label: "Search", icon: Search, exact: true },
   { href: "/dashboard/history", label: "History", icon: Clock, exact: false },
+  { href: "/dashboard/enrich", label: "Enrich a list", icon: Upload, exact: false },
   { href: "/dashboard/billing", label: "Billing", icon: Coin, exact: false },
+  { href: "/dashboard/api", label: "API keys", icon: Key, exact: false },
 ];
 
 export function SideNav() {

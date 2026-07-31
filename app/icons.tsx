@@ -178,6 +178,30 @@ export const Briefcase = (p: IconProps) => (
   </Svg>
 );
 
+export const Upload = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 16V4" />
+    <path d="m7 9 5-5 5 5" />
+    <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+  </Svg>
+);
+
+export const Key = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="8" cy="14" r="4" />
+    <path d="M11 11 21 3" />
+    <path d="m18 6 2 2" />
+    <path d="m15 9 2 2" />
+  </Svg>
+);
+
+export const Copy = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </Svg>
+);
+
 export const Search = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="11" cy="11" r="8" />
