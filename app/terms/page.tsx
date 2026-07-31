@@ -67,9 +67,12 @@ export default async function TermsPage() {
 
         <h2>5. Payment &amp; billing</h2>
         <p>
-          Pricing is quoted to your requirements. Payments are processed by Stripe. Subscriptions renew
-          per the plan you select until cancelled. Only verified, deliverable leads count against your
-          quota.
+          Access to the Service is a yearly subscription. It includes no credits. Credits are bought
+          separately and are what you spend to open a lead: one credit opens one business, and once
+          opened, viewing and exporting that business again is free for as long as you hold an account.
+          We verify a lead&rsquo;s contact details before a credit is spent, and if we cannot verify them
+          the credit is not charged. Bonus credits granted with a purchase have no cash value and are
+          not refundable. Payments are processed by Stripe, and subscriptions renew until cancelled.
         </p>
 
         <h2>6. Cancellation &amp; refunds</h2>

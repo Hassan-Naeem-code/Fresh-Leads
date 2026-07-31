@@ -107,7 +107,7 @@ export default async function AboutPage() {
       {/* CTA */}
       <section className="pr pr-section pr-cta" style={{ paddingTop: 0 }}>
         <h2 className="pr-h2">Ready for a list you can trust?</h2>
-        <p className="pr-sectionlead">Describe your ideal customer and see a quote in minutes.</p>
+        <p className="pr-sectionlead">Describe your ideal customer and see real leads in minutes.</p>
         <div className="pr-herobtns" style={{ marginTop: 26 }}>
           <Link href="/signup" className="pr-btn accent"><ArrowRight size={16} /> Get started</Link>
           <Link href="/pricing" className="pr-btn ghost">See pricing</Link>

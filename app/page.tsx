@@ -125,10 +125,10 @@ export default async function Landing() {
           </div>
           <div className="pr-step accent">
             <div className="pr-stepn">2</div>
-            <b>Get a custom quote</b>
-            <p>We price to your exact needs, volume, area, and how strict your verification is. No fixed tiers.</p>
+            <b>Search free, pay per lead</b>
+            <p>Searching costs nothing. Spend a credit only on a lead you want to open, and it is yours permanently.</p>
             <div className="pr-stepproof">
-              <span className="pr-sprice"><b>from&nbsp;$8</b> / verified lead</span>
+              <span className="pr-sprice"><b>$1</b> / credit = 1 lead</span>
             </div>
           </div>
           <div className="pr-step">
@@ -152,7 +152,7 @@ export default async function Landing() {
           { icon: <Phone size={22} />, num: "01", title: "Reachable or it doesn't count", body: "If we can't verify the email and phone, the lead never reaches you. No filler, no dead ends, just contacts you can actually work." },
           { icon: <Clock size={22} />, num: "02", title: "Fresh, never stale", body: "Every listing is age-checked and re-confirmed active, so you're never chasing a business that closed months ago." },
           { icon: <Gauge size={22} />, num: "03", title: "Graded, so you know who to call", body: "A 0-100 opportunity score on every prospect with a plain-English reason, so your team always works the best leads first." },
-          { icon: <Check size={22} />, num: "04", title: "You only pay for real", body: "Verified, deliverable leads are the only ones that count against your quota. Bounces and dead lines are on us." },
+          { icon: <Check size={22} />, num: "04", title: "You only pay for real", body: "We check the phone and the mailbox before a credit is spent. If a lead turns out to be unreachable, you keep the credit." },
         ]}
       />
 
@@ -204,7 +204,7 @@ export default async function Landing() {
       <section id="pricing" className="pr pr-section pr-cta">
         <Reveal className="pr-eyebrow"><span className="pill">Pricing</span></Reveal>
         <Reveal><h2 className="pr-h2">Pay for exactly what you need</h2></Reveal>
-        <Reveal><p className="pr-sectionlead">No bloated subscriptions. Pick one of three packages or build a custom quote around your exact niche and volume. Only verified, deliverable leads count against it.</p></Reveal>
+        <Reveal><p className="pr-sectionlead">No bloated subscriptions and no sales call. $30 a year keeps your account open, then credits are $1 each. One credit opens one lead, and you are never charged for a lead we cannot verify.</p></Reveal>
         <Reveal delay={120}>
           <div className="pr-herobtns" style={{ marginTop: 28 }}>
             <Link href="/signup" className="pr-btn accent">

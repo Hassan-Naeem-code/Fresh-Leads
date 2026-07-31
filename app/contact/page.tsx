@@ -8,11 +8,11 @@ import { Mail, Clock, Gauge } from "../icons";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Questions about verified leads, pricing, or a custom plan? Get in touch.",
+  description: "Questions about verified leads, pricing, or how credits work? Get in touch.",
   alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact",
-    description: "Questions about verified leads, pricing, or a custom plan? Get in touch.",
+    description: "Questions about verified leads, pricing, or how credits work? Get in touch.",
     url: "/contact",
   },
 };
@@ -55,8 +55,8 @@ export default async function ContactPage() {
             <div className="contact-point">
               <div className="pr-cardicon"><Gauge size={20} /></div>
               <div>
-                <b>Want a quote instead?</b>
-                <p>Skip the back-and-forth, <a href="/signup">build a custom quote</a> in a couple of minutes.</p>
+                <b>Want to just try it?</b>
+                <p>Skip the back-and-forth, <a href="/signup">start with 3 free credits</a> and no card.</p>
               </div>
             </div>
           </div>

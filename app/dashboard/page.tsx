@@ -561,7 +561,7 @@ export default function Home() {
             <Coin size={14} />
             {needsPurchase === "subscription"
               ? "Your account needs the $30/year access fee to keep going. Credits are bought separately."
-              : "You need at least one credit to search. Leads are five for $1 and stay yours for good."}
+              : "You need at least one credit to search. Credits are $1 each and every lead stays yours for good."}
           </span>
           <a className="go accent sm" href="/dashboard/billing">
             {needsPurchase === "subscription" ? "Get access" : "Buy credits"}

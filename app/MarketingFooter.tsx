@@ -39,7 +39,7 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
       </div>
       <div className="mkt-footbar">
         <span>© {year} <BrandName settings={settings} />. All rights reserved.</span>
-        <span className="mkt-footmade">Only verified, deliverable leads count against your quota.</span>
+        <span className="mkt-footmade">You are never charged for a lead we cannot verify.</span>
       </div>
     </footer>
   );

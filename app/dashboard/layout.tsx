@@ -6,6 +6,7 @@ import { getAccess } from "@/lib/access";
 import { getSiteSettings } from "@/lib/site-settings.server";
 import { BrandMark, BrandName } from "../brand";
 import { CreditPill } from "./CreditPill";
+import { SideNav } from "./SideNav";
 
 // Private, signed-in surface. robots.txt disallows the path, but a page-level
 // noindex is what actually keeps it out of the index if the URL is ever shared.
@@ -34,6 +35,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div>
+      {/* Header carries identity and balance only. Everything navigable moved to the
+          left rail below, so the header stays readable however many sections exist. */}
       <header className="topbar">
         <div className="topinner">
           <div className="topleft">
@@ -43,11 +46,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </span>
               <BrandName settings={settings} />
             </Link>
-            <nav className="topnav">
-              <Link href="/dashboard">Search</Link>
-              <Link href="/dashboard/history">History</Link>
-              <Link href="/dashboard/billing">Billing</Link>
-            </nav>
           </div>
           <div className="topright">
             {/* The balance is always visible: it is the thing users spend and the
@@ -58,9 +56,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
               subscribed={access.subscribed}
               canBuyCredits={access.canBuyCredits}
             />
-            <span className="topuser">
+            <span className="topuser" title={user.email ?? ""}>
               <span className="avatar">{(user.email ?? "?")[0].toUpperCase()}</span>
-              <span className="uemail">{user.email}</span>
             </span>
             <form action="/auth/signout" method="post">
               <button className="ghost sm" type="submit">
@@ -70,7 +67,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </div>
       </header>
-      {children}
+      <div className="appshell">
+        <aside className="appside">
+          <SideNav />
+        </aside>
+        <main className="appmain">{children}</main>
+      </div>
     </div>
   );
 }

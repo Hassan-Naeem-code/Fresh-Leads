@@ -39,7 +39,7 @@ export default async function PrivacyPage() {
         <h2>1. Information we collect</h2>
         <ul>
           <li><strong>Account data</strong>, your name, email, company name, and password (stored hashed), used to create and secure your account.</li>
-          <li><strong>Business profile</strong>, the niche, location, radius, volume, and quality criteria you provide so we can build your quote and searches.</li>
+          <li><strong>Business profile</strong>, the niche, location and what you sell, which you provide so we can run and grade your searches.</li>
           <li><strong>Payment data</strong>, processed by our payment provider, <strong>Stripe</strong>. We never see or store your full card details; we store only an order record and a Stripe customer/subscription reference.</li>
           <li><strong>Lead data</strong>, business contact information we compile from publicly available sources (e.g. OpenStreetMap) and verification checks, on your behalf.</li>
           <li><strong>Usage &amp; device data</strong>, basic technical logs (IP, browser) used to operate and secure the Service.</li>
@@ -47,8 +47,8 @@ export default async function PrivacyPage() {
 
         <h2>2. How we use your information</h2>
         <ul>
-          <li>To provide the Service, authenticate you, generate quotes, run searches, verify and deliver leads.</li>
-          <li>To process payments and manage your subscription and quota.</li>
+          <li>To provide the Service, authenticate you, run searches, verify and deliver leads.</li>
+          <li>To process payments and manage your subscription and credit balance.</li>
           <li>To secure the Service, prevent abuse, and comply with legal obligations.</li>
           <li>To respond to your requests and send essential service notices.</li>
         </ul>

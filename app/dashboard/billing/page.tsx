@@ -48,7 +48,7 @@ export default async function BillingPage() {
         <h1>Credits and access.</h1>
         <p>
           Two separate things: {money(SUBSCRIPTION_PRICE_CENTS)} a year keeps your account open, and
-          credits buy leads at five for $1. The yearly fee includes no credits. Every lead you unlock is
+          credits are $1 each. The yearly fee includes no credits. Every lead you unlock is
           yours permanently, so viewing and exporting it again is always free.
         </p>
       </div>
