@@ -73,7 +73,7 @@ const SCHEMA = {
 
 const SYSTEM = `You turn a salesperson's description of their ideal customer into search fields for a local-business lead tool.
 
-Extract only what they actually said. If they did not state a location, leave it empty and list "location" in missing, never invent a city. The playbook is about what THEY SELL, not about the businesses they are targeting: someone selling card terminals to restaurants is payments_pos, not general_smb.`;
+Extract only what they actually said. If they did not state a location, leave it empty and list "location" in missing, never invent a city. The playbook is about what THEY SELL, not about the businesses they are targeting: someone selling payment terminals to restaurants is payments_pos, not general_smb.`;
 
 /** Claude-backed parse. Returns null if unavailable or if the call fails. */
 async function parseWithClaude(description: string): Promise<ParsedIcp | null> {

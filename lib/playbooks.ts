@@ -1,8 +1,8 @@
 // WHAT THE USER SELLS decides which signals matter.
 //
 // The product originally graded every lead on "does this business need web work",
-// which is only relevant to one kind of buyer. A Shift4 reseller looking for
-// restaurants to put a card terminal in does not care whether the restaurant has a
+// which is only relevant to one kind of buyer. A payments reseller looking for
+// restaurants to place a terminal in does not care whether the restaurant has a
 // website; grading on that told them nothing and buried their real targets.
 //
 // A playbook is the lens: it selects which factors from FACTOR_CATALOG count, which
@@ -117,7 +117,7 @@ export function playbookFactors(id: string | null | undefined): Set<string> {
  */
 export type BuyerProfile = {
   playbook: PlaybookId;
-  /** Free text, e.g. "Shift4 card processing terminals for restaurants". */
+  /** Free text, in the seller's own words, e.g. "card processing for restaurants". */
   sells: string;
   /** Business types they target, free-form so it isn't limited to our niche list. */
   targets: string[];

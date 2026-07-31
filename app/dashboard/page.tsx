@@ -39,8 +39,11 @@ const ALL_TIERS: Lead["tier"][] = ["HOT", "WARM", "COOL"];
 const ALL_FRESHNESS: FreshnessLevel[] = ["FRESH", "RECENT", "AGING", "STALE", "UNKNOWN"];
 
 export default function Home() {
-  const [niche, setNiche] = useState("restaurants");
-  const [location, setLocation] = useState("Warren, MI");
+  // Empty by design. Prefilling a niche and a city assumes what this customer sells
+  // and where they sell it, which is the one thing we should be asking rather than
+  // guessing. A returning account has these restored from its saved buyer profile.
+  const [niche, setNiche] = useState("");
+  const [location, setLocation] = useState("");
   const [limit, setLimit] = useState(40);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -464,8 +467,8 @@ export default function Home() {
       <IcpBox aiParsing={aiParsing} onApply={applyIcp} />
 
       {/* WHAT DO YOU SELL. Asked before anything else, because it decides what a good
-          lead even means. A Shift4 reseller and a web designer looking at the same
-          restaurant should get different grades and different reasons. */}
+          lead even means: two sellers looking at the same business should get
+          different grades and different reasons. */}
       <div className="problem-picker">
         <span className="problem-label">What do you sell?</span>
         <div className="problem-chips">
@@ -527,11 +530,11 @@ export default function Home() {
       <form className="card form" onSubmit={run}>
         <div>
           <label>Business niche</label>
-          <input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g. restaurant pos, dentists, software dev" />
+          <input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="Business type, e.g. dentists, salons, auto repair" />
         </div>
         <div>
           <label>Location</label>
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Warren, MI" />
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City or area, e.g. Austin, TX" />
         </div>
         <div>
           <label>Max leads</label>
@@ -543,7 +546,9 @@ export default function Home() {
             <option value={100}>100</option>
           </select>
         </div>
-        <button className="go" disabled={loading}>{loading ? "Scanning…" : "Find Leads"}</button>
+        <button className="go" disabled={loading || !niche.trim() || !location.trim()}>
+          {loading ? "Scanning…" : "Find Leads"}
+        </button>
       </form>
 
       {/* WATCHED MARKETS. The difference between a search box and a service: a saved

@@ -1,6 +1,6 @@
 // Which vendors and platforms a business already runs on.
 //
-// This is the signal a reseller actually buys. A Shift4 rep does not care whether a
+// This is the signal a reseller actually buys. A payments rep does not care whether a
 // restaurant's website is pretty; they care that it is taking card payments through
 // Toast today, because that is a switchable contract and a concrete opening line:
 // "you're on Toast at 2.6% plus 15 cents, I can beat that."

@@ -120,7 +120,7 @@ export default async function Landing() {
             <div className="pr-stepproof">
               <span className="pr-schip">Plumbers</span>
               <span className="pr-schip">Austin · 15&nbsp;km</span>
-              <span className="pr-schip">Card terminals</span>
+              <span className="pr-schip">Independent</span>
             </div>
           </div>
           <div className="pr-step accent">

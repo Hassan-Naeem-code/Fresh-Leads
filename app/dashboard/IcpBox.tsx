@@ -73,7 +73,7 @@ export function IcpBox({
             rows={2}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="e.g. I sell Shift4 card processing terminals to restaurants and bars in Warren, MI"
+            placeholder="Describe your ideal customer. e.g. independent restaurants and cafes in Austin, TX"
           />
           <button className="go accent" disabled={busy || !text.trim()}>
             {busy ? "Reading…" : "Set up"}
