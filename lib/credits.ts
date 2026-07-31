@@ -204,3 +204,39 @@ export async function getOwnerUnlockedKeys(userId: string): Promise<Set<string>>
     .limit(50_000);
   return new Set((data ?? []).map((r) => r.lead_key as string));
 }
+
+export type SpendStatus = "ok" | "already" | "insufficient";
+
+/**
+ * Charge a number of credits for work that is not tied to one business.
+ *
+ * Bulk enrichment charges per row of a list the customer supplied, so there is no
+ * lead_key to key the charge on the way unlockLead does. `ref` is the idempotency key
+ * instead: the same ref never charges twice, however many times a request is retried.
+ *
+ * This exists because the first version reused grantCredits with a negative amount,
+ * and grant_credits ignores anything at or below zero, so nothing was ever charged.
+ */
+export async function spendCredits(
+  userId: string,
+  amount: number,
+  reason: string,
+  ref: string
+): Promise<{ status: SpendStatus; creditsLeft: number }> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("spend_credits", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_reason: reason,
+    p_ref: ref,
+  });
+  if (error) {
+    console.error("[credits] spend_credits failed:", error.message);
+    throw new Error("Could not charge for that work");
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    status: (row?.status ?? "insufficient") as SpendStatus,
+    creditsLeft: row?.credits_left ?? 0,
+  };
+}

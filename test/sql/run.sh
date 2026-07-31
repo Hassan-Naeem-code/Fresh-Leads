@@ -18,8 +18,9 @@ sleep 2
 run() { psql -h /tmp -p $PORT -U postgres -q -v ON_ERROR_STOP=1 -f "$1"; }
 run "$HERE/harness.sql" >/dev/null
 run "$ROOT/supabase/006_credits_and_subscription.sql" >/dev/null
+run "$ROOT/supabase/012_spend_credits.sql" >/dev/null
 
-if out=$(run "$HERE/credits.test.sql" 2>&1); then
+if out=$( { run "$HERE/credits.test.sql"; run "$HERE/spend.test.sql"; } 2>&1 ); then
   echo "$out" | grep -E 'PASS' | sed 's/^.*NOTICE:  //'
   echo
   echo "$(echo "$out" | grep -c PASS) assertions passed"
