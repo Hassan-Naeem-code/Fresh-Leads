@@ -70,6 +70,11 @@ export default function Home() {
   // Drives the PDF button. The server enforces the same rule, so a stale value here
   // can only ever cost a wasted click, never leak the feature.
   const [subscribed, setSubscribed] = useState(false);
+  // Ideal-customer bars, the size and quality filters every competitor offers.
+  // Applied server-side, so they select from everything found rather than the page.
+  const [minRating, setMinRating] = useState(0);
+  const [minReviews, setMinReviews] = useState(0);
+  const [webPresence, setWebPresence] = useState<"any" | "none" | "social_only" | "has_site">("any");
   // What the toast is announcing, or null when there is nothing to say.
   const [toast, setToast] = useState<BlockReason | null>(null);
   // So the "you have run out" toast fires once per exhaustion, not on every render.
@@ -230,7 +235,12 @@ export default function Home() {
 
   async function run(
     e?: React.FormEvent,
-    overrides?: { problem?: string; playbook?: PlaybookId; niche?: string; location?: string; watchlistId?: string | null }
+    overrides?: {
+      problem?: string; playbook?: PlaybookId; niche?: string; location?: string;
+      watchlistId?: string | null;
+      minRating?: number; minReviews?: number;
+      webPresence?: "any" | "none" | "social_only" | "has_site";
+    }
   ) {
     e?.preventDefault();
     const activeProblem = overrides?.problem ?? problem;
@@ -257,6 +267,10 @@ export default function Home() {
           requiredFactors: [...reqFactors],
           playbook: activePlaybook,
           watchlistId: activeWatch ?? undefined,
+          // Explicit overrides, because a chip click runs before React state applies.
+          minRating: overrides?.minRating ?? minRating,
+          minReviews: overrides?.minReviews ?? minReviews,
+          webPresence: overrides?.webPresence ?? webPresence,
         }),
       });
       const data = await res.json();
@@ -550,6 +564,73 @@ export default function Home() {
           {loading ? "Scanning…" : "Find Leads"}
         </button>
       </form>
+
+      {/* IDEAL CUSTOMER BARS. Size and quality, the filters both Openmart and Apollo
+          lead with. Every value here comes from Google Places data we already fetch,
+          so none of it costs anything extra to offer. */}
+      <div className="icpfilters">
+        <div className="icpf">
+          <span className="icpf-label">Minimum rating</span>
+          <div className="chips tight">
+            {[0, 3.5, 4, 4.5].map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`chip toggle ${minRating === v ? "on" : ""}`}
+                onClick={() => { setMinRating(v); if (result) run(undefined, { minRating: v }); }}
+              >
+                {v === 0 ? "Any" : `${v}+`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="icpf">
+          <span className="icpf-label">How busy</span>
+          <div className="chips tight">
+            {[
+              { v: 0, l: "Any" },
+              { v: 25, l: "25+ reviews" },
+              { v: 100, l: "100+" },
+              { v: 500, l: "500+" },
+            ].map(({ v, l }) => (
+              <button
+                key={v}
+                type="button"
+                className={`chip toggle ${minReviews === v ? "on" : ""}`}
+                onClick={() => { setMinReviews(v); if (result) run(undefined, { minReviews: v }); }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="icpf">
+          <span className="icpf-label">Web presence</span>
+          <div className="chips tight">
+            {[
+              { v: "any", l: "Any" },
+              { v: "has_site", l: "Has a site" },
+              { v: "social_only", l: "Social only" },
+              { v: "none", l: "None at all" },
+            ].map(({ v, l }) => (
+              <button
+                key={v}
+                type="button"
+                className={`chip toggle ${webPresence === v ? "on" : ""}`}
+                onClick={() => {
+                  const next = v as typeof webPresence;
+                  setWebPresence(next);
+                  if (result) run(undefined, { webPresence: next });
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* WATCHED MARKETS. The difference between a search box and a service: a saved
           market re-runs and tells you what is new since the last time you looked. */}

@@ -136,6 +136,9 @@ export async function POST(req: NextRequest) {
       requiredFactors = [],
       playbook = DEFAULT_PLAYBOOK,
       watchlistId,
+      minRating,
+      minReviews,
+      webPresence = "any",
     }: {
       niche?: string;
       location?: string;
@@ -146,6 +149,10 @@ export async function POST(req: NextRequest) {
       playbook?: PlaybookId;
       /** Scope this run to a watched market, so results can be flagged as new. */
       watchlistId?: string;
+      /** Ideal-customer filters, the size and quality bars every competitor offers. */
+      minRating?: number;
+      minReviews?: number;
+      webPresence?: "any" | "none" | "social_only" | "has_site";
     } = await req.json();
     if (!niche || !location) {
       return NextResponse.json({ error: "niche and location are required" }, { status: 400 });
@@ -308,6 +315,62 @@ export async function POST(req: NextRequest) {
       if (cut > 0) {
         const label = problemById(problem)?.label?.replace(/^…/, "") ?? "your filter";
         notes.push(`${cut} lead${cut === 1 ? "" : "s"} did not match ${label.trim()} and were left out.`);
+      }
+    }
+
+    // IDEAL CUSTOMER FILTERS: size and quality bars, applied before the cap so they
+    // select from everything discovered rather than from an already-trimmed page.
+    //
+    // Rating and review count come from Google Places. OpenStreetMap does not carry
+    // them, so a lead sourced only from OSM has them as null. A null is EXCLUDED when
+    // a bar is set, because we cannot claim it clears a bar we never measured, but the
+    // count of those is reported rather than swallowed: silently dropping half the
+    // results for missing data would look like a broken search.
+    const ratingBar = typeof minRating === "number" && minRating > 0 ? minRating : null;
+    const reviewBar = typeof minReviews === "number" && minReviews > 0 ? minReviews : null;
+
+    if (ratingBar !== null || reviewBar !== null) {
+      const before = matching.length;
+      let unknown = 0;
+      matching = matching.filter((l) => {
+        if (ratingBar !== null) {
+          if (l.rating === null) { unknown++; return false; }
+          if (l.rating < ratingBar) return false;
+        }
+        if (reviewBar !== null) {
+          if (l.reviewCount === null) { unknown++; return false; }
+          if (l.reviewCount < reviewBar) return false;
+        }
+        return true;
+      });
+      const cut = before - matching.length;
+      if (cut > 0) {
+        notes.push(
+          `${cut} lead${cut === 1 ? "" : "s"} did not meet your rating or review bar` +
+            (unknown > 0 ? `, including ${unknown} we hold no Google rating for` : "") +
+            "."
+        );
+      }
+    }
+
+    if (webPresence !== "any") {
+      const before = matching.length;
+      matching = matching.filter((l) => {
+        if (webPresence === "none") return !l.hasWebsite && !l.socialOnly;
+        if (webPresence === "social_only") return l.socialOnly;
+        return l.hasWebsite;   // has_site
+      });
+      const cut = before - matching.length;
+      if (cut > 0) {
+        // Phrased as what was kept, not as what they "did not" match: negating a
+        // filter that is itself a negative produced "did not have no web presence".
+        const label =
+          webPresence === "none" ? "businesses with no web presence at all"
+          : webPresence === "social_only" ? "businesses with only a social page"
+          : "businesses with a site of their own";
+        notes.push(
+          `${cut} lead${cut === 1 ? "" : "s"} were left out, you asked for ${label}.`
+        );
       }
     }
 

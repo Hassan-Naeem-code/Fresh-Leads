@@ -1670,3 +1670,25 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .ctoast-cta { width: 100%; justify-content: center; order: 3; }
   .ctoast-body { flex-basis: calc(100% - 60px); }
 }
+
+/* ============================================================
+   STAGE 11: Ideal customer filters
+   The size and quality bars, sitting directly under the search form where
+   the competitors put them.
+   ============================================================ */
+.icpfilters {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px 26px;
+  margin-top: 12px; padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+}
+.icpf { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.icpf-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.icpf .chips { flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .icpfilters { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+}
