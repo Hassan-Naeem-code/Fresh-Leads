@@ -115,12 +115,12 @@ export default async function Landing() {
         <Reveal className="pr-steps">
           <div className="pr-step">
             <div className="pr-stepn">1</div>
-            <b>Define your business &amp; needs</b>
-            <p>Tell us your niche, the area you serve, how many leads you want, and your quality bar.</p>
+            <b>Tell us what you sell</b>
+            <p>Describe your ideal customer in a sentence, or pick the business type and the area you cover.</p>
             <div className="pr-stepproof">
               <span className="pr-schip">Plumbers</span>
               <span className="pr-schip">Austin · 15&nbsp;km</span>
-              <span className="pr-schip">40 / mo</span>
+              <span className="pr-schip">Card terminals</span>
             </div>
           </div>
           <div className="pr-step accent">
