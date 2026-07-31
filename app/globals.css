@@ -1628,3 +1628,45 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .topbrand span:not(.logo) { display: none; }  /* mark only, no wordmark */
   .cp-buy span { display: none; }
 }
+
+/* ============================================================
+   STAGE 10: Out-of-credits toast
+   Fixed to the viewport, because the balance running out is the one message
+   that must not be missed just because the user has scrolled.
+   ============================================================ */
+.ctoast {
+  position: fixed; z-index: 60;
+  left: 50%; bottom: 24px; transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 14px 14px 16px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-lg); box-shadow: var(--sh-3);
+  animation: ctoastIn .22s var(--ease) both;
+}
+.ctoast.out { animation: ctoastOut .18s var(--ease) both; }
+@keyframes ctoastIn {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes ctoastOut {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to   { opacity: 0; transform: translate(-50%, 10px); }
+}
+.ctoast-icon { color: var(--accent); flex: none; margin-top: 2px; }
+.ctoast-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.ctoast-body b { font-size: 13.5px; font-weight: 650; }
+.ctoast-body span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.ctoast-cta { flex: none; align-self: center; white-space: nowrap; }
+.ctoast-x {
+  flex: none; background: none; border: 0; cursor: pointer;
+  color: var(--muted); padding: 3px; border-radius: 999px; align-self: flex-start;
+}
+.ctoast-x:hover { color: var(--text); background: var(--panel2); }
+
+@media (max-width: 560px) {
+  .ctoast { flex-wrap: wrap; bottom: 12px; padding: 12px; }
+  .ctoast-cta { width: 100%; justify-content: center; order: 3; }
+  .ctoast-body { flex-basis: calc(100% - 60px); }
+}

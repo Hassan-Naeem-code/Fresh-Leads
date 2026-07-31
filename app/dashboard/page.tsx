@@ -6,6 +6,7 @@ import { LockedLeadCard } from "./LockedLeadCard";
 import { LeadModal } from "./LeadModal";
 import { CheckoutReturn } from "./CheckoutReturn";
 import { IcpBox, type IcpResult } from "./IcpBox";
+import { CreditToast, type BlockReason } from "./CreditToast";
 import { setCredits, useCredits } from "./credit-store";
 import type { Watchlist } from "@/lib/watchlists";
 import { PROBLEMS, problemById } from "@/lib/problems";
@@ -66,6 +67,10 @@ export default function Home() {
   // Drives the PDF button. The server enforces the same rule, so a stale value here
   // can only ever cost a wasted click, never leak the feature.
   const [subscribed, setSubscribed] = useState(false);
+  // What the toast is announcing, or null when there is nothing to say.
+  const [toast, setToast] = useState<BlockReason | null>(null);
+  // So the "you have run out" toast fires once per exhaustion, not on every render.
+  const [warnedAtZero, setWarnedAtZero] = useState(false);
   // null until seeded. Compared with ?? so a real zero is never treated as unknown.
   const credits = useCredits() ?? 0;
 
@@ -156,6 +161,20 @@ export default function Home() {
     }
   }
 
+  // The balance reaching zero is the moment the customer needs telling, so it is
+  // watched directly rather than being announced only by whichever action failed.
+  useEffect(() => {
+    if (credits > 0) {
+      setWarnedAtZero(false);
+      return;
+    }
+    if (warnedAtZero) return;
+    setWarnedAtZero(true);
+    // A trial account cannot buy credits until it subscribes, so the prompt has to be
+    // the yearly plan first. See lib/access.ts canBuyCredits.
+    setToast(subscribed ? "credits" : "subscription");
+  }, [credits, subscribed, warnedAtZero]);
+
   useEffect(() => {
     loadWatchlists();
     fetch("/api/billing/status")
@@ -245,7 +264,9 @@ export default function Home() {
         // yearly access fee, or credits. Sending someone to buy credits when their
         // access has lapsed would sell them something they still could not use.
         if (data.code === "subscription_required" || data.code === "credits_required") {
-          setNeedsPurchase(data.code === "subscription_required" ? "subscription" : "credits");
+          const why = data.code === "subscription_required" ? "subscription" : "credits";
+          setNeedsPurchase(why);
+          setToast(why);
         }
         throw new Error(data.error || "Search failed");
       }
@@ -310,7 +331,10 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.code === "insufficient_credits") setCredits(data.credits ?? 0);
+        if (data.code === "insufficient_credits") {
+          setCredits(data.credits ?? 0);
+          setToast(subscribed ? "credits" : "subscription");
+        }
         // The server just dialled the number and checked the mailbox, found both dead,
         // and charged nothing. Correct the card so it stops claiming a contact we now
         // know is gone, and forget any stale "already yours" marker on it.
@@ -578,6 +602,8 @@ export default function Home() {
         </div>
       )}
 
+      <CreditToast reason={toast} onDismiss={() => setToast(null)} />
+
       {open && (
         <LeadModal lead={open} justUnlocked={justUnlocked} onClose={() => setOpen(null)} />
       )}
@@ -594,15 +620,20 @@ export default function Home() {
                     <b>{credits}</b> credit{credits === 1 ? "" : "s"} left. Each lead you open costs
                     one, and is yours for good.
                   </>
-                ) : (
+                ) : subscribed ? (
                   <>
                     You&rsquo;re out of credits. Top up to open any of these leads, and to run
                     another search, they stay yours permanently.
                   </>
+                ) : (
+                  <>
+                    Your free credits are used up. The <b>$30 a year</b> plan keeps your account
+                    open, and credits are bought separately once you are on it.
+                  </>
                 )}
               </span>
               <a className="go accent sm" href="/dashboard/billing">
-                {credits > 0 ? "Top up" : "Get credits"}
+                {credits > 0 ? "Top up" : subscribed ? "Get credits" : "Get access"}
               </a>
             </div>
           )}
