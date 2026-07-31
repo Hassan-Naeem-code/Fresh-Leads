@@ -114,6 +114,35 @@ function isOwnerRole(raw: string, where: "starts" | "ends"): string | null {
  * real false positive risk: page furniture, headings, and place names all match
  * "two capitalised words" perfectly well.
  */
+/**
+ * Words that never appear in a real person's name, checked PER WORD.
+ *
+ * Found by measuring: "Our Doctors", "Your Dentists", "The Doctors", "Us Services"
+ * and "Our Expert" were all being returned as owner names from real dental sites.
+ * Each has the exact shape of a name (two capitalised words, no digits) so the
+ * whole-phrase stoplist below could never catch them. Pronouns, articles and role
+ * nouns are the giveaway, so they are rejected wherever they appear.
+ */
+const NEVER_IN_A_NAME = new Set([
+  // pronouns and articles
+  "our", "your", "the", "us", "we", "my", "their", "his", "her", "its", "a", "an",
+  // role nouns, singular and plural
+  "doctor", "doctors", "dentist", "dentists", "expert", "experts", "specialist",
+  "specialists", "provider", "providers", "physician", "physicians", "hygienist",
+  "hygienists", "stylist", "stylists", "technician", "technicians", "staff", "team",
+  "member", "members", "professional", "professionals", "surgeon", "surgeons",
+  // business words
+  "services", "service", "office", "offices", "clinic", "clinics", "practice",
+  "group", "center", "centre", "associates", "partners", "company", "solutions",
+  "dental", "medical", "health", "care", "smiles", "studio", "salon", "spa",
+  "family", "welcome", "meet", "about", "contact", "home", "menu", "hours",
+  // The role words themselves. "Lee, Owner" was being captured as the two-word name
+  // "Lee Owner", so the title has to be disqualifying inside a name as well as
+  // recognised beside one.
+  "owner", "owners", "founder", "founders", "president", "proprietor", "ceo",
+  "principal", "director", "manager", "managing",
+]);
+
 const NOT_A_NAME = new Set([
   "our team", "the team", "meet the", "contact us", "about us", "our story",
   "our mission", "read more", "learn more", "order online", "book now",
@@ -152,6 +181,10 @@ export function looksLikeName(raw: string): boolean {
 
   const parts = name.split(" ");
   if (parts.length < 2 || parts.length > 3) return false;
+
+  // One disqualifying word anywhere is enough. "Our Doctors" and "Us Services" both
+  // pass every structural test; only the vocabulary gives them away.
+  if (parts.some((p) => NEVER_IN_A_NAME.has(p.toLowerCase().replace(/[^a-z]/g, "")))) return false;
 
   // Every part must read as a name: a capitalised word, or a middle initial.
   //

@@ -61,6 +61,24 @@ test("page furniture is never mistaken for a person", () => {
   }
 });
 
+test("pronoun and role phrases are not people", () => {
+  // Every one of these was returned as an owner name by the live crawler on a real
+  // dental site. They have the exact shape of a name, so only the vocabulary catches
+  // them, and shipping one means a rep opens a call with "is that Our Doctors?".
+  for (const junk of [
+    "Our Doctors", "Your Dentists", "The Doctors", "Us Services", "Our Expert",
+    "Our Team", "The Dentist", "Our Family", "Your Smile",
+  ]) {
+    assert.equal(looksLikeName(junk), false, `${junk} must not read as a name`);
+  }
+});
+
+test("real names measured in the wild still pass", () => {
+  // The two genuine owners from the same measurement run.
+  assert.equal(looksLikeName("Ali Jawad"), true);
+  assert.equal(looksLikeName("Kyleen Chen"), true);
+});
+
 test("place names are not people", () => {
   assert.equal(looksLikeName("New York"), false);
   assert.equal(looksLikeName("Main Street"), false);
