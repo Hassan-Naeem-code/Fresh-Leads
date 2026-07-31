@@ -56,7 +56,7 @@ export default function SignupPage() {
         </Link>
         <h2>Create your account</h2>
         <p className="sub">
-          Get {SIGNUP_BONUS_CREDITS} free credits, no card needed. Search straight away and open
+          Get {SIGNUP_BONUS_CREDITS} free credits. No credit card required. Search straight away and open
           your first {SIGNUP_BONUS_CREDITS} leads on us.
         </p>
 

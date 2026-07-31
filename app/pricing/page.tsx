@@ -17,12 +17,12 @@ import { Check, ArrowRight, Phone, Mail, MapPin, Gauge, Coin, Lock } from "../ic
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "$30 a year keeps your account open, then credits are $1 each. 1 credit opens 1 lead, permanently. Start with 3 free credits, no card needed.",
+    "$30 a year keeps your account open, then credits are $1 each. 1 credit opens 1 lead, permanently. Start with 3 free credits. No credit card required.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing",
     description:
-      "$30 a year for access, then $1 a credit. Start with 3 free credits, no card needed.",
+      "$30 a year for access, then $1 a credit. Start with 3 free credits. No credit card required.",
     url: "/pricing",
   },
 };
@@ -58,7 +58,7 @@ export default async function PricingPage() {
         </p>
         <div className="promo-banner">
           <span className="promo-tag">Free to start</span>
-          <b>{SIGNUP_BONUS_CREDITS} free credits when you sign up</b>, no card required. Search and
+          <b>{SIGNUP_BONUS_CREDITS} free credits when you sign up. No credit card required.</b> Search and
           open {SIGNUP_BONUS_CREDITS} leads on us, then decide.
         </div>
       </header>

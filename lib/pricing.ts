@@ -3,6 +3,17 @@
 // would break the build). lib/credits.ts and lib/access.ts re-export these, so there
 // is still exactly one source of truth.
 
+/**
+ * What revealing the business owner costs, on top of the credit that opened the lead.
+ *
+ * Tiered contact pricing is the mechanic every platform in this category uses:
+ * Openmart charges 3 credits for an owner email against a fraction of one for a
+ * business address. Owner detail is the expensive part to obtain and the valuable
+ * part to receive, so it is priced separately rather than bundled into the cost of
+ * merely seeing a business.
+ */
+export const OWNER_REVEAL_CREDITS = 1;
+
 /** Free credits a brand-new account starts with, so it can try the product. */
 export const SIGNUP_BONUS_CREDITS = 3;
 

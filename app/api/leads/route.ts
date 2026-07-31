@@ -11,7 +11,7 @@ import { viewLead } from "@/lib/lead-view";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAccess, type Access } from "@/lib/access";
-import { getUnlockedKeys } from "@/lib/credits";
+import { getUnlockedKeys, getOwnerUnlockedKeys } from "@/lib/credits";
 import { problemFactors, problemById } from "@/lib/problems";
 import { isRealWebsite } from "@/lib/website-kind";
 import { DEFAULT_PLAYBOOK, playbookById, type PlaybookId } from "@/lib/playbooks";
@@ -448,6 +448,8 @@ export async function POST(req: NextRequest) {
     // Which of these has the user already paid for? Those come back in full, at no
     // charge, because an unlock is permanent.
     const unlocked = user ? await getUnlockedKeys(user.id) : new Set<string>();
+    // Owner detail is priced separately, so it needs its own set of paid keys.
+    const ownerKeys = user ? await getOwnerUnlockedKeys(user.id) : new Set<string>();
     // Without Stripe configured there is nothing to sell, so a demo deployment
     // shows everything rather than locking the operator out of their own instance.
     const everythingOpen = !stripeConfigured();
@@ -467,6 +469,7 @@ export async function POST(req: NextRequest) {
         // A Lead's id IS its cross-search business key ("<source>:<source_id>").
         leadKey: l.id,
         unlockedKeys: unlocked,
+        ownerKeys,
         everythingOpen,
       }),
       isNew: isNewKey(l.id),

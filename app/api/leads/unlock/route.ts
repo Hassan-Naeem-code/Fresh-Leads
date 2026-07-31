@@ -6,6 +6,7 @@ import { unlockLead, hasUnlocked } from "@/lib/credits";
 import { verifyAndPersist } from "@/lib/verify/persist";
 import { stripeConfigured } from "@/lib/stripe";
 import type { Lead, UnlockedLead } from "@/lib/types";
+import { hideOwner, hasOwnerDetail } from "@/lib/lead-view";
 
 export const runtime = "nodejs";
 
@@ -79,7 +80,8 @@ export async function POST(req: NextRequest) {
 
     // Demo deployments (no Stripe keys) have nothing to sell, so nothing is charged.
     if (!stripeConfigured()) {
-      const open: UnlockedLead = { ...lead, locked: false, dbId: row.id as string };
+      const open: UnlockedLead = { ...lead, locked: false, dbId: row.id as string,
+        ownerAvailable: hasOwnerDetail(lead) };
       return NextResponse.json({ status: "unlocked", credits: 0, lead: open });
     }
 
@@ -102,7 +104,9 @@ export async function POST(req: NextRequest) {
     // 'unlocked' (charged just now) and 'already' (paid for previously, free) both
     // return the lead. The client uses `status` only to decide whether to animate
     // the balance going down.
-    const full: UnlockedLead = { ...lead, locked: false, dbId: row.id as string };
+    // Opening a lead buys the business contact and the grading, not the person.
+    // The owner block is stripped here and sold separately by /api/leads/owner.
+    const full: UnlockedLead = { ...hideOwner(lead), locked: false, dbId: row.id as string };
     return NextResponse.json({ status, credits: creditsLeft, lead: full });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";

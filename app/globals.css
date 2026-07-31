@@ -1697,3 +1697,25 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   color: var(--muted); background: var(--panel2);
   border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px;
 }
+
+/* Owner reveal: sold separately, so it reads as an offer rather than a missing field. */
+.ownerreveal {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-top: 16px; padding: 14px 16px;
+  background: var(--panel2); border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+}
+.ownerreveal.done { border-style: solid; border-color: rgba(31,158,122,.4); background: rgba(31,158,122,.07); }
+.or-icon { color: var(--accent); flex: none; margin-top: 2px; }
+.ownerreveal.done .or-icon { color: var(--cool); }
+.or-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.or-body b { font-size: 13.5px; font-weight: 650; }
+.or-body span { font-size: 12.5px; color: var(--muted); }
+.or-lines { display: flex; gap: 14px; flex-wrap: wrap; }
+.or-lines a { color: var(--accent); text-decoration: none; font-weight: 550; }
+.or-lines a:hover { text-decoration: underline; }
+.or-err { color: var(--hot); }
+@media (max-width: 560px) {
+  .ownerreveal { flex-wrap: wrap; }
+  .ownerreveal .go { width: 100%; justify-content: center; }
+}

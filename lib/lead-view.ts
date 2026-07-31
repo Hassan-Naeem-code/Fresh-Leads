@@ -40,12 +40,50 @@ export function toLockedLead(l: Lead, dbId: string | null): LockedLead {
  * (see lib/credits.ts). `everythingOpen` is for deployments with no payments
  * configured, where there is nothing to sell and locking would just get in the way.
  */
+/**
+ * Fields that only an owner reveal pays for.
+ *
+ * Listed once, here, so the set the API strips and the set the reveal endpoint returns
+ * can never drift apart. Same reasoning as the locked-lead allow list above: a field
+ * that is present in the payload is not hidden, however the UI chooses to render it.
+ */
+export const OWNER_FIELDS = [
+  "ownerName", "ownerRole", "ownerEmail", "ownerPhone", "ownerLinkedin",
+  "ownerSource", "ownerConfidence",
+] as const;
+
+/** Does this business have owner detail worth offering? */
+export function hasOwnerDetail(lead: Lead): boolean {
+  return Boolean(lead.ownerName || lead.ownerEmail || lead.ownerPhone || lead.ownerLinkedin);
+}
+
+/**
+ * Remove the owner block, leaving a flag saying whether there was one.
+ *
+ * `ownerAvailable` is safe to expose on an unrevealed lead: "we know who runs this"
+ * is what makes the reveal worth buying, and on its own it identifies nobody.
+ */
+export function hideOwner(lead: Lead): Lead & { ownerAvailable: boolean } {
+  const out = { ...lead, ownerAvailable: hasOwnerDetail(lead) };
+  for (const f of OWNER_FIELDS) delete (out as Record<string, unknown>)[f];
+  return out;
+}
+
 export function viewLead(
   lead: Lead,
-  opts: { dbId: string | null; leadKey: string; unlockedKeys: Set<string>; everythingOpen: boolean }
+  opts: {
+    dbId: string | null;
+    leadKey: string;
+    unlockedKeys: Set<string>;
+    everythingOpen: boolean;
+    /** Businesses whose owner this user has separately paid to see. */
+    ownerKeys?: Set<string>;
+  }
 ): ResultLead {
   if (opts.everythingOpen || opts.unlockedKeys.has(opts.leadKey)) {
-    return { ...lead, locked: false, dbId: opts.dbId };
+    const ownerPaid = opts.everythingOpen || Boolean(opts.ownerKeys?.has(opts.leadKey));
+    const body = ownerPaid ? { ...lead, ownerAvailable: hasOwnerDetail(lead) } : hideOwner(lead);
+    return { ...body, locked: false, dbId: opts.dbId };
   }
   return toLockedLead(lead, opts.dbId);
 }

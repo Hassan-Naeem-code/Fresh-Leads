@@ -159,7 +159,16 @@ export type LockedLead = {
 };
 
 /** An unlocked lead: the full record, plus where it lives. */
-export type UnlockedLead = Lead & { locked: false; dbId: string | null };
+export type UnlockedLead = Lead & {
+  locked: false;
+  dbId: string | null;
+  /**
+   * We hold owner detail for this business but it has not been revealed yet. Says
+   * nothing about who they are, only that the reveal would return something, so it is
+   * safe to send before the extra credit is spent.
+   */
+  ownerAvailable?: boolean;
+};
 
 /**
  * Set when the search ran against a watchlist: true for a business that watchlist has

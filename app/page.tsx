@@ -43,7 +43,7 @@ export default async function Landing() {
         <header className="pr pr-hero">
           <Reveal immediate className="pr-eyebrow">
             <span className="pill">
-              <Coin size={13} /> {SIGNUP_BONUS_CREDITS} free credits when you sign up, no card needed
+              <Coin size={13} /> {SIGNUP_BONUS_CREDITS} free credits when you sign up. No credit card required.
             </span>
           </Reveal>
           <Reveal immediate delay={80}>
@@ -59,7 +59,7 @@ export default async function Landing() {
           </Reveal>
           <Reveal immediate delay={240} className="pr-herobtns">
             <Link href="/signup" className="pr-btn accent">
-              <Search size={16} /> Sign up, get {SIGNUP_BONUS_CREDITS} free credits
+              <Search size={16} /> Get {SIGNUP_BONUS_CREDITS} free credits, no credit card
             </Link>
             <a href="#how" className="pr-btn ghost">See how it works <ArrowRight size={15} /></a>
           </Reveal>

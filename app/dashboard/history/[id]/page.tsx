@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUnlockedKeys } from "@/lib/credits";
+import { getUnlockedKeys, getOwnerUnlockedKeys } from "@/lib/credits";
 import { stripeConfigured } from "@/lib/stripe";
 import type { Lead, ResultLead } from "@/lib/types";
 import { viewLead } from "@/lib/lead-view";
@@ -41,6 +41,10 @@ export default async function SearchDetailPage({ params }: { params: Promise<{ i
     .order("score", { ascending: false });
 
   const unlocked = await getUnlockedKeys(user.id);
+  // Owner detail is bought separately, so history has to honour the same gate the
+  // live search does. Without this a saved lead would show a person the customer
+  // never paid for.
+  const ownerKeys = await getOwnerUnlockedKeys(user.id);
   const everythingOpen = !stripeConfigured();
 
   const leads: ResultLead[] = (leadRows ?? [])
@@ -51,6 +55,7 @@ export default async function SearchDetailPage({ params }: { params: Promise<{ i
         dbId: r.id as string,
         leadKey: `${r.source}:${r.source_id}`,
         unlockedKeys: unlocked,
+        ownerKeys,
         everythingOpen,
       });
     })

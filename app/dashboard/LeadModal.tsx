@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { UnlockedLead } from "@/lib/types";
 import { LeadCard } from "../LeadCard";
 import { estimateSize } from "@/lib/size";
-import { X, Check } from "../icons";
+import { OWNER_REVEAL_CREDITS } from "@/lib/pricing";
+import { setCredits } from "./credit-store";
+import { X, Check, User, Lock } from "../icons";
 
 // The payoff for spending a credit: everything we know about the lead, in a dialog.
 //
@@ -51,6 +53,34 @@ export function LeadModal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // The owner block is bought separately, so it arrives after this dialog is open.
+  const [owner, setOwner] = useState<Record<string, string | number | null> | null>(null);
+  const [revealing, setRevealing] = useState(false);
+  const [revealError, setRevealError] = useState("");
+
+  async function revealOwner() {
+    if (!lead.dbId) return;
+    setRevealing(true);
+    setRevealError("");
+    try {
+      const res = await fetch("/api/leads/owner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: lead.dbId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (typeof data.credits === "number") setCredits(data.credits);
+        throw new Error(data.error || "Could not reveal the owner");
+      }
+      if (typeof data.credits === "number") setCredits(data.credits);
+      setOwner(data.owner);
+    } catch (e) {
+      setRevealError(e instanceof Error ? e.message : "Could not reveal the owner");
+    } finally {
+      setRevealing(false);
+    }
+  }
 
   useEffect(() => {
     const el = ref.current;
@@ -92,6 +122,43 @@ export function LeadModal({
           {/* The same card the rest of the app uses, so an unlocked lead looks
               identical here and in history. */}
           <LeadCard lead={lead} />
+
+          {/* WHO RUNS IT. Offered only when we actually hold owner detail, which is
+              38% of businesses, and charged only when the reveal returns something. */}
+          {lead.ownerAvailable && !owner && (
+            <div className="ownerreveal">
+              <span className="or-icon"><Lock size={15} /></span>
+              <div className="or-body">
+                <b>We know who runs this business</b>
+                <span>
+                  Name, role and any direct contact we hold for them. Yours permanently,
+                  like the lead itself.
+                </span>
+                {revealError && <span className="or-err">{revealError}</span>}
+              </div>
+              <button className="go accent sm" onClick={revealOwner} disabled={revealing}>
+                {revealing
+                  ? "Revealing..."
+                  : `Reveal owner, ${OWNER_REVEAL_CREDITS} credit`}
+              </button>
+            </div>
+          )}
+
+          {owner && (
+            <div className="ownerreveal done">
+              <span className="or-icon"><User size={15} /></span>
+              <div className="or-body">
+                <b>{String(owner.ownerName ?? "Owner")}{owner.ownerRole ? `, ${owner.ownerRole}` : ""}</b>
+                <span className="or-lines">
+                  {owner.ownerEmail && <a href={`mailto:${owner.ownerEmail}`}>{String(owner.ownerEmail)}</a>}
+                  {owner.ownerPhone && <a href={`tel:${owner.ownerPhone}`}>{String(owner.ownerPhone)}</a>}
+                  {owner.ownerLinkedin && (
+                    <a href={String(owner.ownerLinkedin)} target="_blank" rel="noreferrer">LinkedIn</a>
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Everything else we hold on this business. The card is the summary a rep
               scans; this is what they read before actually dialling. */}

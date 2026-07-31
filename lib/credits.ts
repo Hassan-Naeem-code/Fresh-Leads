@@ -165,3 +165,42 @@ export async function getCreditHistory(userId: string, limit = 50) {
     .limit(limit);
   return data ?? [];
 }
+
+/**
+ * Spend one credit to reveal who runs a business, permanently.
+ *
+ * Separate from unlockLead on purpose: opening a lead and learning who owns it are
+ * priced separately, the way every platform in this category prices contact depth.
+ */
+export async function unlockOwner(
+  userId: string,
+  leadKey: string,
+  leadId?: string | null
+): Promise<{ status: UnlockStatus; creditsLeft: number }> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("unlock_owner", {
+    p_user_id: userId,
+    p_lead_key: leadKey,
+    p_lead_id: leadId ?? null,
+  });
+  if (error) {
+    console.error("[credits] unlock_owner failed:", error.message);
+    throw new Error("Could not reveal the owner");
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    status: (row?.status ?? "insufficient") as UnlockStatus,
+    creditsLeft: row?.credits_left ?? 0,
+  };
+}
+
+/** Businesses whose owner this user has already paid to see. */
+export async function getOwnerUnlockedKeys(userId: string): Promise<Set<string>> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("owner_unlocks")
+    .select("lead_key")
+    .eq("user_id", userId)
+    .limit(50_000);
+  return new Set((data ?? []).map((r) => r.lead_key as string));
+}
