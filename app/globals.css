@@ -580,7 +580,15 @@ button.ghost, button.go { display: inline-flex; align-items: center; justify-con
 .hsc { position: relative; }
 .hsc-sticky { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; overflow: hidden; }
 .hsc-inner { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 48px; align-items: center; width: 100%; }
-.hsc-left { max-width: 320px; }
+/* The track deliberately overflows its column so cards can bleed off the right edge,
+   which also means they travel across the heading on the left. Lifting the heading
+   above the track, with a short fade at its edge, keeps it readable while the cards
+   pass behind it. */
+.hsc-left {
+  max-width: 320px; position: relative; z-index: 2;
+  padding-right: 28px;
+  background: linear-gradient(90deg, var(--bg) 0%, var(--bg) 92%, transparent 100%);
+}
 .hsc-left .hsc-title { text-align: left; margin: 18px 0 14px; font-size: clamp(30px, 3.6vw, 46px); }
 .hsc-left .hsc-desc { color: var(--muted); font-size: 15.5px; line-height: 1.6; font-weight: 500; }
 .hsc-viewport { overflow: visible; }
@@ -1564,7 +1572,18 @@ a.vbadge { text-decoration: none; }
 /* Nothing may push the page sideways. A single overflowing element gives the whole
    document a horizontal scrollbar, which is the most common way a site "breaks" on a
    phone even when every breakpoint is correct. */
-html, body { max-width: 100%; overflow-x: hidden; }
+/* NO overflow on html or body. This was `hidden`, then `clip`, and both were wrong.
+   Constraining the root breaks two things at once:
+     1. position:sticky, because any non-visible overflow makes the element the scroll
+        container for its sticky descendants. The nav, the app header, the sidebar and
+        the pinned carousel all stopped pinning, and the carousel's reserved height
+        then showed as a screenful of blank space.
+     2. Scroll driven reveals, because content outside a clipped root is not rendered,
+        so a transition started there never advances. An element received its "visible"
+        class while clipped and stayed at opacity 0 permanently.
+   Sideways scrolling is prevented at the source instead, on the elements that can
+   actually overflow. */
+html, body { max-width: 100%; }
 img, svg, video, canvas { max-width: 100%; height: auto; }
 /* Long unbroken strings (emails, URLs, domains) are the usual culprits. */
 .lead a, .meta a, .owneremail, .lm-fact dd, .soc { overflow-wrap: anywhere; }
@@ -1719,3 +1738,8 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .ownerreveal { flex-wrap: wrap; }
   .ownerreveal .go { width: 100%; justify-content: center; }
 }
+
+/* The elements that can actually exceed the viewport, each contained on its own
+   rather than clamping the whole document. */
+.chips, .problem-chips, .watchchips, .sidenav { max-width: 100%; }
+.scroller, .ftable-wrap { overflow-x: auto; }
