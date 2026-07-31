@@ -13,8 +13,10 @@ import { useSyncExternalStore } from "react";
 // The server is always the authority. Every mutation here comes from a response
 // that already told us the balance, so this never guesses or decrements optimistically.
 
-let credits = 0;
-let initialized = false;
+// null means "not seeded yet", which is NOT the same as a balance of zero. Using 0 as
+// the empty state is what made a genuinely empty balance fall back to the stale
+// server value and keep showing the old number after the last credit was spent.
+let credits: number | null = null;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -29,8 +31,8 @@ export function setCredits(next: number) {
 
 /** Seed from the server-rendered value, once, without clobbering later updates. */
 export function initCredits(value: number) {
-  if (initialized) return;
-  initialized = true;
+  if (credits !== null) return;
+  if (!Number.isFinite(value)) return;
   credits = Math.max(0, Math.floor(value));
   emit();
 }
@@ -42,7 +44,14 @@ function subscribe(cb: () => void) {
 
 const snapshot = () => credits;
 
-export function useCredits(): number {
+/**
+ * The live balance, or null until it has been seeded.
+ *
+ * Callers must distinguish the two with `??`, never `||`: a real balance of zero is
+ * falsy, and treating it as "no value" is precisely how a spent-out account kept
+ * displaying the credits it started the session with.
+ */
+export function useCredits(): number | null {
   // Same snapshot on the server as the first client render, so hydration matches.
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }

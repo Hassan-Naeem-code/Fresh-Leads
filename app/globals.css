@@ -1198,7 +1198,11 @@ input:-webkit-autofill:focus {
 .leadmodal {
   border: none; padding: 0; background: transparent;
   max-width: min(760px, calc(100vw - 32px)); width: 100%;
-  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  /* A modal <dialog> is centred by the UA with `margin: auto`. The global
+     `* { margin: 0 }` reset on line 20 wipes that out, which pinned this panel to the
+     top left corner. Restoring it is what centres the dialog in both axes. */
+  margin: auto;
 }
 .leadmodal::backdrop { background: rgba(35, 8, 0, .42); backdrop-filter: blur(3px); }
 
@@ -1508,4 +1512,119 @@ a.vbadge { text-decoration: none; }
   .sidelink { white-space: nowrap; padding: 8px 14px; border-radius: var(--pill); }
   .sidelink.on { box-shadow: none; border: 1px solid var(--accent); }
   .appmain .wrap { padding: 22px 16px 64px; }
+}
+
+/* ============================================================
+   STAGE 8: Lead detail inside the modal
+   The card is the summary a rep scans; this is what they read before dialling.
+   ============================================================ */
+.lm-detail { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 18px; }
+.lm-dh {
+  font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 10px;
+}
+.lm-dh + .lm-facts { margin-bottom: 20px; }
+.lm-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 2px 22px; margin: 0;
+}
+.lm-fact {
+  display: flex; justify-content: space-between; gap: 14px; align-items: baseline;
+  padding: 7px 0; border-bottom: 1px dashed var(--border); min-width: 0;
+}
+.lm-fact dt { color: var(--muted); font-size: 12.5px; flex: none; }
+.lm-fact dd {
+  margin: 0; font-size: 13px; font-weight: 550; text-align: right;
+  overflow-wrap: anywhere; min-width: 0;
+}
+.lm-vendors { display: flex; flex-wrap: wrap; gap: 8px; }
+.lm-vendor {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 11px; border-radius: var(--pill);
+  background: var(--panel2); border: 1px solid var(--border);
+  font-size: 12.5px; font-weight: 600;
+}
+.lm-vendor em { font-style: normal; font-weight: 400; color: var(--muted); font-size: 11px; }
+.lm-vendor b {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--accent); background: rgba(249,99,50,.1);
+  border-radius: 999px; padding: 1px 7px;
+}
+.lm-vendor.sw { border-color: rgba(249,99,50,.4); }
+
+/* Export actions sit together and wrap rather than overflow on a narrow screen. */
+.exportgroup { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ============================================================
+   STAGE 9: Responsive from 365px to 2700px
+   Two ends to cover: phones narrow enough that fixed minimums overflow, and very
+   wide monitors where a fluid layout stretches lines past readability.
+   ============================================================ */
+
+/* Nothing may push the page sideways. A single overflowing element gives the whole
+   document a horizontal scrollbar, which is the most common way a site "breaks" on a
+   phone even when every breakpoint is correct. */
+html, body { max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+/* Long unbroken strings (emails, URLs, domains) are the usual culprits. */
+.lead a, .meta a, .owneremail, .lm-fact dd, .soc { overflow-wrap: anywhere; }
+/* Tables and code keep their shape but scroll inside their own box. */
+.ftable, .lm-facts { max-width: 100%; }
+
+/* ---- very wide screens: cap the measure, do not stretch it ---- */
+@media (min-width: 1700px) {
+  .appshell { max-width: 1680px; grid-template-columns: 248px minmax(0, 1fr); }
+  .topinner { max-width: 1680px; }
+  .appmain .wrap { padding-left: 40px; padding-right: 40px; }
+}
+@media (min-width: 2200px) {
+  /* Past this width a fluid grid puts 6+ cards on a row and the eye loses the list.
+     The content stays centred at a readable measure instead. */
+  .appshell { max-width: 1880px; }
+  .topinner { max-width: 1880px; }
+  html { font-size: 17px; }
+}
+
+/* ---- tablets and small laptops ---- */
+@media (max-width: 1024px) {
+  .lm-facts { grid-template-columns: 1fr; }
+}
+
+/* ---- phones ---- */
+@media (max-width: 640px) {
+  .wrap, .appmain .wrap { padding: 18px 14px 56px; }
+  .app-head h1, .pr-h1 { font-size: clamp(26px, 7vw, 38px); }
+
+  /* The lead card is a 3 column grid on desktop; stack it so nothing is squeezed. */
+  .lead { grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
+  .scoreR { display: none; }          /* the badge already shows the grade */
+  .meta { gap: 8px 12px; }
+
+  /* Filter controls become full width rather than 170px minimums that overflow. */
+  .fgroup, .fgroup.grow { min-width: 0; width: 100%; }
+  .exportgroup { width: 100%; }
+  .exportgroup .exportbtn { flex: 1; justify-content: center; }
+
+  .lm-head { padding: 16px 16px 12px; }
+  .lm-head h2 { font-size: 18px; }
+  .lm-foot { flex-direction: column; align-items: stretch; gap: 10px; }
+  .lm-foot .go { width: 100%; justify-content: center; }
+
+  .watchrow { flex-direction: column; align-items: stretch; }
+  .watchsave { justify-content: center; }
+}
+
+/* ---- the narrow end, 365px and below ---- */
+@media (max-width: 400px) {
+  .wrap, .appmain .wrap { padding: 14px 10px 48px; }
+  .leadmodal { max-width: calc(100vw - 12px); max-height: calc(100dvh - 20px); }
+  .lm-body { padding: 12px; }
+  .badge { min-width: 44px; }
+  /* Chip rows are the main overflow risk at this width. */
+  .chips, .signals, .verify, .socials { gap: 5px; }
+  .sig, .vbadge, .soc, .chip { font-size: 10.5px; padding: 3px 7px; }
+  .creditpill .cp-label { display: none; }   /* keep just the number in the header */
+  .topinner { padding: 10px 12px; gap: 8px; }
+  .topbrand span:not(.logo) { display: none; }  /* mark only, no wordmark */
+  .cp-buy span { display: none; }
 }

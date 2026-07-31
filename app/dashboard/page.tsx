@@ -52,7 +52,8 @@ export default function Home() {
   const [open, setOpen] = useState<UnlockedLead | null>(null);
   const [justUnlocked, setJustUnlocked] = useState(false);
   const [unlocking, setUnlocking] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
+  // Which format is in flight, so only the button that was pressed shows a spinner.
+  const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   // Which purchase the last blocked action needs, so the prompt is specific.
   const [needsPurchase, setNeedsPurchase] = useState<"subscription" | "credits" | null>(null);
   // dbIds paid for during this session via export, so their cards stop advertising
@@ -62,7 +63,11 @@ export default function Home() {
   const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [activeWatchlist, setActiveWatchlist] = useState<string | null>(null);
   const [savingWatch, setSavingWatch] = useState(false);
-  const credits = useCredits();
+  // Drives the PDF button. The server enforces the same rule, so a stale value here
+  // can only ever cost a wasted click, never leak the feature.
+  const [subscribed, setSubscribed] = useState(false);
+  // null until seeded. Compared with ?? so a real zero is never treated as unknown.
+  const credits = useCredits() ?? 0;
 
   // --- filters ---
   const [minScore, setMinScore] = useState(0);
@@ -153,6 +158,10 @@ export default function Home() {
 
   useEffect(() => {
     loadWatchlists();
+    fetch("/api/billing/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && typeof d.subscribed === "boolean") setSubscribed(d.subscribed); })
+      .catch(() => {});
   }, []);
 
   /** Save the search on screen as a market to watch. */
@@ -345,20 +354,20 @@ export default function Home() {
    * nothing. The CSV is built server-side, because the rows contain the contact
    * details that the credits pay for.
    */
-  async function exportCsv() {
+  async function exportLeads(format: "csv" | "pdf" = "csv") {
     if (!visible.length) return;
     const ids = visible.map((l) => l.dbId).filter((id): id is string => Boolean(id));
     if (!ids.length) {
       setError("These leads were not saved, please run the search again to export.");
       return;
     }
-    setExporting(true);
+    setExporting(format);
     setError("");
     try {
       const res = await fetch("/api/leads/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: ids }),
+        body: JSON.stringify({ leadIds: ids, format }),
       });
 
       if (!res.ok) {
@@ -373,7 +382,7 @@ export default function Home() {
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `leads_${niche}_${location}`.replace(/[^a-z0-9]+/gi, "_") + ".csv";
+      a.download = `leads_${niche}_${location}`.replace(/[^a-z0-9]+/gi, "_") + (format === "pdf" ? ".pdf" : ".csv");
       a.click();
       URL.revokeObjectURL(a.href);
 
@@ -396,7 +405,7 @@ export default function Home() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed");
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   }
 
@@ -623,23 +632,41 @@ export default function Home() {
               <b style={{ fontSize: 14, fontWeight: 600 }}>{result.matchedTags.join(", ")}</b>
               <span>matched category</span>
             </div>
-            <button
-              className="ghost exportbtn"
-              onClick={exportCsv}
-              disabled={!visible.length || exporting}
-              title={
-                lockedVisible > 0
-                  ? `${lockedVisible} of these ${visible.length} are still locked, so this export costs ${lockedVisible} credit${lockedVisible === 1 ? "" : "s"}`
-                  : "Every lead here is already yours, this export is free"
-              }
-            >
-              <Download size={15} />
-              {exporting
-                ? "Exporting…"
-                : lockedVisible > 0
-                  ? `Export ${visible.length} (${lockedVisible} credit${lockedVisible === 1 ? "" : "s"})`
-                  : `Export ${visible.length} (free)`}
-            </button>
+            <div className="exportgroup">
+              <button
+                className="ghost exportbtn"
+                onClick={() => exportLeads("csv")}
+                disabled={!visible.length || exporting !== null}
+                title={
+                  lockedVisible > 0
+                    ? `${lockedVisible} of these ${visible.length} are still locked, so this export costs ${lockedVisible} credit${lockedVisible === 1 ? "" : "s"}`
+                    : "Every lead here is already yours, this export is free"
+                }
+              >
+                <Download size={15} />
+                {exporting === "csv"
+                  ? "Exporting…"
+                  : lockedVisible > 0
+                    ? `CSV ${visible.length} (${lockedVisible} credit${lockedVisible === 1 ? "" : "s"})`
+                    : `CSV ${visible.length} (free)`}
+              </button>
+              {/* The call sheet is what the yearly plan buys on top of the data. The
+                  server enforces this too; the button only avoids a pointless round
+                  trip and explains why it is disabled. */}
+              <button
+                className="ghost exportbtn"
+                onClick={() => exportLeads("pdf")}
+                disabled={!visible.length || exporting !== null || !subscribed}
+                title={
+                  subscribed
+                    ? "A printable call sheet: one block per business, number and pitch ready to dial"
+                    : "The PDF call sheet is part of the $30/year plan"
+                }
+              >
+                <Download size={15} />
+                {exporting === "pdf" ? "Building…" : subscribed ? "PDF call sheet" : "PDF (plan only)"}
+              </button>
+            </div>
           </div>
 
           <div className="scanline">

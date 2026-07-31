@@ -23,7 +23,8 @@ export function CreditPill({
   }, [initialCredits]);
 
   const credits = useCredits();
-  const shown = credits || initialCredits;
+  // ?? not ||: a balance of 0 is a real value and must render as 0.
+  const shown = credits ?? initialCredits;
   const empty = shown <= 0;
 
   return (

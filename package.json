@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "^2.110.2",
     "libphonenumber-js": "^1.13.8",
     "next": "^15.5.20",
+    "pdf-lib": "^1.17.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "stripe": "^22.3.1",

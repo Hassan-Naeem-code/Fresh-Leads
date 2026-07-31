@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// The header renders the live credit balance, so this layout must never be served
+// from a cached render. A stale balance here is the difference between a customer
+// believing they have credits and discovering they do not.
+export const dynamic = "force-dynamic";
+
 // The real gate for the app. Middleware does a coarse auth redirect; this re-checks
 // the user server-side.
 //

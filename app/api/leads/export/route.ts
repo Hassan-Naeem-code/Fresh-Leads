@@ -6,12 +6,18 @@ import { unlockLeadsBulk, getCreditBalance, getUnlockedKeys } from "@/lib/credit
 import { verifyAndPersist } from "@/lib/verify/persist";
 import { mapPool } from "@/lib/pool";
 import { stripeConfigured } from "@/lib/stripe";
+import { getAccess } from "@/lib/access";
+import { getSiteSettings } from "@/lib/site-settings.server";
 import { gradePct, LEGACY_ATTAINABLE } from "@/lib/score";
 import type { Lead } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const Body = z.object({ leadIds: z.array(z.string().uuid()).min(1).max(1000) });
+const Body = z.object({
+  leadIds: z.array(z.string().uuid()).min(1).max(1000),
+  /** csv for a CRM, pdf for a call sheet. PDF is a subscriber feature. */
+  format: z.enum(["csv", "pdf"]).default("csv"),
+});
 
 // Export leads to CSV. One credit per lead, and leads already unlocked are FREE,
 // because a credit buys a business permanently, not one view of it.
@@ -30,6 +36,22 @@ export async function POST(req: NextRequest) {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+
+    // The PDF call sheet is what the yearly subscription buys on top of the raw data.
+    // Checked before any credit is spent, so a refusal never costs anything.
+    const wantsPdf = parsed.data.format === "pdf";
+    if (wantsPdf && stripeConfigured()) {
+      const access = await getAccess(user.id);
+      if (!access.subscribed) {
+        return NextResponse.json(
+          {
+            error: "The PDF call sheet is part of the $30/year plan. CSV export is always available.",
+            code: "subscription_required",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const admin = createAdminClient();
     const { data: rows } = await admin
@@ -94,14 +116,37 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const csv = toCsv(deliverable.map((r) => r.raw as unknown as Lead));
+    const exportLeads = deliverable.map((r) => r.raw as unknown as Lead);
     const credits = await getCreditBalance(user.id);
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    if (wantsPdf) {
+      const [{ buildLeadsPdf }, settings] = await Promise.all([
+        import("@/lib/pdf"),
+        getSiteSettings(),
+      ]);
+      const bytes = await buildLeadsPdf(exportLeads, {
+        brand: settings.brand_name || "Fresh Leads",
+        generatedAt: new Date(),
+      });
+      return new NextResponse(Buffer.from(bytes), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="fresh-leads-${stamp}.pdf"`,
+          "X-Credits-Remaining": String(credits),
+          "X-Leads-Skipped": String(dead.length),
+        },
+      });
+    }
+
+    const csv = toCsv(exportLeads);
 
     return new NextResponse(csv, {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="fresh-leads-${new Date().toISOString().slice(0, 10)}.csv"`,
+        "Content-Disposition": `attachment; filename="fresh-leads-${stamp}.csv"`,
         // So the client can update the balance in the header without a refetch.
         "X-Credits-Remaining": String(credits),
         // How many were left out for failing verification, so the UI can say so
