@@ -103,6 +103,22 @@ test("headings beside a name are not absorbed into it", () => {
   assert.equal(extractOwner("<h2>Dr. Zahedi Testimonials</h2>"), null);
 });
 
+test("a team card with the name and role in separate elements is read", () => {
+  // Flattening the HTML leaves "Jane Doe Owner" with only a space between them, and
+  // every punctuation-based pattern missed it. This is the commonest team-page markup.
+  assert.deepEqual(extractOwner("<h3>Jane Doe</h3><span>Owner</span>"), {
+    name: "Jane Doe", role: "owner",
+  });
+  assert.equal(extractOwner("<div><p>Founder</p><h4>Marcus Webb</h4></div>").name, "Marcus Webb");
+});
+
+test("a bare space only counts for unambiguous ownership words", () => {
+  // "Jane Doe Manager" must not match: with no punctuation the evidence is weak, and
+  // manager attaches to shift managers as often as to decision makers.
+  assert.equal(extractOwner("<h3>Jane Doe</h3><span>Manager</span>"), null);
+  assert.equal(extractOwner("<h3>Jane Doe</h3><span>Director</span>"), null);
+});
+
 test("a practitioner name in image alt text is found", () => {
   // Practice sites caption headshots and put the only occurrence of the name there.
   const html = '<img src="/team/1.jpg" alt="Dr. Priya Nair" />';

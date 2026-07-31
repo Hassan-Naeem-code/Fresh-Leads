@@ -56,10 +56,20 @@ const PAGE_HINTS = [
   /\/(our-story|who-we-are)\/?$/i,
   /\/contact[-_a-z]*\/?$/i,
   /\/(careers?|jobs?|join-us|were-hiring)\/?$/i,
+  // Almost always carries a contact address, even when the site has no contact page
+  // and only a form. Cheap and reliable, so it is worth a slot.
+  /\/(privacy|terms|legal)[-_a-z]*\/?$/i,
 ];
 
-/** How many pages beyond the homepage we will open. Keeps unlock under a second or two. */
-const MAX_EXTRA_PAGES = 3;
+/**
+ * How many pages beyond the homepage we will open.
+ *
+ * Raised from 3 after measuring: the pages carrying the owner (team, doctors) and the
+ * pages carrying an address (contact, privacy) are usually different pages, and a
+ * budget of 3 meant winning one and losing the other. These run concurrently, so the
+ * extra pages cost latency only on the slowest site, not four times the wait.
+ */
+const MAX_EXTRA_PAGES = 6;
 
 /**
  * Titles that mean this person runs the business. Deliberately narrow: "manager" and
@@ -101,6 +111,15 @@ const NAME_THEN_ROLE = new RegExp(`(${NAME})${SEP}(?:[Tt]he\\s+)?(${ROLEISH})`, 
 
 // "Owner: Jane Doe"  /  "Meet our Owner - Jane Doe"  /  "Founder, Jane Doe"
 const ROLE_THEN_NAME = new RegExp(`\\b(${ROLEISH})${SEP}(${NAME})`, "g");
+
+// "Jane Doe Owner" with nothing between them. Team cards put the name in a heading
+// and the role in the next element, so flattening the HTML leaves only a space and
+// every punctuation-based pattern above misses it. Restricted to unambiguous
+// ownership words, because a bare space is weak evidence and "Jane Doe Manager"
+// would otherwise start matching.
+const STRONG_ROLES = "[Oo]wner|[Cc]o-?[Oo]wner|[Ff]ounder|[Cc]o-?[Ff]ounder|[Pp]roprietor";
+const NAME_SPACE_ROLE = new RegExp(`(${NAME})\\s+(${STRONG_ROLES})\\b`, "g");
+const ROLE_SPACE_NAME = new RegExp(`\\b(${STRONG_ROLES})\\s+(${NAME})`, "g");
 
 // "Dr. Jane Smith" / "Dr Jane Smith". The honorific is the title.
 const DOCTOR_NAME = new RegExp(String.raw`\bDr\.?\s+(${NAME})`, "g");
@@ -275,7 +294,21 @@ export function extractOwner(html: string): { name: string; role: string } | nul
     }
   }
 
-  // 3. Named practitioners. Checked before the loose prose pattern because the title
+  // 3. Name and role in adjacent elements, e.g. a team card.
+  for (const [re, nameAt, roleAt] of [
+    [NAME_SPACE_ROLE, 1, 2],
+    [ROLE_SPACE_NAME, 2, 1],
+  ] as Array<[RegExp, number, number]>) {
+    re.lastIndex = 0;
+    for (const m of text.matchAll(re)) {
+      const name = m[nameAt]?.trim();
+      if (name && looksLikeName(name)) {
+        return { name: name.replace(/\s+/g, " "), role: m[roleAt].toLowerCase().replace(/-/g, "-") };
+      }
+    }
+  }
+
+  // 4. Named practitioners. Checked before the loose prose pattern because the title
   // is explicit here and merely implied there.
   DOCTOR_NAME.lastIndex = 0;
   for (const m of text.matchAll(DOCTOR_NAME)) {
@@ -290,7 +323,7 @@ export function extractOwner(html: string): { name: string; role: string } | nul
     }
   }
 
-  // 4. "founded by Jane Doe". No role stated, so it is recorded as owner by implication.
+  // 5. "founded by Jane Doe". No role stated, so it is recorded as owner by implication.
   PROSE_NAME.lastIndex = 0;
   for (const m of text.matchAll(PROSE_NAME)) {
     const name = m[1]?.trim();
