@@ -2212,3 +2212,41 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .adm-feed li { grid-template-columns: 1fr; gap: 3px; }
   .adm-feeddetail { grid-column: 1; }
 }
+
+/* Two factor: enrolment and challenge share one card. */
+.mfacard { max-width: 480px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.mfacard h2 { display: flex; align-items: center; gap: 9px; font-size: 21px; margin: 0; }
+.mfacard p { margin: 0; }
+.mfachoices { display: flex; flex-direction: column; gap: 10px; }
+.mfastep { display: flex; flex-direction: column; gap: 12px; }
+.mfaqr {
+  align-self: center; border-radius: 12px; background: #fff; padding: 8px;
+  border: 1px solid var(--border);
+}
+.mfasecret {
+  display: inline-block; font-size: 13px; letter-spacing: .08em;
+  background: var(--panel2); border-radius: 6px; padding: 3px 7px; word-break: break-all;
+}
+.mfacode {
+  font-size: 26px; letter-spacing: .32em; text-align: center; font-weight: 700;
+  font-variant-numeric: tabular-nums; padding: 14px;
+}
+.mfacode.wide { font-size: 19px; letter-spacing: .12em; }
+.mfaswitch { display: flex; flex-wrap: wrap; gap: 7px; }
+.mfaswitch .faqchip { display: inline-flex; align-items: center; gap: 6px; }
+.mfalist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mfalist li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.mfalist li:last-child { border-bottom: 0; }
+.mfalist li > div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.mfaicon { color: var(--accent); display: inline-flex; }
+.mfafoot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mfacodes {
+  list-style: none; margin: 0; padding: 16px; display: grid;
+  grid-template-columns: 1fr 1fr; gap: 8px;
+  background: var(--panel2); border-radius: var(--r-md);
+  font-size: 14.5px; font-weight: 600; letter-spacing: .06em;
+}
+@media (max-width: 480px) { .mfacodes { grid-template-columns: 1fr; } }

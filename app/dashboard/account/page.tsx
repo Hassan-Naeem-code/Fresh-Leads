@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccess } from "@/lib/access";
 import { Shield } from "../../icons";
 import { AccountPanel } from "./AccountPanel";
+import { MfaSetup } from "../../MfaSetup";
 
 export const metadata: Metadata = {
   title: "Account and security",
@@ -35,6 +36,10 @@ export default async function AccountPage() {
           at the keyboard.
         </p>
       </div>
+
+      {/* Two factor is required, so this manages the methods rather than offering to
+          turn the protection on or off. */}
+      <MfaSetup mandatory={false} />
 
       <AccountPanel
         email={user.email ?? ""}
