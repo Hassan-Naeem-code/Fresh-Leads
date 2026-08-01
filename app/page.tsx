@@ -119,7 +119,7 @@ export default async function Landing() {
           </div>
           <div className="pr-step accent">
             <div className="pr-stepn">2</div>
-            <b>Search free, pay per lead</b>
+            <b>Search free, spend a credit to open</b>
             <p>Searching costs nothing. Spend a credit only on a lead you want to open, and it is yours permanently.</p>
             <div className="pr-stepproof">
               <span className="pr-sprice"><b>$1</b> / credit = 1 lead</span>
@@ -198,7 +198,7 @@ export default async function Landing() {
       <section id="pricing" className="pr pr-section pr-cta">
         <Reveal className="pr-eyebrow"><span className="pill">Pricing</span></Reveal>
         <Reveal><h2 className="pr-h2">Pay for exactly what you need</h2></Reveal>
-        <Reveal><p className="pr-sectionlead">No sales calls, no bloated subscriptions. Pay $30 a year to keep your account active, then $1 a lead. You only pay for fully verified leads, guaranteed.</p></Reveal>
+        <Reveal><p className="pr-sectionlead">No sales calls, no bloated subscriptions. Pay $30 a year to keep your account active, then credits are $1 each. You only pay for fully verified leads, guaranteed.</p></Reveal>
         <Reveal delay={120}>
           <div className="pr-herobtns" style={{ marginTop: 28 }}>
             <Link href="/signup" className="pr-btn accent">

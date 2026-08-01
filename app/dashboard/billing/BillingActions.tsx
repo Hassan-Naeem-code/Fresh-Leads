@@ -136,8 +136,8 @@ export function BillingActions({
         {bonusForPurchase(amount) > 0 && (
           <span className="muted sm">
             This basket earns <b>{bonusForPurchase(amount)} bonus credits</b>, so you get{" "}
-            {amount + bonusForPurchase(amount)} leads for {formatMoney(creditCostCents(amount))}.
-            That works out at {formatMoney(Math.round(effectiveCentsPerLead(amount)))} a lead.
+            {amount + bonusForPurchase(amount)} credits for {formatMoney(creditCostCents(amount))}.
+            That works out at {formatMoney(Math.round(effectiveCentsPerLead(amount)))} a credit.
           </span>
         )}
 

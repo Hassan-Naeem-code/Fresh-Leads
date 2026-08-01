@@ -201,7 +201,7 @@ export default async function PricingPage() {
             <div className="pr-cardicon">
               <Coin size={22} />
             </div>
-            <b>Exports are per lead</b>
+            <b>Exports cost a credit each</b>
             <p>
               Exporting charges one credit per lead you have not opened yet, and nothing at all for
               the ones you already own.
