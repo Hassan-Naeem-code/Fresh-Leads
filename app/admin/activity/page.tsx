@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { requireAdmin } from "@/lib/admin/guard";
 import { getSiteSettings } from "@/lib/site-settings.server";
 import { getPlatformFeed } from "@/lib/admin/users";
 import { AdminShell } from "../AdminShell";
 import { Empty } from "../Empty";
+import { FeedList } from "../FeedList";
 import { Clock } from "../../icons";
 
 export const dynamic = "force-dynamic";
@@ -34,22 +34,9 @@ export default async function AdminActivityPage() {
             hint="Signups, searches, leads opened and payments all appear here as they occur."
           />
         ) : (
-          <ul className="adm-feed">
-            {feed.events.map((e, i) => (
-              <li key={i} className={e.kind}>
-                <span className="adm-feedwhen">{new Date(e.at).toLocaleString()}</span>
-                <span className="adm-feedwho">
-                  {e.userId ? (
-                    <Link href={`/admin/users/${e.userId}`}>{e.email ?? "an account"}</Link>
-                  ) : (
-                    "system"
-                  )}
-                </span>
-                <span className="adm-feedwhat">{e.summary}</span>
-                {e.detail && <span className="adm-feeddetail">{e.detail}</span>}
-              </li>
-            ))}
-          </ul>
+          <div className="adm-panel feedpanel">
+            <FeedList items={feed.events} showWho />
+          </div>
         )}
       </div>
     </AdminShell>

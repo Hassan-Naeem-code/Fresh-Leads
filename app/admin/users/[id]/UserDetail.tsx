@@ -2,28 +2,15 @@
 
 import { useState } from "react";
 import type { UserOverview } from "@/lib/admin/users";
-import { Coin, Search, Unlock, Lock, Key, Mail, AlertTriangle, Check, Clock, User } from "../../../icons";
+import { Lock, AlertTriangle, Check, Clock } from "../../../icons";
 import { Empty } from "../../Empty";
+import { FeedList } from "../../FeedList";
 
 // One account, everything we know, and every lever.
 //
 // The destructive controls are at the bottom behind their own confirmations, in the
 // same order as the customer's own account screen, so an operator learns one layout.
 
-const KIND_ICON: Record<string, React.ReactNode> = {
-  signup: <User size={13} />,
-  search: <Search size={13} />,
-  unlock: <Unlock size={13} />,
-  owner_unlock: <Unlock size={13} />,
-  credits: <Coin size={13} />,
-  subscription: <Coin size={13} />,
-  ticket: <Mail size={13} />,
-  api_key: <Key size={13} />,
-  crm: <Check size={13} />,
-  sequence: <Mail size={13} />,
-  enrichment: <Check size={13} />,
-  admin: <Lock size={13} />,
-};
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -259,16 +246,9 @@ export function UserDetail({ overview }: { overview: UserOverview }) {
             hint="Searches, leads opened and payments all appear here as they happen."
           />
         ) : (
-          <ul className="adm-feed">
-            {state.activity.map((e, i) => (
-              <li key={i} className={e.kind}>
-                <span className="adm-feedicon">{KIND_ICON[e.kind] ?? <Clock size={13} />}</span>
-                <span className="adm-feedwhen">{new Date(e.at).toLocaleString()}</span>
-                <span className="adm-feedwhat">{e.summary}</span>
-                {e.detail && <span className="adm-feeddetail">{e.detail}</span>}
-              </li>
-            ))}
-          </ul>
+          <div className="feedpanel">
+            <FeedList items={state.activity} />
+          </div>
         )}
       </div>
 

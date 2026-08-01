@@ -2435,3 +2435,62 @@ a.go:hover, a.ghost:hover, .sidelink:hover, .adm-nav a:hover, .topbrand:hover,
   .adm-feedwhen { flex-basis: 100%; }
   .adm-feeddetail { margin-left: 0; }
 }
+
+/* ==========================================================================
+   The activity feed as a card.
+
+   It was a bare list on the page ground, which read as debug output rather than
+   as part of the product. Each event is now a row inside a panel: a tinted icon
+   for the kind, the summary, who and what underneath, and the time on the right.
+   ========================================================================== */
+.feedpanel { padding: 6px 8px; }
+.feed { list-style: none; margin: 0; padding: 0; }
+
+.feedrow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 0 14px;
+  align-items: start;
+  padding: 13px 14px;
+  border-radius: var(--r-md);
+  transition: background .14s var(--ease);
+}
+.feedrow + .feedrow { box-shadow: inset 0 1px 0 var(--border); }
+.feedrow:hover { background: var(--panel2); }
+.feedrow:hover + .feedrow { box-shadow: none; }
+
+.feedchip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  background: var(--panel2); color: var(--muted);
+  border: 1px solid var(--border);
+}
+/* Colour carries the kind, so a page of rows can be read without reading it. */
+.feedrow.credits .feedchip { background: rgba(31,158,122,.1); color: var(--cool); border-color: rgba(31,158,122,.3); }
+.feedrow.unlock .feedchip, .feedrow.owner_unlock .feedchip { background: rgba(249,99,50,.1); color: var(--accent); border-color: rgba(249,99,50,.3); }
+.feedrow.admin .feedchip { background: rgba(245,83,61,.1); color: var(--hot); border-color: rgba(245,83,61,.32); }
+.feedrow.signup .feedchip, .feedrow.subscription .feedchip { background: rgba(136,85,253,.1); color: var(--accent2); border-color: rgba(136,85,253,.28); }
+
+.feedmain { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.feedtop { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.feedtop b { font-size: 14.5px; font-weight: 600; }
+.feedkind {
+  flex: none; font-size: 10px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted);
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: var(--pill); padding: 2px 8px;
+}
+.feedsub { font-size: 12.5px; color: var(--muted); word-break: break-word; }
+.feedsub a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.feedsub a:hover { color: var(--accent); }
+.feeddot { margin: 0 6px; opacity: .6; }
+.feedwhen {
+  flex: none; font-size: 12px; color: var(--muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 2px;
+}
+
+@media (max-width: 620px) {
+  .feedrow { grid-template-columns: 30px minmax(0, 1fr); gap: 0 11px; padding: 12px 10px; }
+  .feedchip { width: 30px; height: 30px; }
+  .feedwhen { grid-column: 2; padding-top: 4px; }
+}
