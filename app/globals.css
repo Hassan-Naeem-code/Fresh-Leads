@@ -1861,3 +1861,23 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 .crmtokenrow { display: flex; gap: 10px; flex-wrap: wrap; }
 .crmtokenrow input { flex: 1; min-width: 220px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
 .crmtokenerr { color: var(--hot); font-size: 12.5px; }
+
+/* ============================================================
+   STAGE 13: Unsubscribe
+   Used by strangers, usually while annoyed. Calm, no navigation, no upsell.
+   ============================================================ */
+.unsub { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--panel2); }
+.unsubcard {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+  padding: 40px 36px; max-width: 460px; width: 100%; text-align: center;
+  box-shadow: var(--sh-2);
+}
+.unsubbrand { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 26px; font-weight: 650; }
+.unsubicon {
+  width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+  margin: 0 auto 18px;
+}
+.unsubicon.good { background: rgba(31,158,122,.12); color: var(--cool); }
+.unsubicon.bad { background: rgba(224,138,30,.12); color: var(--warm); }
+.unsubcard h1 { font-size: 22px; letter-spacing: -.02em; margin-bottom: 10px; }
+.unsubcard p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin: 0; }
