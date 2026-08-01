@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getAccess } from "@/lib/access";
+import { getAccess, getSuspension } from "@/lib/access";
 import { getSiteSettings } from "@/lib/site-settings.server";
 import { BrandMark, BrandName } from "../brand";
 import { CreditPill } from "./CreditPill";
 import { SideNav } from "./SideNav";
+import { Suspended } from "./Suspended";
 
 // Private, signed-in surface. robots.txt disallows the path, but a page-level
 // noindex is what actually keeps it out of the index if the URL is ever shared.
@@ -36,7 +37,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect("/login?next=/dashboard");
 
-  const [settings, access] = await Promise.all([getSiteSettings(), getAccess(user.id)]);
+  const [settings, access, suspension] = await Promise.all([
+    getSiteSettings(),
+    getAccess(user.id),
+    getSuspension(user.id),
+  ]);
+
+  // A locked account sees one screen and nothing else. Returning early here rather
+  // than hiding pieces of the app is what makes it a lock instead of a nuisance.
+  if (suspension) return <Suspended email={user.email ?? ""} suspension={suspension} />;
 
   return (
     <div>

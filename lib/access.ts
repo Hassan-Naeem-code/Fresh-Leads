@@ -61,8 +61,30 @@ export type Access = {
    * Why lead access is blocked, so the UI can prompt for the right thing instead of
    * guessing. null when nothing is blocked.
    */
-  blockedBy: "subscription" | "credits" | null;
+  blockedBy: "subscription" | "credits" | "suspended" | null;
 };
+
+/**
+ * Is this account locked by an operator, and what were they told?
+ *
+ * Returns null for an active account. The reason is carried back so the app can show
+ * the customer what they were told rather than a generic wall.
+ */
+export async function getSuspension(
+  userId: string
+): Promise<{ at: string; reason: string | null } | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("suspended_at, suspended_reason")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!data?.suspended_at) return null;
+  return {
+    at: data.suspended_at as string,
+    reason: (data.suspended_reason as string | null) ?? null,
+  };
+}
 
 export async function getSubscription(userId: string): Promise<Subscription | null> {
   const admin = createAdminClient();
@@ -97,12 +119,32 @@ export async function getSubscription(userId: string): Promise<Subscription | nu
 export function decideAccess(facts: {
   credits: number;
   subscribed: boolean;
+  /** Locked out by an operator. Overrides everything else, including a paid plan. */
+  suspended?: boolean;
   /** Has a subscriptions row at all (i.e. has subscribed at some point). */
   hasSubscriptionRecord: boolean;
   /** Payments configured. When false there is nothing to sell, so nothing is gated. */
   paymentsConfigured: boolean;
 }): Omit<Access, "subscription"> {
   const { credits, subscribed, hasSubscriptionRecord, paymentsConfigured } = facts;
+
+  // A suspension is absolute and is checked before anything else, including the
+  // payments escape hatch below. An account that is locked can do nothing at all,
+  // whatever it has paid for; the balance is reported honestly so the reason shown
+  // to them is the suspension rather than a fake empty wallet.
+  if (facts.suspended) {
+    return {
+      credits,
+      subscribed,
+      hasAccess: false,
+      canSearch: false,
+      canUnlock: false,
+      canBuyCredits: false,
+      canUseTools: false,
+      onFreeTrial: false,
+      blockedBy: "suspended",
+    };
+  }
 
   // A deployment with no Stripe keys has nothing to sell, so it stays open rather
   // than locking the operator out of their own instance.
@@ -146,9 +188,10 @@ export function decideAccess(facts: {
 }
 
 export async function getAccess(userId: string): Promise<Access> {
-  const [credits, subscription] = await Promise.all([
+  const [credits, subscription, suspension] = await Promise.all([
     getCreditBalance(userId),
     getSubscription(userId),
+    getSuspension(userId),
   ]);
 
   return {
@@ -157,6 +200,7 @@ export async function getAccess(userId: string): Promise<Access> {
       subscribed: Boolean(subscription?.active),
       hasSubscriptionRecord: subscription !== null,
       paymentsConfigured: stripeConfigured(),
+      suspended: suspension !== null,
     }),
     subscription,
   };

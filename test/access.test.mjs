@@ -150,3 +150,36 @@ test("the sections track the subscription, never the balance", () => {
 test("with payments unconfigured the sections stay open", () => {
   assert.equal(at({ paymentsConfigured: false, credits: 0 }).canUseTools, true);
 });
+
+// Suspension. An operator lock has to beat every other rule, including the escape
+// hatch for a deployment with no payments configured. A suspended account that could
+// still spend a credit because Stripe keys were missing would be a real hole.
+
+test("a suspension blocks everything, whatever else is true", () => {
+  for (const facts of [
+    { suspended: true, credits: 500, subscribed: true, hasSubscriptionRecord: true },
+    { suspended: true, credits: 3 },
+    { suspended: true, credits: 0, paymentsConfigured: false },
+  ]) {
+    const a = at(facts);
+    assert.equal(a.hasAccess, false, JSON.stringify(facts));
+    assert.equal(a.canSearch, false);
+    assert.equal(a.canUnlock, false);
+    assert.equal(a.canUseTools, false);
+    assert.equal(a.canBuyCredits, false, "a locked account must not be sold anything");
+    assert.equal(a.blockedBy, "suspended");
+  }
+});
+
+test("a suspension reports the real balance, not a fake empty one", () => {
+  // The reason shown has to be the lock. Zeroing the balance here would make the app
+  // tell them to top up, which is both wrong and a way to take money from someone who
+  // cannot use it.
+  assert.equal(at({ suspended: true, credits: 42, subscribed: true, hasSubscriptionRecord: true }).credits, 42);
+});
+
+test("not suspended is the default and changes nothing", () => {
+  const plain = at({ credits: 3 });
+  const explicit = at({ credits: 3, suspended: false });
+  assert.deepEqual(plain, explicit);
+});

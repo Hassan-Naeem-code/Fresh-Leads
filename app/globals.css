@@ -2166,3 +2166,49 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   color: var(--muted); cursor: pointer;
 }
 .pwtoggle:hover { color: var(--text); background: var(--panel2); }
+
+/* The locked account screen. Deliberately plain: nothing to click but the two things
+   that help, and no product chrome around it. */
+.susp { display: flex; align-items: center; justify-content: center; min-height: 82vh; padding: 24px; }
+.suspcard { max-width: 560px; text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.susplock {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(245,83,61,.1); color: var(--hot);
+}
+.suspcard h1 { font-size: 26px; margin: 0; }
+.suspcard p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+.suspreason { color: var(--text) !important; background: var(--panel2); border-radius: var(--r-md); padding: 12px 15px; }
+.suspacts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+/* Admin: activity feed and the per-user controls. */
+.adm-feed { list-style: none; margin: 0; padding: 0; }
+.adm-feed li {
+  display: grid; grid-template-columns: auto 190px 1fr; gap: 12px; align-items: baseline;
+  padding: 9px 2px; border-bottom: 1px solid var(--border); font-size: 13.5px;
+}
+.adm-feed li:last-child { border-bottom: 0; }
+.adm-feedicon { color: var(--muted); display: inline-flex; }
+.adm-feedwhen { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.adm-feedwho { font-weight: 600; }
+.adm-feedwhat { font-weight: 550; }
+.adm-feeddetail { grid-column: 3; color: var(--muted); font-size: 12.5px; word-break: break-word; }
+.adm-feed li.admin .adm-feedwhat { color: var(--hot); }
+.adm-feed li.credits .adm-feedwhat { color: var(--cool); }
+
+.adm-actrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.adm-actrow input { width: auto; flex: 0 1 260px; }
+.adm-actrow .adm-num { flex: 0 0 110px; }
+.adm-actrow .adm-wide { flex: 1 1 320px; }
+.adm-note {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px; font: inherit;
+  font-size: 14px; outline: none; resize: vertical; margin-bottom: 10px;
+}
+.adm-panel.danger { border-color: rgba(245,83,61,.35); }
+.adm-panel.danger h2 { color: var(--hot); }
+
+@media (max-width: 760px) {
+  .adm-feed li { grid-template-columns: 1fr; gap: 3px; }
+  .adm-feeddetail { grid-column: 1; }
+}

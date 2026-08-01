@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
@@ -168,6 +169,11 @@ function UserRow({
 
       {open && (
         <div className="adm-editor">
+          <p className="adm-sub">
+            <Link href={`/admin/users/${row.id}`}>
+              Open the full account: everything they have done, suspension, deletion
+            </Link>
+          </p>
           <div className="adm-fields">
             <label>
               Adjust credits (+/−)
