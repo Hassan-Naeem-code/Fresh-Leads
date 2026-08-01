@@ -1881,3 +1881,86 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 .unsubicon.bad { background: rgba(224,138,30,.12); color: var(--warm); }
 .unsubcard h1 { font-size: 22px; letter-spacing: -.02em; margin-bottom: 10px; }
 .unsubcard p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin: 0; }
+
+/* ============================================================
+   STAGE 14: Email sequences
+   ============================================================ */
+.emailblock {
+  display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px;
+  padding: 14px 16px; border-radius: var(--r-lg);
+  background: rgba(224,138,30,.09); border: 1px solid rgba(224,138,30,.38);
+}
+.emailblock svg { color: var(--warm); flex: none; margin-top: 2px; }
+.emailblock > div { display: flex; flex-direction: column; gap: 3px; }
+.emailblock b { font-size: 14px; font-weight: 650; }
+.emailblock span { font-size: 13px; color: var(--muted); }
+
+.emailh { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 14px; }
+.emailform { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.emailform label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.emailform label.wide { grid-column: 1 / -1; }
+.emailactions { display: flex; align-items: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+.emailok { display: inline-flex; align-items: center; gap: 6px; color: var(--cool); font-size: 13px; font-weight: 600; }
+.emailnote {
+  margin-top: 12px; padding: 11px 14px; border-radius: var(--r-md); font-size: 13px;
+  background: rgba(224,138,30,.09); border: 1px solid rgba(224,138,30,.35); color: var(--warm);
+}
+.emailnew { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.emailnew input { flex: 1; min-width: 220px; }
+
+.seqlist, .enrlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.seqlist li, .enrlist li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.seqlist li:last-child, .enrlist li:last-child { border-bottom: 0; }
+.seqlist li > div, .enrlist li > div { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.seqlist b, .enrlist b { font-size: 13.5px; font-weight: 600; }
+
+.seqstatus, .enrstatus {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+}
+.seqstatus.active, .enrstatus.active { color: var(--cool); border-color: rgba(31,158,122,.4); background: rgba(31,158,122,.1); }
+.enrstatus.finished { color: var(--cool); }
+.enrstatus.unsubscribed, .enrstatus.bounced, .enrstatus.stopped { color: var(--hot); border-color: rgba(245,83,61,.35); }
+
+.seqbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.seqbar > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 3px; }
+.seqbar b { font-size: 15px; font-weight: 650; }
+
+.seqstep {
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 16px; margin-bottom: 14px; background: var(--panel2);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.seqstephead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.seqnum {
+  width: 24px; height: 24px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: var(--accent); color: #fff;
+}
+.seqstephead .muted { display: inline-flex; align-items: center; gap: 5px; }
+.seqdelay { width: 58px; padding: 3px 7px; font-size: 12.5px; text-align: center; }
+.seqdel {
+  margin-left: auto; background: none; border: 0; cursor: pointer; color: var(--muted);
+  padding: 4px; border-radius: 999px;
+}
+.seqdel:hover { color: var(--hot); background: var(--panel); }
+.seqsubject { font-weight: 600; }
+.seqbody { font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }
+.seqfoot { margin-top: 14px; }
+.seqfoot, .emailh + p code {
+  font-size: 12px;
+}
+.card code {
+  font-size: 12px; background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 5px;
+}
+
+@media (max-width: 640px) {
+  .emailform { grid-template-columns: 1fr; }
+  .seqbar .go, .seqbar .ghost { width: 100%; justify-content: center; }
+}
