@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Building, Check, AlertTriangle, ArrowRight } from "../../icons";
+import { PasswordInput } from "../../PasswordInput";
 
 const MESSAGES: Record<string, string> = {
   connected: "CRM connected. Open a lead, then push it from the lead panel.",
@@ -98,8 +99,7 @@ export function CrmPanel({
           <div className="crmtoken">
             <label>Paste a service key or private app token</label>
             <div className="crmtokenrow">
-              <input
-                type="password"
+              <PasswordInput
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="Paste the key from HubSpot"

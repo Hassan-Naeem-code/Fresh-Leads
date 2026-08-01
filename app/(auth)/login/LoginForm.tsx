@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { SiteSettings } from "@/lib/site-settings";
 import { BrandMark, BrandName } from "../../brand";
 import { AuthAside } from "../AuthAside";
+import { PasswordInput } from "../../PasswordInput";
 
 function Form({ settings }: { settings: SiteSettings }) {
   const router = useRouter();
@@ -21,6 +22,33 @@ function Form({ settings }: { settings: SiteSettings }) {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // One screen for both. The admin credential is not a Supabase user, so it is
+    // checked first; for every other address this answers "no" immediately and costs
+    // one fast request.
+    try {
+      const res = await fetch("/api/auth/admin-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.admin) {
+        // Full page load, not a client route change: the admin area is behind its own
+        // cookie and needs a request that carries the one just set.
+        window.location.href = data.redirect || "/admin";
+        return;
+      }
+      if (!res.ok && data.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // The admin check is an optimisation, not a gate. If it fails, fall through to
+      // the ordinary sign in rather than blocking a customer.
+    }
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
@@ -59,9 +87,8 @@ function Form({ settings }: { settings: SiteSettings }) {
           </div>
           <div>
             <label htmlFor="password">Password</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

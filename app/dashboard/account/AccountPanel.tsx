@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, Check, Shield, Trash, Mail, Calendar } from "../../icons";
+import { PasswordInput } from "../../PasswordInput";
 
 // Three forms, each with its own current-password field.
 //
@@ -130,16 +131,16 @@ export function AccountPanel({
           <div className="acctform">
             <label>
               Current password
-              <input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} autoComplete="current-password" />
+              <PasswordInput value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} autoComplete="current-password" />
             </label>
             <label>
               New password
-              <input type="password" value={pwNext} onChange={(e) => setPwNext(e.target.value)} autoComplete="new-password" />
+              <PasswordInput value={pwNext} onChange={(e) => setPwNext(e.target.value)} autoComplete="new-password" />
               <span className="muted sm">At least 8 characters.</span>
             </label>
             <label>
               New password again
-              <input type="password" value={pwAgain} onChange={(e) => setPwAgain(e.target.value)} autoComplete="new-password" />
+              <PasswordInput value={pwAgain} onChange={(e) => setPwAgain(e.target.value)} autoComplete="new-password" />
             </label>
             <div className="tkactions">
               <button className="go accent" onClick={savePassword} disabled={busy || pwCurrent.length < 1 || pwNext.length < 8}>
@@ -164,7 +165,7 @@ export function AccountPanel({
           <div className="acctform">
             <label>
               Current password
-              <input type="password" value={emCurrent} onChange={(e) => setEmCurrent(e.target.value)} autoComplete="current-password" />
+              <PasswordInput value={emCurrent} onChange={(e) => setEmCurrent(e.target.value)} autoComplete="current-password" />
             </label>
             <label>
               New email address
@@ -225,7 +226,7 @@ export function AccountPanel({
             </label>
             <label>
               Current password
-              <input type="password" value={delCurrent} onChange={(e) => setDelCurrent(e.target.value)} autoComplete="current-password" />
+              <PasswordInput value={delCurrent} onChange={(e) => setDelCurrent(e.target.value)} autoComplete="current-password" />
             </label>
             <label>
               Type DELETE to confirm

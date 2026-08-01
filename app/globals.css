@@ -2153,3 +2153,16 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   font-size: 14.5px; outline: none; resize: vertical; margin-bottom: 10px;
 }
 .adm-tkthread textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,99,50,.18); }
+
+/* Password field with a show/hide toggle. The button sits inside the field's box, so
+   the input keeps its own focus ring rather than the pair growing a second one. */
+.pwfield { position: relative; display: block; }
+.pwfield input { width: 100%; padding-right: 44px; }
+.pwtoggle {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  background: none; border: 0; border-radius: 8px;
+  color: var(--muted); cursor: pointer;
+}
+.pwtoggle:hover { color: var(--text); background: var(--panel2); }

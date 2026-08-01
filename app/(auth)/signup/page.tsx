@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { SIGNUP_BONUS_CREDITS } from "@/lib/pricing";
 import { FreshLeadsMark } from "../../icons";
 import { AuthAside } from "../AuthAside";
+import { PasswordInput } from "../../PasswordInput";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -85,9 +86,8 @@ export default function SignupPage() {
           </div>
           <div>
             <label htmlFor="password">Password</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               minLength={6}
               value={password}

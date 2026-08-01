@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { PasswordInput } from "../../PasswordInput";
 
 export function PasswordForm() {
   const [current, setCurrent] = useState("");
@@ -43,15 +44,15 @@ export function PasswordForm() {
     <form className="card adm-pwcard" onSubmit={onSubmit}>
       <label className="adm-flabel">
         Current password
-        <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
+        <PasswordInput autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
       </label>
       <label className="adm-flabel">
         New password
-        <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required />
+        <PasswordInput autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required />
       </label>
       <label className="adm-flabel">
         Confirm new password
-        <input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        <PasswordInput autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
       </label>
       <div className="adm-pwrow">
         {msg && <span className={`adm-msg ${msg.kind}`}>{msg.text}</span>}
