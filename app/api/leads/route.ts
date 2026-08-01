@@ -3,6 +3,7 @@ import { geocode } from "@/lib/geocode";
 import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
 import { observeAndDiff, recentTriggers } from "@/lib/snapshots";
+import { guard } from "@/lib/rate-limit";
 import { seenKeys, markSeen } from "@/lib/watchlists";
 import { userIdForApiKey } from "@/lib/api-keys";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
@@ -184,6 +185,14 @@ export async function POST(req: NextRequest) {
     if (!user) {
       const apiUserId = await userIdForApiKey(req.headers.get("authorization"));
       if (apiUserId) user = { id: apiUserId };
+    }
+
+    // A search fans out to dozens of crawls and third party lookups, so it is the most
+    // expensive thing anyone can ask for. Keyed by account: an API key holder paying
+    // per lead still should not be able to melt the crawler with a loop.
+    if (user) {
+      const limited = await guard("search", user.id, "searches");
+      if (limited) return limited;
     }
 
     let access: Access | null = null;

@@ -123,7 +123,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
   font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
   color: var(--muted); margin: 20px 0 10px;
 }
-.bands { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.bands { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 10px; }
 .band { background: var(--panel2); border: 1px solid var(--border); border-radius: 11px; padding: 12px 14px; }
 .band.HOT { border-color: rgba(245,83,61,.45); }
 .band.WARM { border-color: rgba(224,138,30,.45); }
@@ -337,11 +337,11 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .adm-page h1 { font-size: 24px; letter-spacing: -0.02em; }
 .adm-sub { color: var(--muted); font-size: 14px; margin: 8px 0 26px; line-height: 1.55; max-width: 70ch; }
 
-.adm-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.adm-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 14px; }
 .adm-stat { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
 .adm-stat b { font-size: 28px; display: block; letter-spacing: -0.02em; }
 .adm-stat span { color: var(--muted); font-size: 12.5px; }
-.adm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; }
+.adm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; margin-top: 22px; }
 .adm-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-decoration: none; color: var(--text); }
 .adm-card:hover { border-color: var(--accent); }
 .adm-card b { font-size: 15px; display: block; margin-bottom: 6px; }
@@ -372,7 +372,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .adm-empty { padding: 30px; text-align: center; color: var(--muted); }
 
 .adm-editor { padding: 4px 16px 18px; border-top: 1px dashed var(--border); }
-.adm-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 16px 0; }
+.adm-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 14px; margin: 16px 0; }
 .adm-fields label, .adm-flabel { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
 .adm-fields input, .adm-fields select { text-transform: none; letter-spacing: 0; margin-top: 6px; }
 .adm-editrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -1548,7 +1548,7 @@ a.vbadge { text-decoration: none; }
 }
 .lm-dh + .lm-facts { margin-bottom: 20px; }
 .lm-facts {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   gap: 2px 22px; margin: 0;
 }
 .lm-fact {
@@ -1711,7 +1711,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
    the competitors put them.
    ============================================================ */
 .icpfilters {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 14px 26px;
   margin-top: 12px; padding: 14px 16px;
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
@@ -1777,7 +1777,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 .enrichdrop b { font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
 .enrichdrop span { font-size: 13px; color: var(--muted); }
 
-.enrichcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; }
+.enrichcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 22px; }
 .enrichcols h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 8px; }
 .enrichcols p { font-size: 13.5px; line-height: 1.55; margin: 0 0 6px; }
 
@@ -2086,14 +2086,14 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 .tkfoot { display: flex; align-items: center; gap: 7px; margin-top: 14px; }
 
 /* Account facts, and the forms under them. */
-.acctfacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin: 0; }
+.acctfacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 18px; margin: 0; }
 .acctfacts dt {
   display: flex; align-items: center; gap: 6px; margin: 0 0 5px;
   font-size: 12px; font-weight: 600; color: var(--muted);
 }
 .acctfacts dd { margin: 0; font-size: 14.5px; font-weight: 600; word-break: break-word; }
 
-.acctform { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.acctform { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 14px; }
 .acctform .wide { grid-column: 1 / -1; }
 .acctform textarea {
   width: 100%; background: var(--panel2); border: 1px solid var(--border);
@@ -2111,7 +2111,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 .go.danger:hover:not(:disabled) { box-shadow: 0 14px 30px -12px rgba(245,83,61,.55); }
 
 /* Personalisation. */
-.prefplaybooks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+.prefplaybooks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); gap: 10px; margin: 14px 0 18px; }
 .prefpb {
   text-align: left; cursor: pointer; background: var(--panel2);
   border: 1px solid var(--border); border-radius: var(--r-md); padding: 13px 15px;
@@ -2531,7 +2531,7 @@ a.go:hover, a.ghost:hover, .sidelink:hover, .adm-nav a:hover, .topbrand:hover,
 .skelrow + .skelrow { border-top: 1px solid var(--border); }
 .skelrow > div { display: flex; flex-direction: column; gap: 7px; }
 .skelstats {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: 14px; margin-bottom: 18px;
 }
 .skelstat { display: flex; flex-direction: column; gap: 9px; padding: 18px 20px; }
@@ -2591,4 +2591,113 @@ a.go:hover, a.ghost:hover, .sidelink:hover, .adm-nav a:hover, .topbrand:hover,
 .vbadge.hot {
   color: var(--accent); border-color: rgba(249,99,50,.4);
   background: rgba(249,99,50,.08); font-weight: 650;
+}
+
+/* ==========================================================================
+   Marketing pages added later: security, integrations, FAQ, comparison.
+   ========================================================================== */
+
+/* A hero without the product mock under it needs less room beneath. */
+.pr-hero.compact { padding-bottom: 40px; }
+
+.seclist { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.seclist li {
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 15.5px; line-height: 1.6; text-align: left;
+}
+.seclist li svg { flex: none; margin-top: 4px; color: var(--accent); }
+
+/* Public FAQ. Native <details> so it works with JavaScript off and is searchable
+   by the crawler that reads the page, which is the point of the page. */
+.faqsection { padding-top: 26px; padding-bottom: 26px; }
+.faqpublic { border-top: 1px solid var(--border); }
+.faqpublic details { border-bottom: 1px solid var(--border); }
+.faqpublic summary {
+  cursor: pointer; list-style: none; padding: 17px 40px 17px 2px;
+  font-size: 16.5px; font-weight: 600; position: relative;
+}
+.faqpublic summary::-webkit-details-marker { display: none; }
+.faqpublic summary::after {
+  content: "+"; position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 21px; font-weight: 400; color: var(--muted); line-height: 1;
+}
+.faqpublic details[open] summary::after { content: "\2212"; color: var(--accent); }
+.faqpublic summary:hover { color: var(--accent); }
+.faqpublic details > div { padding: 0 40px 18px 2px; max-width: 70ch; }
+.faqpublic p { color: var(--muted); font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+.faqpublic p:last-child { margin-bottom: 0; }
+
+/* Comparison table. Scrolls inside its own box so the page never moves sideways. */
+.cmpwrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--panel); box-shadow: var(--sh-1); }
+.cmp { width: 100%; border-collapse: collapse; min-width: 620px; }
+.cmp th, .cmp td { text-align: left; padding: 15px 20px; font-size: 14.5px; vertical-align: top; }
+.cmp thead th {
+  background: var(--panel2); color: var(--muted); font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .06em; font-weight: 700;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.cmp tbody th { font-weight: 600; color: var(--text); width: 40%; }
+.cmp tbody tr { border-bottom: 1px solid var(--border); }
+.cmp tbody tr:last-child { border-bottom: 0; }
+.cmp td { color: var(--muted); }
+.cmp td span { display: inline-block; }
+.cmp td svg { margin-right: 8px; vertical-align: -2px; }
+.cmp tr:not(.loses) td:nth-child(2) { color: var(--text); font-weight: 600; }
+.cmp tr.loses td:nth-child(3) { color: var(--text); font-weight: 600; }
+.i-cool { color: var(--cool); }
+.i-hot { color: var(--hot); }
+
+@media (max-width: 640px) {
+  .cmp th, .cmp td { padding: 12px 14px; font-size: 13.5px; }
+  .faqpublic summary { font-size: 15.5px; padding-right: 34px; }
+}
+
+/* ==========================================================================
+   Narrow-device sweep, 365px up.
+
+   Everything above assumed a phone was at least 390 wide. These are the places
+   that broke below that: fixed paddings eating the whole viewport, headlines
+   that could not wrap, and rows that insisted on staying rows.
+   ========================================================================== */
+@media (max-width: 400px) {
+  .pr { padding-left: 16px; padding-right: 16px; }
+  .pr-h1 { font-size: clamp(30px, 9vw, 40px); }
+  .pr-h2 { font-size: clamp(23px, 7.2vw, 30px); }
+  .pr-lead, .pr-sectionlead { font-size: 15px; }
+  .card { padding: 18px 16px; }
+  .wrap { padding-left: 14px; padding-right: 14px; }
+  .app-head h1 { font-size: 26px; }
+  .adm-main { padding: 22px 14px 60px; }
+  .adm-page h1 { font-size: 24px; }
+  .mfacard { padding: 20px 16px; }
+  .mfacode { font-size: 22px; letter-spacing: .2em; }
+  .tkactions { flex-direction: column; align-items: stretch; }
+  .tkactions .go, .tkactions .ghost { width: 100%; justify-content: center; }
+  .emptybox { padding: 38px 16px; }
+  .acctfacts { grid-template-columns: 1fr; }
+  .billgrid { grid-template-columns: 1fr; }
+}
+
+/* Nothing may ever push the page sideways. Long unbroken strings, a business
+   name with no spaces, a URL in a table cell, are the usual culprits. */
+.wrap, .pr, .adm-main { overflow-wrap: break-word; }
+table { max-width: 100%; }
+
+/* ==========================================================================
+   Very wide screens, up to and past 1900px.
+
+   The content column stopped growing at 1180px, so a 1920 monitor showed a
+   narrow strip in an ocean of sand. It now scales in steps rather than
+   stretching text to an unreadable line length.
+   ========================================================================== */
+@media (min-width: 1500px) {
+  .pr { max-width: 1320px; }
+  .wrap { max-width: 1280px; }
+  .adm-main { max-width: 1240px; }
+}
+@media (min-width: 1800px) {
+  .pr { max-width: 1440px; }
+  .wrap { max-width: 1380px; }
+  .adm-main { max-width: 1320px; }
+  .appshell { max-width: 1720px; margin-inline: auto; }
 }

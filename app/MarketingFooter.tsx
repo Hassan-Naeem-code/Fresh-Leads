@@ -20,6 +20,7 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
           <div className="mkt-footcol">
             <span className="mkt-foothead">Product</span>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/integrations">Integrations</Link>
             <Link href="/#how">How it works</Link>
             <Link href="/#quality">Quality standards</Link>
             <Link href="/signup">Get started</Link>
@@ -27,11 +28,14 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
           <div className="mkt-footcol">
             <span className="mkt-foothead">Company</span>
             <Link href="/about">About us</Link>
+            <Link href="/compare">How we compare</Link>
+            <Link href="/faq">Questions</Link>
             <Link href="/contact">Contact</Link>
             <Link href="/login">Sign in</Link>
           </div>
           <div className="mkt-footcol">
             <span className="mkt-foothead">Legal</span>
+            <Link href="/security">Security</Link>
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms of Service</Link>
           </div>

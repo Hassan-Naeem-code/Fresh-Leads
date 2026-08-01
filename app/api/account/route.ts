@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { passwordMatches, changePassword, deleteAccount } from "@/lib/account";
+import { guard, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,11 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.email) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  // Every branch here re-checks the current password, so without a limit this is a
+  // password oracle running at network speed.
+  const limited = await guard("account", user.id, "attempts");
+  if (limited) return limited;
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {

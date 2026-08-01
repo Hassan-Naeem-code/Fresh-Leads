@@ -13,6 +13,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // convert, was not in the sitemap at all.
     { path: "/pricing", priority: 0.9, changeFrequency: "weekly" },
     { path: "/signup", priority: 0.8, changeFrequency: "monthly" },
+    // Pages that answer a question somebody typed into a search engine, which is
+    // where most of the non-branded traffic will come from.
+    { path: "/compare", priority: 0.8, changeFrequency: "monthly" },
+    { path: "/integrations", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/faq", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/security", priority: 0.6, changeFrequency: "monthly" },
     { path: "/about", priority: 0.6, changeFrequency: "monthly" },
     { path: "/contact", priority: 0.6, changeFrequency: "monthly" },
     { path: "/privacy", priority: 0.3, changeFrequency: "monthly" },

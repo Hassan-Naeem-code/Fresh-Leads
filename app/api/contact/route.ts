@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { guard, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,9 @@ const Body = z.object({
 // Public contact form. Stores the message via the service-role client (the table
 // has no anon RLS policies) so the browser never touches it directly.
 export async function POST(req: NextRequest) {
+  const limited = await guard("contact", clientIp(req), "messages");
+  if (limited) return limited;
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(

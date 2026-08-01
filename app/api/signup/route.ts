@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { grantCredits, SIGNUP_BONUS_CREDITS } from "@/lib/credits";
+import { guard, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,10 @@ const Body = z.object({
 // to get a session. (Swap back to email confirmation once a real mail provider
 // is wired up.)
 export async function POST(req: NextRequest) {
+  // Keyed by address: each account created is free credits given away.
+  const limited = await guard("signup", clientIp(req), "signups");
+  if (limited) return limited;
+
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json(

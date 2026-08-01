@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { themeCss } from "@/lib/site-settings";
 import { getSiteSettings } from "@/lib/site-settings.server";
+import { OrganizationSchema, ProductSchema } from "./StructuredData";
 
 // Title/description follow the live brand so a rename in /admin/branding shows in
 // the browser tab and share cards too.
@@ -45,7 +46,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* DB-driven palette overrides globals.css (html:root outspecifies :root). */}
         <style id="theme-overrides" dangerouslySetInnerHTML={{ __html: themeCss(settings) }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <OrganizationSchema brand={settings.brand_name} />
+        <ProductSchema brand={settings.brand_name} />
+        {children}
+      </body>
     </html>
   );
 }

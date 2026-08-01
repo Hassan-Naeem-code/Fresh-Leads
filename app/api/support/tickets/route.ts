@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { listTickets, createTicket, TICKET_TOPICS, type TicketTopic } from "@/lib/support";
 import { notifyOperatorOfTicket } from "@/lib/email/notify";
+import { guard, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const limited = await guard("support", user.id, "tickets");
+  if (limited) return limited;
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {

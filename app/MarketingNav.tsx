@@ -25,6 +25,8 @@ export function MarketingNav({
         <div className="pr-navlinks">
           {children}
           <Link href="/pricing" className="hideable">Pricing</Link>
+          <Link href="/integrations" className="hideable">Integrations</Link>
+          <Link href="/compare" className="hideable">Compare</Link>
           <Link href="/about" className="hideable">About</Link>
           <Link href="/contact" className="hideable">Contact</Link>
           {email ? (

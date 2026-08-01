@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { guard } from "@/lib/rate-limit";
 import { currentIdentity } from "@/lib/mfa/owner";
 import type { Owner } from "@/lib/mfa/store";
 import {
@@ -89,6 +90,23 @@ export async function POST(req: NextRequest) {
 
   const me = await currentIdentity();
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  // Keyed by account, not by IP. These cost money per call and an attacker with a
+  // botnet has plenty of addresses; what they do not have is plenty of accounts.
+  const who = me.kind === "admin" ? me.email : me.userId!;
+  const costly: Partial<Record<typeof input.action, { bucket: "mfa_sms" | "mfa_email" | "mfa_verify"; what: string }>> = {
+    start_sms: { bucket: "mfa_sms", what: "text messages" },
+    start_email: { bucket: "mfa_email", what: "emails" },
+    send_code: { bucket: "mfa_email", what: "codes" },
+    verify: { bucket: "mfa_verify", what: "attempts" },
+    confirm: { bucket: "mfa_verify", what: "attempts" },
+    recovery: { bucket: "mfa_verify", what: "attempts" },
+  };
+  const limit = costly[input.action];
+  if (limit) {
+    const limited = await guard(limit.bucket, who, limit.what);
+    if (limited) return limited;
+  }
 
   switch (input.action) {
     case "start_totp": {
