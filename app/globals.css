@@ -2250,3 +2250,152 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   font-size: 14.5px; font-weight: 600; letter-spacing: .06em;
 }
 @media (max-width: 480px) { .mfacodes { grid-template-columns: 1fr; } }
+
+/* ==========================================================================
+   Depth pass, admin and app together.
+
+   The two surfaces were flat: everything sat on the same sand at the same
+   height, so nothing read as more important than anything else. The changes
+   here are all about hierarchy rather than decoration. Cards lift slightly off
+   the ground, the rail separates itself from the work, numbers are set the way
+   figures should be set, and nothing moves that a person did not ask to move.
+   ========================================================================== */
+
+/* --- The empty state, one component everywhere --- */
+.emptybox {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 54px 28px; text-align: center;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,0)),
+    var(--panel2);
+  border: 1px dashed var(--border); border-radius: var(--r-lg);
+}
+.emptybox b { font-size: 15.5px; color: var(--text); }
+.emptybox span { font-size: 13.5px; color: var(--muted); max-width: 46ch; line-height: 1.6; }
+.emptyicon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 50%; margin-bottom: 4px;
+  background: var(--panel); border: 1px solid var(--border); color: var(--accent);
+  box-shadow: var(--sh-1);
+}
+
+/* --- A file input that belongs to the design --- */
+.filepick { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+/* Hidden from sight, not from the accessibility tree or the keyboard. */
+.filepick input[type="file"] {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.filepickbtn {
+  display: inline-flex; align-items: center; flex: none;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: var(--pill); padding: 9px 18px;
+  font-size: 13.5px; font-weight: 600; color: var(--text);
+  box-shadow: var(--sh-1);
+  transition: border-color .16s var(--ease), transform .12s var(--ease);
+}
+.filepick:hover .filepickbtn { border-color: var(--accent); color: var(--accent); }
+.filepick input:focus-visible + .filepickbtn { outline: 2px solid var(--accent); outline-offset: 2px; }
+.filepickname { font-size: 12.5px; color: var(--muted); word-break: break-all; }
+
+/* --- The admin rail --- */
+.adm-side {
+  background: linear-gradient(180deg, var(--panel) 0%, var(--bg) 100%);
+  border-right: 1px solid var(--border);
+}
+.adm-brand { font-weight: 700; letter-spacing: -.015em; }
+.adm-nav a {
+  border-radius: var(--r-md);
+  transition: background .16s var(--ease), color .16s var(--ease);
+}
+.adm-nav a.on {
+  /* The active row was a solid dark block, which read as a button somebody had
+     pressed. A tinted ground with an accent rail reads as "you are here". */
+  background: linear-gradient(90deg, rgba(249,99,50,.12), rgba(249,99,50,.04));
+  color: var(--text); font-weight: 650;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.adm-nav a.on .icon { color: var(--accent); }
+.adm-navlabel {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); font-weight: 650; padding: 0 12px; margin-bottom: 8px;
+}
+.adm-foot { border-top: 1px solid var(--border); padding-top: 16px; }
+
+/* --- Page headings --- */
+.adm-page h1 {
+  font-size: 30px; letter-spacing: -.03em; margin: 0 0 6px;
+  line-height: 1.15;
+}
+.adm-sub { font-size: 14.5px; margin: 0 0 28px; }
+
+/* --- Numbers --- */
+.adm-stats { gap: 16px; }
+.adm-stat, .adm-card {
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+  transition: transform .16s var(--ease), box-shadow .2s var(--ease), border-color .16s var(--ease);
+}
+.adm-stat {
+  background: linear-gradient(180deg, var(--panel), var(--panel));
+  padding: 20px 22px;
+}
+.adm-stat b {
+  font-size: 34px; font-weight: 700; letter-spacing: -.035em;
+  /* Figures in a column have to line up, and a 1 must occupy the same width as a 7. */
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1; margin-bottom: 4px;
+}
+.adm-stat span { font-size: 12.5px; font-weight: 500; }
+.adm-card:hover, .adm-stat:hover { box-shadow: var(--sh-2); transform: translateY(-2px); }
+.adm-cardbig { font-size: 30px; font-variant-numeric: tabular-nums; letter-spacing: -.03em; display: block; }
+.adm-cardlabel {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); font-weight: 650; display: block; margin-bottom: 8px;
+}
+.adm-cardsub { font-size: 12px; color: var(--muted); display: block; margin-top: 4px; }
+
+/* --- Panels --- */
+.adm-panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 24px 26px; margin-top: 18px;
+  box-shadow: var(--sh-1);
+}
+.adm-panel h2 { font-size: 16px; letter-spacing: -.015em; margin: 0 0 4px; }
+.adm-panel .adm-sub { margin: 6px 0 14px; font-size: 13.5px; }
+.adm-table { box-shadow: var(--sh-1); border-radius: var(--r-lg); }
+
+/* --- The activity feed, as a timeline rather than a table dump --- */
+.adm-feed li {
+  grid-template-columns: 150px 1fr;
+  gap: 4px 16px;
+  padding: 13px 2px;
+  align-items: start;
+}
+.adm-feed .adm-feedicon { display: none; }
+.adm-feedwhen {
+  grid-row: span 2; font-size: 12px; padding-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.adm-feedwho { font-weight: 600; margin-right: 8px; }
+.adm-feedwhat { font-weight: 550; font-size: 14px; }
+.adm-feeddetail { grid-column: 2; font-size: 12.5px; margin-top: 1px; }
+@media (max-width: 760px) {
+  .adm-feed li { grid-template-columns: 1fr; }
+  .adm-feedwhen { grid-row: auto; }
+  .adm-feeddetail { grid-column: 1; }
+}
+
+/* --- The customer side gets the same lift --- */
+.app-head h1 { letter-spacing: -.03em; }
+.card { box-shadow: var(--sh-1); }
+.sidelink.on {
+  background: linear-gradient(90deg, rgba(249,99,50,.1), rgba(249,99,50,.03));
+}
+.creditpill { font-variant-numeric: tabular-nums; }
+
+/* Motion is opt in. Everything above that moves does so on hover only, and not
+   at all for somebody who has asked their system to stop. */
+@media (prefers-reduced-motion: reduce) {
+  .adm-card:hover, .adm-stat:hover { transform: none; }
+}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { UserOverview } from "@/lib/admin/users";
 import { Coin, Search, Unlock, Lock, Key, Mail, AlertTriangle, Check, Clock, User } from "../../../icons";
+import { Empty } from "../../Empty";
 
 // One account, everything we know, and every lever.
 //
@@ -252,7 +253,11 @@ export function UserDetail({ overview }: { overview: UserOverview }) {
           leads, money and support rather than pretending to show every click.
         </p>
         {state.activity.length === 0 ? (
-          <div className="adm-empty">Nothing recorded yet.</div>
+          <Empty
+            icon={<Clock size={22} />}
+            title="Nothing recorded for this account yet"
+            hint="Searches, leads opened and payments all appear here as they happen."
+          />
         ) : (
           <ul className="adm-feed">
             {state.activity.map((e, i) => (

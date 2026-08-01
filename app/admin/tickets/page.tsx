@@ -27,13 +27,12 @@ export default async function AdminTicketsPage({
       <div className="adm-page">
         <h1>Support</h1>
         <p className="adm-sub">
-          {tickets.length === 0
-            ? includeClosed
-              ? "No tickets at all yet."
-              : "Nothing open. Closed tickets are hidden."
-            : `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}${
-                waiting ? `, ${waiting} waiting on a reply` : ", none waiting on us"
-              }.`}
+          Questions customers have asked from inside their account. Oldest activity first,
+          so the person who has been waiting longest is the one to answer next.
+          {tickets.length > 0 &&
+            ` ${tickets.length} ticket${tickets.length === 1 ? "" : "s"}${
+              waiting ? `, ${waiting} waiting on a reply` : ", none waiting on us"
+            }.`}
         </p>
         <TicketQueue tickets={tickets} includeClosed={includeClosed} />
       </div>

@@ -38,6 +38,22 @@ export async function logAdminAction(
   if (error) console.error("[admin-audit] could not record action:", action, error.message);
 }
 
+// Ledger reasons are database values. Shown as they are, a feed reads like a table
+// dump; "signup_bonus" is not a sentence.
+const REASON_TEXT: Record<string, string> = {
+  signup_bonus: "welcome credits",
+  purchase: "bought credits",
+  purchase_bonus: "bonus on a purchase",
+  volume_bonus: "monthly volume bonus",
+  admin_grant: "added by an operator",
+  admin_revoke: "taken by an operator",
+  unlock: "opened a lead",
+  export: "exported leads",
+  owner_unlock: "revealed an owner",
+  enrich: "enriched a list",
+};
+const reasonText = (reason: string): string => REASON_TEXT[reason] ?? reason.replace(/_/g, " ");
+
 export type ActivityEvent = {
   at: string;
   kind:
@@ -189,7 +205,7 @@ export async function getUserOverview(userId: string): Promise<UserOverview | nu
     push(
       r.created_at as string,
       "credits",
-      `${d > 0 ? "+" : ""}${d} credits, ${r.reason}`,
+      `${d > 0 ? "+" : ""}${d} ${Math.abs(d) === 1 ? "credit" : "credits"}, ${reasonText(r.reason as string)}`,
       `balance ${r.balance_after}${r.ref ? `, ref ${r.ref}` : ""}`
     );
   }
@@ -383,7 +399,13 @@ export async function getPlatformFeed(limit = 200): Promise<PlatformFeed> {
   for (const u of unlocks ?? []) add(u.created_at as string, "unlock", u.user_id as string, "Opened a lead", u.lead_key as string);
   for (const r of ledger ?? []) {
     const d = Number(r.delta);
-    add(r.created_at as string, "credits", r.user_id as string, `${d > 0 ? "+" : ""}${d} credits`, r.reason as string);
+    add(
+      r.created_at as string,
+      "credits",
+      r.user_id as string,
+      `${d > 0 ? "+" : ""}${d} ${Math.abs(d) === 1 ? "credit" : "credits"}`,
+      reasonText(r.reason as string)
+    );
   }
   for (const t of tickets ?? []) add(t.created_at as string, "ticket", t.user_id as string, `Ticket: ${t.subject}`, t.status as string);
   for (const a of audit ?? []) {

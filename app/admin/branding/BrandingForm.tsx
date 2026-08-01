@@ -97,7 +97,17 @@ export function BrandingForm({ initial }: { initial: SiteSettings }) {
             )}
           </div>
           <div className="adm-logobtns">
-            <input ref={fileRef} type="file" accept="image/*" onChange={onPickLogo} />
+            {/* The native file control renders as a grey system button that belongs to
+                no design. Hidden, with the label styled as our own button; the input is
+                still the thing that opens the picker, so keyboard and screen readers
+                behave exactly as they did. */}
+            <label className="filepick">
+              <input ref={fileRef} type="file" accept="image/*" onChange={onPickLogo} />
+              <span className="filepickbtn">Choose an image</span>
+              <span className="filepickname">
+                {logoFile ? logoFile.name : "PNG or SVG, square looks best"}
+              </span>
+            </label>
             {(logoUrl || logoFile) && !removeLogo && (
               <button
                 type="button"

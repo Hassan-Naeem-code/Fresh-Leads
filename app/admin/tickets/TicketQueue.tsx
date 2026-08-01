@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { AdminTicket, TicketMessage } from "@/lib/support";
-import { Mail, Clock, Check, MessageSquare } from "../../icons";
+import { Mail, Clock, Check, MessageSquare, LifeBuoy } from "../../icons";
+import { Empty } from "../Empty";
 
 // One screen: the queue on the left, the open thread underneath. Replying is the whole
 // point of this page, so it is never more than one click away from the list.
@@ -91,7 +92,15 @@ export function TicketQueue({
       </div>
 
       {tickets.length === 0 ? (
-        <div className="adm-empty">Nothing here.</div>
+        <Empty
+          icon={<LifeBuoy size={22} />}
+          title={includeClosed ? "No tickets have ever been opened" : "Nothing waiting on you"}
+          hint={
+            includeClosed
+              ? "When a customer asks for help from their account, the thread appears here."
+              : "Every ticket has been dealt with. Switch to Everything to read the closed ones."
+          }
+        />
       ) : (
         <div className="adm-msgs">
           {tickets.map((t) => (

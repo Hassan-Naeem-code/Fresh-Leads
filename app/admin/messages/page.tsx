@@ -22,11 +22,11 @@ export default async function AdminMessagesPage() {
       <div className="adm-page">
         <h1>Messages</h1>
         <p className="adm-sub">
-          {messages.length === 0
-            ? "No messages yet. Submissions from the public contact form will show up here."
-            : `${messages.length} message${messages.length === 1 ? "" : "s"}${
-                openCount ? ` · ${openCount} unhandled` : " · all handled"
-              }.`}
+          Everything sent through the public contact form, by people who are not signed in.
+          {messages.length > 0 &&
+            ` ${messages.length} message${messages.length === 1 ? "" : "s"}${
+              openCount ? `, ${openCount} unhandled` : ", all handled"
+            }.`}
         </p>
         <MessagesList messages={messages} />
       </div>

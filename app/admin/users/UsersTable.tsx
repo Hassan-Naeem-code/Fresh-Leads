@@ -1,4 +1,6 @@
 "use client";
+import { Empty } from "../Empty";
+import { Building } from "../../icons";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -68,7 +70,13 @@ export function UsersTable({ rows }: { rows: AdminUserRow[] }) {
             <span />
           </div>
 
-          {filtered.length === 0 && <div className="adm-empty">No matching users.</div>}
+          {filtered.length === 0 && (
+            <Empty
+              icon={<Building size={22} />}
+              title="No accounts match that"
+              hint="Search by email address, name or company."
+            />
+          )}
 
           {filtered.map((r) => (
             <UserRow

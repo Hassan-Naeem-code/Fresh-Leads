@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Mail, Check, Building, Clock } from "../../icons";
+import { Empty } from "../Empty";
 
 export type ContactMessage = {
   id: string;
@@ -45,7 +46,13 @@ export function MessagesList({ messages: initial }: { messages: ContactMessage[]
   }
 
   if (messages.length === 0) {
-    return <div className="adm-empty">No messages yet.</div>;
+    return (
+      <Empty
+        icon={<Mail size={22} />}
+        title="No messages yet"
+        hint="Anyone who writes from the contact page lands here, with their address, so you can reply."
+      />
+    );
   }
 
   return (
