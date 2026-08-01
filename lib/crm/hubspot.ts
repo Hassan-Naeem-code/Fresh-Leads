@@ -86,6 +86,43 @@ export async function accountLabel(accessToken: string): Promise<string | null> 
 }
 
 /**
+ * Store a private app token.
+ *
+ * HubSpot disabled creating public OAuth apps through their UI in mid 2026, so a new
+ * integration now needs their CLI and a project deploy. A private app token takes two
+ * minutes from the settings screen instead, and for connecting your OWN HubSpot it is
+ * the better tool: static, no expiry, no refresh cycle to get wrong.
+ *
+ * The limitation is real and is stated in the UI: a private app token reaches exactly
+ * one HubSpot account. Customers connecting their own account still need the public
+ * app, which is why the OAuth path above stays.
+ */
+export async function saveToken(userId: string, token: string): Promise<boolean> {
+  const label = await accountLabel(token);
+  return saveConnection(userId, "hubspot", {
+    accessToken: token.trim(),
+    refreshToken: null,
+    // No expiry: a private app token does not rotate, so activeToken never refreshes it.
+    expiresIn: null,
+    accountLabel: label ?? "Private app",
+  });
+}
+
+/** Does this token actually work, and which portal is it for? */
+export async function checkToken(token: string): Promise<{ ok: boolean; label: string | null }> {
+  try {
+    const res = await fetch("https://api.hubapi.com/crm/v3/objects/companies?limit=1", {
+      headers: { Authorization: `Bearer ${token.trim()}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { ok: false, label: null };
+    return { ok: true, label: await accountLabel(token) };
+  } catch {
+    return { ok: false, label: null };
+  }
+}
+
+/**
  * A usable access token, refreshing first if the stored one has expired.
  *
  * Returns null when there is no connection or the refresh failed, which the caller

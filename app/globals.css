@@ -1856,3 +1856,8 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   font-size: 12px; background: var(--panel2); border: 1px solid var(--border);
   border-radius: 4px; padding: 1px 5px;
 }
+.crmtoken { display: flex; flex-direction: column; gap: 7px; margin-top: 16px; }
+.crmtoken label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.crmtokenrow { display: flex; gap: 10px; flex-wrap: wrap; }
+.crmtokenrow input { flex: 1; min-width: 220px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.crmtokenerr { color: var(--hot); font-size: 12.5px; }

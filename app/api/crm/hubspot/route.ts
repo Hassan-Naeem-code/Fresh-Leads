@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import { authorizeUrl, hubspotConfigured } from "@/lib/crm/hubspot";
+import { authorizeUrl, hubspotConfigured, saveToken, checkToken } from "@/lib/crm/hubspot";
 import { deleteConnection } from "@/lib/crm/store";
 
 export const runtime = "nodejs";
@@ -30,6 +30,39 @@ export async function GET(req: NextRequest) {
     maxAge: 600,
   });
   return res;
+}
+
+/**
+ * Connect with a private app token instead of OAuth.
+ *
+ * The token is checked against HubSpot before it is stored, so a typo is reported here
+ * rather than silently failing on the first push.
+ */
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  const token = typeof body.token === "string" ? body.token.trim() : "";
+  if (!token) return NextResponse.json({ error: "Paste your private app token." }, { status: 400 });
+
+  const { ok, label } = await checkToken(token);
+  if (!ok) {
+    return NextResponse.json(
+      {
+        error:
+          "HubSpot did not accept that token. Check it was copied in full, and that the " +
+          "private app has the companies read and write scopes.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const saved = await saveToken(user.id, token);
+  return saved
+    ? NextResponse.json({ ok: true, account: label })
+    : NextResponse.json({ error: "Could not store that token." }, { status: 500 });
 }
 
 /** Disconnect. Removes our copy of the tokens. */

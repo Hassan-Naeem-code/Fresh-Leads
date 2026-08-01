@@ -22,6 +22,26 @@ export function CrmPanel({
   notice: string | null;
 }) {
   const [busy, setBusy] = useState(false);
+  const [token, setToken] = useState("");
+  const [tokenErr, setTokenErr] = useState("");
+
+  async function connectToken() {
+    setBusy(true);
+    setTokenErr("");
+    try {
+      const res = await fetch("/api/crm/hubspot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not connect.");
+      window.location.href = "/dashboard/crm?connected=1";
+    } catch (e) {
+      setTokenErr(e instanceof Error ? e.message : "Could not connect.");
+      setBusy(false);
+    }
+  }
 
   async function disconnect() {
     setBusy(true);
@@ -59,17 +79,46 @@ export function CrmPanel({
             <a className="go accent sm" href="/api/crm/hubspot">
               Connect <ArrowRight size={14} />
             </a>
-          ) : (
-            <span className="muted sm">Not available yet</span>
-          )}
+          ) : null}
         </div>
 
-        {!configured && (
+        {/* The token route. HubSpot stopped allowing new public OAuth apps to be made
+            in their UI, so for connecting your own account this is now both the faster
+            path and the more reliable one. */}
+        {!connected && (
+          <div className="crmtoken">
+            <label>Paste a private app token</label>
+            <div className="crmtokenrow">
+              <input
+                type="password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="pat-na2-..."
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <button className="go accent" onClick={connectToken} disabled={busy || !token.trim()}>
+                {busy ? "Checking..." : "Connect"}
+              </button>
+            </div>
+            {tokenErr && <span className="crmtokenerr">{tokenErr}</span>}
+            <span className="muted sm">
+              In HubSpot: <b>Settings, Integrations, Private apps, Create a private app</b>. On
+              the Scopes tab tick <code>crm.objects.companies.read</code> and{" "}
+              <code>crm.objects.companies.write</code>. We check the token with HubSpot before
+              storing it, and it is encrypted at rest.
+            </span>
+          </div>
+        )}
+
+        {!configured && !connected && (
           <p className="muted sm crmhint">
-            This deployment has no HubSpot app credentials. Add <code>HUBSPOT_CLIENT_ID</code>{" "}
-            and <code>HUBSPOT_CLIENT_SECRET</code> and the Connect button turns on. They are
-            free from developers.hubspot.com, and the redirect URL to register is{" "}
-            <code>/api/crm/hubspot/callback</code> on this domain.
+            A private app token connects <b>your own</b> HubSpot and takes two minutes. When
+            customers need to connect <b>their</b> HubSpot you will also want a public app,
+            which HubSpot now builds through their CLI: add{" "}
+            <code>HUBSPOT_CLIENT_ID</code> and <code>HUBSPOT_CLIENT_SECRET</code> and a
+            Connect with OAuth button appears here, using{" "}
+            <code>/api/crm/hubspot/callback</code> as the redirect.
           </p>
         )}
 
