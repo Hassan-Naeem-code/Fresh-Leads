@@ -2399,3 +2399,39 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 @media (prefers-reduced-motion: reduce) {
   .adm-card:hover, .adm-stat:hover { transform: none; }
 }
+
+/* ==========================================================================
+   Anchors.
+
+   There was no base rule for <a>, so any link without its own class fell
+   through to the browser default: blue and underlined, in the middle of a warm
+   palette. That has now shown up three separate times in three places, which
+   means the fix belongs here rather than on each component.
+
+   Element specificity (0,0,1) loses to every class rule in this file, so
+   .sidelink, .go, .adm-nav a and the rest keep their own treatment untouched.
+   ========================================================================== */
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+/* Anything already carrying a colour of its own opts out of the underline too. */
+a.go:hover, a.ghost:hover, .sidelink:hover, .adm-nav a:hover, .topbrand:hover,
+.adm-brand:hover, .pr-btn:hover { text-decoration: none; }
+
+/* The activity feed, laid out as a flex row so it works for both shapes: the
+   platform feed (time, who, what) and one account's feed (time, what), which has
+   no "who" column. A grid would leave a hole in one of the two. */
+.adm-feed li {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 3px 14px; padding: 12px 2px;
+}
+.adm-feedwhen { flex: 0 0 148px; }
+.adm-feedwho { font-weight: 600; }
+.adm-feeddetail {
+  /* Forced onto its own line, indented to sit under the summary rather than
+     under the timestamp. */
+  flex-basis: 100%; margin-left: 162px; margin-top: 1px;
+}
+@media (max-width: 760px) {
+  .adm-feedwhen { flex-basis: 100%; }
+  .adm-feeddetail { margin-left: 0; }
+}
