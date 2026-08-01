@@ -8,7 +8,6 @@ import { getSiteSettings } from "@/lib/site-settings.server";
 import { currentEmail } from "@/lib/current-user";
 import { MarketingNav } from "./MarketingNav";
 import { Reveal } from "./Reveal";
-import { ScrollText } from "./ScrollText";
 import { HScrollCards } from "./HScrollCards";
 import { HeroMock } from "./HeroMock";
 import { MarketingFooter } from "./MarketingFooter";
@@ -51,10 +50,10 @@ export default async function Landing() {
           </Reveal>
           <Reveal immediate delay={160}>
             <p className="pr-lead">
-              Tell us the business you want to reach. {settings.brand_name} finds real local
-              companies, verifies every email and phone, confirms they&rsquo;re still open, and
-              grades them on the work they actually need. Credits are $1 each, one credit opens one
-              lead, and once you open it it&rsquo;s yours for good.
+              Target your ideal businesses and get verified, pre vetted local leads.{" "}
+              {settings.brand_name} confirms active contact details and grades what each prospect
+              actually needs. Credits are $1 each, one credit opens one lead, and it is yours for
+              good.
             </p>
           </Reveal>
           <Reveal immediate delay={240} className="pr-herobtns">
@@ -73,11 +72,6 @@ export default async function Landing() {
           <Reveal immediate delay={420}><HeroMock /></Reveal>
         </header>
       </div>
-
-      {/* Mission, scroll-linked text-color reveal */}
-      <section className="pr pr-section">
-        <ScrollText text="We deliver local leads you can actually reach, verified, current, and worth your time." />
-      </section>
 
       {/* Quality, four checks */}
       <section id="quality" className="pr pr-section">
@@ -178,7 +172,7 @@ export default async function Landing() {
       {/* Testimonials, hover flips each card to dark */}
       <section className="pr pr-section">
         <Reveal className="pr-eyebrow"><span className="pill">From teams like yours</span></Reveal>
-        <Reveal><h2 className="pr-h2">Less time chasing dead ends</h2></Reveal>
+        <Reveal><h2 className="pr-h2">Spend time closing, not chasing</h2></Reveal>
         <Reveal className="pr-quotes">
           {[
             { q: "We stopped burning a whole morning verifying a list before we could even start calling. Now every number just rings.", n: "Maya R.", r: "Founder, home-services agency", a: "M" },
@@ -204,7 +198,7 @@ export default async function Landing() {
       <section id="pricing" className="pr pr-section pr-cta">
         <Reveal className="pr-eyebrow"><span className="pill">Pricing</span></Reveal>
         <Reveal><h2 className="pr-h2">Pay for exactly what you need</h2></Reveal>
-        <Reveal><p className="pr-sectionlead">No bloated subscriptions and no sales call. $30 a year keeps your account open, then credits are $1 each. One credit opens one lead, and you are never charged for a lead we cannot verify.</p></Reveal>
+        <Reveal><p className="pr-sectionlead">No sales calls, no bloated subscriptions. Pay $30 a year to keep your account active, then $1 a lead. You only pay for fully verified leads, guaranteed.</p></Reveal>
         <Reveal delay={120}>
           <div className="pr-herobtns" style={{ marginTop: 28 }}>
             <Link href="/signup" className="pr-btn accent">
