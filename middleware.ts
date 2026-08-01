@@ -25,6 +25,14 @@ const MFA_EXEMPT = [
 ];
 const isExempt = (p: string) => MFA_EXEMPT.some((x) => p === x || p.startsWith(`${x}/`));
 
+// An emergency off switch, set as an environment variable and nothing else.
+//
+// Mandatory two factor is a lock on the front door, and a lock with no override is one
+// bad deploy away from nobody being able to get in, including whoever would fix it.
+// Not exposed anywhere in the product: changing it means changing the environment and
+// redeploying, which is a deliberate act with a record.
+const mfaOff = () => process.env.MFA_DISABLED === "1";
+
 export async function middleware(request: NextRequest) {
   // Start from a pass-through response we can attach refreshed cookies to.
   let response = NextResponse.next({ request });
@@ -74,7 +82,7 @@ export async function middleware(request: NextRequest) {
   // Enforced for browser sessions only. A request carrying an API key and no cookie
   // has no `user` here, so machine to machine calls are untouched: their credential is
   // a secret the holder either has or does not, and a code cannot be typed by a cron.
-  if (user && !isExempt(pathname)) {
+  if (user && !isExempt(pathname) && !mfaOff()) {
     const passed = await verifyMfaToken(request.cookies.get("fl_mfa")?.value, user.id);
     if (!passed) {
       if (pathname.startsWith("/api/")) {
@@ -112,7 +120,7 @@ export async function middleware(request: NextRequest) {
   // Covers the operator API as well as the pages: the panel's buttons all post to
   // /api/admin, and guarding only what is visible would leave those wide open.
   const adminArea = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
-  if (adminArea && !isExempt(pathname)) {
+  if (adminArea && !isExempt(pathname) && !mfaOff()) {
     const adminEmail = adminEmailFromToken(request.cookies.get(ADMIN_COOKIE)?.value);
     if (adminEmail) {
       const passed = await verifyMfaToken(request.cookies.get("fl_mfa_admin")?.value, adminEmail);
