@@ -1,0 +1,103 @@
+name: CI
+
+# Runs on every push and every pull request to main. The point is narrow: nothing
+# reaches production that fails typecheck, lint, the unit suite, or the build.
+#
+# The SQL suite is not run here. It needs a real PostgreSQL to exercise the credit
+# functions, and those are the assertions that protect money, so they are worth the
+# extra job rather than being skipped.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Typecheck, tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        # Supabase and Stripe are read at request time, not at build time, but the
+        # client bundle needs the public URL to exist for the build to resolve.
+        # These are placeholders: no real key belongs in CI.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-key
+        run: npm run build
+
+  sql:
+    name: Credit functions against PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply schema and run the credit assertions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          run() { psql -h localhost -U postgres -q -v ON_ERROR_STOP=1 -f "$1"; }
+          run test/sql/harness.sql > /dev/null
+          run supabase/006_credits_and_subscription.sql > /dev/null
+          run supabase/012_spend_credits.sql > /dev/null
+          out=$( { run test/sql/credits.test.sql; run test/sql/spend.test.sql; } 2>&1 )
+          echo "$out" | grep -E 'PASS|FAIL|ERROR' | sed 's/^.*NOTICE:  //'
+          if echo "$out" | grep -qE 'FAIL|ERROR'; then exit 1; fi
+          echo "$(echo "$out" | grep -c PASS) assertions passed"
+
+  guard:
+    name: No secrets, no typographic dashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject real credentials in tracked files
+        # .env.local is gitignored; this catches a real key pasted into the tracked
+        # template or anywhere else, which has happened before.
+        run: |
+          if git grep -nIE 'sk_live_|sk_test_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}|SG\.[A-Za-z0-9_-]{20,}' -- . ':!*.md'; then
+            echo "A real looking credential is committed. Move it to .env.local."
+            exit 1
+          fi
+          echo "no credentials found in tracked files"
+
+      - name: Reject typographic dashes
+        run: |
+          # Written as escapes so this check does not match its own source.
+          if git grep -nIP '\x{2014}|\x{2013}' -- . ':!package-lock.json'; then
+            echo "Use ordinary punctuation instead of em and en dashes."
+            exit 1
+          fi
+          echo "no typographic dashes found"
