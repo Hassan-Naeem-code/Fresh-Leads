@@ -16,6 +16,7 @@ export function AdminShell({
 }) {
   return (
     <div className="adm">
+      <a href="#adminmain" className="skiplink">Skip to content</a>
       <aside className="adm-side">
         <Link href="/admin" className="adm-brand">
           <span className="logo sm">
@@ -32,7 +33,7 @@ export function AdminShell({
           </form>
         </div>
       </aside>
-      <main className="adm-main">{children}</main>
+      <main className="adm-main" id="adminmain">{children}</main>
     </div>
   );
 }

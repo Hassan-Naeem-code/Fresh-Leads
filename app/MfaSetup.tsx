@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Shield, Check, AlertTriangle, Key, Mail, Phone, Copy } from "./icons";
+import { SkeletonLine } from "./Skeleton";
 
 // Setting up a second factor, and the screen people see once and never again.
 //
@@ -157,6 +158,23 @@ export function MfaSetup({ mandatory, onDone }: { mandatory: boolean; onDone?: (
   }
 
   const confirmed = (info?.factors ?? []).filter((f) => f.confirmedAt);
+
+  // Until the factor list arrives there is nothing safe to draw: showing the choices
+  // early would let somebody start enrolling a second method before we know they have
+  // a first one.
+  if (!info) {
+    return (
+      <div className="card mfacard" aria-busy="true">
+        <span className="visually-hidden" role="status">Loading</span>
+        <div aria-hidden="true" className="skelcard">
+          <SkeletonLine w={210} h={21} />
+          <SkeletonLine w="90%" />
+          <SkeletonLine w={"100%"} h={62} />
+          <SkeletonLine w={"100%"} h={62} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card mfacard">

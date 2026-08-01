@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Mail, Check, AlertTriangle, Plus, ArrowRight } from "../../icons";
+import { SkeletonCard, SkeletonRows } from "../../Skeleton";
 
 type Identity = {
   from_email: string;
@@ -91,7 +92,17 @@ export function EmailHome() {
   const suppressedTotal = Object.values(suppressions).reduce((a, b) => a + b, 0);
   const canSend = providerConfigured && identity?.verified;
 
-  if (loading) return <div className="card muted">Loading...</div>;
+  if (loading) {
+    return (
+      <div aria-busy="true">
+        <span className="visually-hidden" role="status">Loading</span>
+        <div aria-hidden="true">
+          <SkeletonCard lines={3} />
+          <SkeletonRows rows={2} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -49,6 +49,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div>
+      {/* First thing in the tab order: a way past the rail straight to the work.
+          Invisible until focused, which is the whole convention. */}
+      <a href="#main" className="skiplink">Skip to content</a>
+
       {/* Header carries identity and balance only. Everything navigable moved to the
           left rail below, so the header stays readable however many sections exist. */}
       <header className="topbar">
@@ -85,7 +89,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <aside className="appside">
           <SideNav canUseTools={access.canUseTools} />
         </aside>
-        <main className="appmain">{children}</main>
+        <main className="appmain" id="main">{children}</main>
       </div>
     </div>
   );
