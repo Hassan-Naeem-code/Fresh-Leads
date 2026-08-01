@@ -98,13 +98,17 @@ export async function accountLabel(accessToken: string): Promise<string | null> 
  * app, which is why the OAuth path above stays.
  */
 export async function saveToken(userId: string, token: string): Promise<boolean> {
+  // The oauth/access-tokens endpoint only describes OAuth tokens, so a service key
+  // returns nothing there. Fall back to naming the credential type rather than
+  // showing an empty connection.
   const label = await accountLabel(token);
   return saveConnection(userId, "hubspot", {
     accessToken: token.trim(),
     refreshToken: null,
-    // No expiry: a private app token does not rotate, so activeToken never refreshes it.
+    // No expiry: a service key and a private app token both stay valid until revoked,
+    // so activeToken never tries to refresh them.
     expiresIn: null,
-    accountLabel: label ?? "Private app",
+    accountLabel: label ?? "Service key",
   });
 }
 

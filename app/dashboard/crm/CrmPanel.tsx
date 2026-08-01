@@ -87,13 +87,13 @@ export function CrmPanel({
             path and the more reliable one. */}
         {!connected && (
           <div className="crmtoken">
-            <label>Paste a private app token</label>
+            <label>Paste a service key or private app token</label>
             <div className="crmtokenrow">
               <input
                 type="password"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder="pat-na2-..."
+                placeholder="Paste the key from HubSpot"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -103,10 +103,11 @@ export function CrmPanel({
             </div>
             {tokenErr && <span className="crmtokenerr">{tokenErr}</span>}
             <span className="muted sm">
-              In HubSpot: <b>Settings, Integrations, Private apps, Create a private app</b>. On
-              the Scopes tab tick <code>crm.objects.companies.read</code> and{" "}
-              <code>crm.objects.companies.write</code>. We check the token with HubSpot before
-              storing it, and it is encrypted at rest.
+              In HubSpot: <b>Settings, Integrations, Service Keys, Create service key</b>. Give
+              it the <code>crm.objects.companies.read</code> and{" "}
+              <code>crm.objects.companies.write</code> scopes. A legacy private app token works
+              too. We check the key against HubSpot before storing it, and it is encrypted at
+              rest.
             </span>
           </div>
         )}
