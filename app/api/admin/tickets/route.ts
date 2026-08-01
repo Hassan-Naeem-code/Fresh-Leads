@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin/guard";
 import { getTicketAsAdmin, answerTicket, setTicketStatus } from "@/lib/support";
+import { notifyCustomerOfReply } from "@/lib/email/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +37,16 @@ export async function POST(req: NextRequest) {
   if (input.action === "reply") {
     const ok = await answerTicket(input.id, input.body);
     if (!ok) return NextResponse.json({ error: "Could not send that reply." }, { status: 400 });
-    return NextResponse.json(await getTicketAsAdmin(input.id));
+
+    const thread = await getTicketAsAdmin(input.id);
+    if (thread?.ticket.email) {
+      void notifyCustomerOfReply({
+        to: thread.ticket.email,
+        subject: thread.ticket.subject,
+        ticketId: input.id,
+      });
+    }
+    return NextResponse.json(thread);
   }
 
   const ok = await setTicketStatus(input.id, input.action === "close" ? "closed" : "open");

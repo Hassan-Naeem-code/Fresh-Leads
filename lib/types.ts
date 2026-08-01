@@ -11,6 +11,13 @@ export type ScoreFactor = {
 
 export type Lead = {
   id: string;
+  /**
+   * What has changed at this business since we last looked.
+   *
+   * The one thing a standing database cannot answer: not what a business is, but what
+   * it just started or stopped doing. Empty until a business has been observed twice.
+   */
+  changes?: { kind: string; label: string; since: string }[];
   name: string;
   category: string;
   phone: string;
@@ -156,6 +163,11 @@ export type LockedLead = {
   deliverable: boolean;
   /** How many graded findings are waiting behind the unlock. */
   signalCount: number;
+  /**
+   * How many changes we have seen at this business lately. A count only, like
+   * signalCount: enough to say there is something worth paying for, not what it is.
+   */
+  changeCount?: number;
 };
 
 /** An unlocked lead: the full record, plus where it lives. */

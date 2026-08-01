@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getTicket, replyToTicket, closeTicket } from "@/lib/support";
+import { notifyOperatorOfTicket } from "@/lib/email/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +39,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   const ok = await replyToTicket(user.id, id, parsed.data.body);
   if (!ok) return NextResponse.json({ error: "Could not add that reply." }, { status: 400 });
-  return NextResponse.json(await getTicket(user.id, id));
+
+  const thread = await getTicket(user.id, id);
+  if (thread) {
+    void notifyOperatorOfTicket({
+      subject: thread.ticket.subject,
+      topic: thread.ticket.topic,
+      body: parsed.data.body,
+      fromEmail: user.email ?? "unknown",
+      ticketId: id,
+      isReply: true,
+    });
+  }
+  return NextResponse.json(thread);
 }
 
 /** Closing your own ticket. There is nothing else to patch, so the body is ignored. */

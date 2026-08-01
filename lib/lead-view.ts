@@ -30,6 +30,9 @@ export function toLockedLead(l: Lead, dbId: string | null): LockedLead {
     // A count, not the findings themselves: enough to show there is something worth
     // paying for without giving away what it is.
     signalCount: l.needSignals?.length ?? 0,
+    // Same rule as signalCount. "This business changed something recently" is a
+    // strong reason to open a lead; WHICH thing it changed is what the credit buys.
+    changeCount: l.changes?.length ?? 0,
   };
 }
 

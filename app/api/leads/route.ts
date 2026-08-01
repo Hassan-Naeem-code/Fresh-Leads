@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { geocode } from "@/lib/geocode";
 import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
-import { observeAndDiff } from "@/lib/snapshots";
+import { observeAndDiff, recentTriggers } from "@/lib/snapshots";
 import { seenKeys, markSeen } from "@/lib/watchlists";
 import { userIdForApiKey } from "@/lib/api-keys";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
@@ -294,6 +294,15 @@ export async function POST(req: NextRequest) {
     const changes = await observeAndDiff(leads, auditByKey);
     if (changes.size > 0) {
       console.log(`[leads] ${changes.size} business${changes.size === 1 ? "" : "es"} changed since last seen`);
+    }
+
+    // Everything detected at these businesses in the last month, not only what this
+    // search happened to notice. A change found on Tuesday by somebody else's search is
+    // still news to whoever looks on Thursday.
+    const known = await recentTriggers(leads.map((l) => l.id));
+    for (const lead of leads) {
+      const found = known.get(lead.id) ?? changes.get(lead.id) ?? [];
+      if (found.length) lead.changes = found.map((t) => ({ kind: t.kind, label: t.label, since: t.since }));
     }
 
     // Verify contact channels + active status, then set the "deliverable" gate.

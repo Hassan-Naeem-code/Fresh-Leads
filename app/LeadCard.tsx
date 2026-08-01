@@ -2,10 +2,7 @@ import type { Lead } from "@/lib/types";
 import { LEGACY_ATTAINABLE, bandFor, gradePct } from "@/lib/score";
 import { bandFor as freshnessBandFor } from "@/lib/freshness";
 import { estimateSize } from "@/lib/size";
-import {
-  Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Building, ChevronRight, Dot, Check,
-  User, Briefcase,
-} from "./icons";
+import { Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Building, ChevronRight, Dot, Check, User, Briefcase, Flame } from "./icons";
 
 // Shared presentational lead card, used by the live dashboard results and the
 // saved search-history detail view. Pure render, no hooks, so it works in both
@@ -98,6 +95,21 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
             ))}
           </div>
         )}
+        {/* What changed, above the standing signals: a business that stopped doing
+            something last week is a reason to call this week, and it outranks a
+            condition that has been true for a year. */}
+        {l.changes && l.changes.length > 0 && (
+          <div className="changes">
+            {l.changes.map((c, i) => (
+              <span key={i} className={`chg ${/down|removed|dropped|lost/.test(c.kind) ? "bad" : "good"}`}>
+                <Flame size={12} />
+                {c.label}
+                <small>since {new Date(c.since).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small>
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="signals">
           {l.needSignals.map((s, i) => (
             <span key={i} className={`sig ${/no |not |down|outdated|insecure/i.test(s) ? "bad" : ""}`}>{s}</span>

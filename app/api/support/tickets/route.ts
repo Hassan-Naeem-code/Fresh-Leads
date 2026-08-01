@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { listTickets, createTicket, TICKET_TOPICS, type TicketTopic } from "@/lib/support";
+import { notifyOperatorOfTicket } from "@/lib/email/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,5 +47,17 @@ export async function POST(req: NextRequest) {
 
   const result = await createTicket(user.id, parsed.data);
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
+
+  // Fire and forget. A ticket that saved but could not be emailed about is far better
+  // than one refused because the mail provider was down, so this is never awaited into
+  // the response and never fails the request.
+  void notifyOperatorOfTicket({
+    subject: parsed.data.subject,
+    topic: parsed.data.topic,
+    body: parsed.data.body,
+    fromEmail: user.email ?? "unknown",
+    ticketId: result.ticket.id,
+  });
+
   return NextResponse.json({ ticket: result.ticket });
 }

@@ -297,5 +297,67 @@ export async function observeAndDiff(
   }
 
   await saveSnapshots(snaps);
+  await recordTriggers(triggers);
   return triggers;
+}
+
+/**
+ * Keep what the diff found.
+ *
+ * Until now the result was logged and dropped, which was right while nothing had two
+ * observations to compare. It has to outlive the request now: the lead card shows it,
+ * and the weekly summary reads a week of it.
+ *
+ * Swallows its own failures for the same reason observeAndDiff does. A change we could
+ * not file is a lost signal; a search that failed because we could not file one would
+ * be a lost customer.
+ */
+export async function recordTriggers(triggers: Map<string, Trigger[]>): Promise<number> {
+  if (triggers.size === 0) return 0;
+
+  const rows = [...triggers.entries()].flatMap(([leadKey, list]) =>
+    list.map((t) => ({ lead_key: leadKey, kind: t.kind, label: t.label, since: t.since }))
+  );
+
+  const admin = createAdminClient();
+  // ignoreDuplicates, because the unique index is per business per kind per day: the
+  // same change found again by another customer's search is the same change.
+  const { error } = await admin
+    .from("business_triggers")
+    .upsert(rows, { onConflict: "lead_key,kind,detected_on", ignoreDuplicates: true });
+  if (error) {
+    console.error("[snapshots] could not record triggers:", error.message);
+    return 0;
+  }
+  return rows.length;
+}
+
+/** Changes seen at these businesses recently, for showing on a lead. */
+export async function recentTriggers(
+  leadKeys: string[],
+  withinDays = 30
+): Promise<Map<string, Trigger[]>> {
+  const out = new Map<string, Trigger[]>();
+  if (leadKeys.length === 0) return out;
+
+  const since = new Date(Date.now() - withinDays * 86_400_000).toISOString().slice(0, 10);
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("business_triggers")
+    .select("lead_key, kind, label, since, detected_on")
+    .in("lead_key", leadKeys)
+    .gte("detected_on", since)
+    .order("detected_on", { ascending: false });
+
+  for (const row of data ?? []) {
+    const key = row.lead_key as string;
+    const list = out.get(key) ?? [];
+    list.push({
+      kind: row.kind as TriggerKind,
+      label: row.label as string,
+      since: row.since as string,
+    });
+    out.set(key, list);
+  }
+  return out;
 }

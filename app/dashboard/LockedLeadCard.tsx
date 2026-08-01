@@ -3,7 +3,7 @@
 import type { LockedLead } from "@/lib/types";
 import { bandFor, gradePct, LEGACY_ATTAINABLE } from "@/lib/score";
 import { bandFor as freshnessBandFor } from "@/lib/freshness";
-import { Lock, Unlock, Coin, Check, Dot, Building } from "../icons";
+import { Lock, Unlock, Coin, Check, Dot, Building, Flame } from "../icons";
 
 // A lead before a credit is spent on it: who, where, how good, how fresh, and
 // whether we verified a way to reach them. The contact details and the findings are
@@ -60,6 +60,13 @@ export function LockedLeadCard({
           {l.signalCount > 0 && (
             <span className="vbadge">
               {l.signalCount} finding{l.signalCount === 1 ? "" : "s"} behind the unlock
+            </span>
+          )}
+          {/* The strongest reason to spend a credit, so it gets the accent. The count
+              is all a locked lead shows: what actually changed is what is being sold. */}
+          {(l.changeCount ?? 0) > 0 && (
+            <span className="vbadge hot">
+              <Flame size={11} /> {l.changeCount} recent change{l.changeCount === 1 ? "" : "s"}
             </span>
           )}
         </div>
