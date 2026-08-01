@@ -72,11 +72,23 @@ export default async function BillingPage({
       </div>
 
       {lockedFrom && (
-        <div className="crmnote bad">
+        <div className="crmnote info">
           <Lock size={15} />
-          {lockedFrom} is part of the {money(SUBSCRIPTION_PRICE_CENTS)} a year plan. Your free
-          credits cover searching and opening leads, and the plan opens everything you do with
-          them afterwards.
+          <span>
+            {lockedFrom} is part of the {money(SUBSCRIPTION_PRICE_CENTS)} a year plan. Your free
+            credits cover searching and opening leads, and the plan opens everything you do with
+            them afterwards.
+            {params.locked === "history" && (
+              <>
+                {" "}
+                <b>
+                  Every search you have run is already saved, including the ones from before you
+                  subscribe.
+                </b>{" "}
+                They appear here the moment your plan is active. Nothing is lost in the meantime.
+              </>
+            )}
+          </span>
         </div>
       )}
 

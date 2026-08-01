@@ -1856,6 +1856,13 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 .crmnote.good { background: rgba(31,158,122,.09); border: 1px solid rgba(31,158,122,.35); color: var(--cool); }
 .crmnote.bad { background: rgba(245,83,61,.08); border: 1px solid rgba(245,83,61,.35); color: var(--hot); }
 .crmnote svg { flex: none; }
+/* "This needs the plan" is not an error, so it does not get the red treatment. The
+   icon rides to the top because this one runs to more than a single line. */
+.crmnote.info {
+  align-items: flex-start;
+  background: rgba(249,99,50,.07); border: 1px solid rgba(249,99,50,.3); color: var(--text);
+}
+.crmnote.info svg { margin-top: 2px; color: var(--accent); }
 
 .crmcard { margin-bottom: 14px; }
 .crmhead { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
