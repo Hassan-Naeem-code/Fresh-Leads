@@ -120,6 +120,87 @@ export async function beginSms(owner: Owner, phoneE164: string, label: string): 
   return data.id as string;
 }
 
+/**
+ * Store a passkey.
+ *
+ * The public key goes in unencrypted, deliberately: it is public. Encrypting it would
+ * suggest a secrecy it does not have and would make key rotation break sign in for
+ * every passkey at once, for no gain.
+ */
+export async function savePasskey(
+  owner: Owner,
+  input: { credentialId: string; publicKey: string; algorithm: number; signCount: number; label: string }
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("mfa_factors")
+    .insert({
+      ...ownerRow(owner),
+      kind: "passkey",
+      label: input.label,
+      credential_id: input.credentialId,
+      // Algorithm is kept alongside the key so a future format can be told apart.
+      secret: `${input.algorithm}.${input.publicKey}`,
+      sign_count: input.signCount,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    console.error("[mfa] could not save passkey:", error.message);
+    return null;
+  }
+  return data.id as string;
+}
+
+/** The stored key for one passkey, for checking a signature against. */
+export async function getPasskey(
+  owner: Owner,
+  factorId: string
+): Promise<{ publicKey: string; algorithm: number; signCount: number; credentialId: string } | null> {
+  const admin = createAdminClient();
+  const w = where(owner);
+  const { data } = await admin
+    .from("mfa_factors")
+    .select("secret, sign_count, credential_id")
+    .eq("id", factorId)
+    .eq(w.column, w.value)
+    .eq("kind", "passkey")
+    .maybeSingle();
+  if (!data?.secret) return null;
+
+  const raw = data.secret as string;
+  const dot = raw.indexOf(".");
+  if (dot < 1) return null;
+  return {
+    algorithm: Number(raw.slice(0, dot)),
+    publicKey: raw.slice(dot + 1),
+    signCount: Number(data.sign_count ?? 0),
+    credentialId: (data.credential_id as string) ?? "",
+  };
+}
+
+/** Move the counter forward after a successful sign in. */
+export async function bumpSignCount(factorId: string, signCount: number): Promise<void> {
+  const admin = createAdminClient();
+  await admin
+    .from("mfa_factors")
+    .update({ sign_count: signCount, last_used_at: new Date().toISOString() })
+    .eq("id", factorId);
+}
+
+/** The credential ids this account can sign in with, for the browser to choose from. */
+export async function passkeyCredentialIds(owner: Owner): Promise<string[]> {
+  const admin = createAdminClient();
+  const w = where(owner);
+  const { data } = await admin
+    .from("mfa_factors")
+    .select("credential_id")
+    .eq(w.column, w.value)
+    .eq("kind", "passkey")
+    .not("confirmed_at", "is", null);
+  return (data ?? []).map((r) => r.credential_id as string).filter(Boolean);
+}
+
 export async function beginEmail(owner: Owner, address: string): Promise<string | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -199,6 +280,61 @@ export async function createChallenge(
     return null;
   }
   return data.id as string;
+}
+
+/**
+ * Park a passkey challenge.
+ *
+ * Reuses the challenge table rather than adding one: it already expires rows, counts
+ * attempts and is service-role only, which is exactly the shape a WebAuthn challenge
+ * needs. The hash goes in the code column because the challenge is a secret of the
+ * same kind, and storing it in the clear would let a leaked table replay a ceremony.
+ */
+export async function createPasskeyChallenge(
+  owner: Owner,
+  challengeHash: string,
+  factorId?: string | null
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("mfa_challenges")
+    .insert({
+      ...ownerRow(owner),
+      factor_id: factorId ?? null,
+      code_hash: challengeHash,
+      sent_to: "passkey",
+      expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) return null;
+  return data.id as string;
+}
+
+/** Spend a passkey challenge. Single use, like every other challenge here. */
+export async function consumePasskeyChallenge(
+  owner: Owner,
+  challengeId: string,
+  challengeHash: string
+): Promise<boolean> {
+  const admin = createAdminClient();
+  const w = where(owner);
+  const { data } = await admin
+    .from("mfa_challenges")
+    .select("id, expires_at, consumed_at, code_hash")
+    .eq("id", challengeId)
+    .eq(w.column, w.value)
+    .maybeSingle();
+  if (!data || data.consumed_at) return false;
+  if (new Date(data.expires_at as string).getTime() < Date.now()) return false;
+  if (!hashesMatch(data.code_hash as string, challengeHash)) return false;
+
+  await admin
+    .from("mfa_challenges")
+    .update({ consumed_at: new Date().toISOString() })
+    .eq("id", challengeId)
+    .is("consumed_at", null);
+  return true;
 }
 
 export type ChallengeResult = "ok" | "wrong" | "expired" | "too_many" | "unknown";

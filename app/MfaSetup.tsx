@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Shield, Check, AlertTriangle, Key, Mail, Phone, Copy } from "./icons";
 import { SkeletonLine } from "./Skeleton";
+import { createPasskey, passkeysSupported, passkeyError } from "./passkey";
 
 // Setting up a second factor, and the screen people see once and never again.
 //
@@ -26,7 +27,7 @@ const KIND_LABEL: Record<string, string> = {
   totp: "Authenticator app",
   email: "Email code",
   sms: "Text message",
-  passkey: "Passkey",
+  passkey: "Passkey (Face ID, fingerprint)",
 };
 
 export function MfaSetup({ mandatory, onDone }: { mandatory: boolean; onDone?: () => void }) {
@@ -87,6 +88,37 @@ export function MfaSetup({ mandatory, onDone }: { mandatory: boolean; onDone?: (
     const d = await post({ action: "start_email" });
     if (!d) return;
     setFactorId(d.factorId); setChallengeId(d.challengeId); setSentTo(d.sentTo); setChoosing("email");
+  }
+
+  async function startPasskey() {
+    if (!passkeysSupported()) {
+      setError("This browser does not support passkeys. Use an authenticator app instead.");
+      return;
+    }
+    const start = await post({ action: "passkey_register_start" });
+    if (!start) return;
+
+    setBusy(true);
+    setError("");
+    try {
+      const made = await createPasskey(start);
+      const done = await post({
+        action: "passkey_register_finish",
+        challengeId: start.challengeId,
+        challenge: start.challenge,
+        ...made,
+        label: "Passkey on this device",
+      });
+      if (!done) return;
+      if (done.recoveryCodes) setRecoveryCodes(done.recoveryCodes);
+      reset();
+      await load();
+      if (!done.recoveryCodes) onDone?.();
+    } catch (e) {
+      setError(passkeyError(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function startSms() {
@@ -226,6 +258,15 @@ export function MfaSetup({ mandatory, onDone }: { mandatory: boolean; onDone?: (
               <button className="prefpb" onClick={startEmail} disabled={busy}>
                 <b>Email code</b>
                 <span>We send a six digit code to {info.who} each time you sign in.</span>
+              </button>
+            )}
+            {info?.available.passkey && passkeysSupported() && (
+              <button className="prefpb" onClick={startPasskey} disabled={busy}>
+                <b>Face ID, fingerprint or a security key</b>
+                <span>
+                  Your device unlocks it. The only method that cannot be read out to
+                  somebody on the phone pretending to be us.
+                </span>
               </button>
             )}
             {info?.available.sms && (

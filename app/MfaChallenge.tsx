@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, AlertTriangle, Key, Mail, Phone } from "./icons";
+import { Shield, AlertTriangle, Key, Mail, Phone, Unlock } from "./icons";
+import { usePasskey, passkeyError } from "./passkey";
 
 // The screen between a correct password and the product.
 //
@@ -15,6 +16,7 @@ const KIND_LABEL: Record<string, string> = {
   totp: "Code from your authenticator app",
   email: "Emailed code",
   sms: "Texted code",
+  passkey: "Face ID or fingerprint",
 };
 
 export function MfaChallenge({
@@ -66,6 +68,29 @@ export function MfaChallenge({
     if (!d) return;
     setChallengeId(d.challengeId);
     setSentTo(d.sentTo);
+  }
+
+  async function signInWithPasskey() {
+    setBusy(true);
+    setError("");
+    try {
+      const start = await post({ action: "passkey_auth_start" });
+      if (!start) return;
+      const assertion = await usePasskey(start);
+      const done = await post({
+        action: "passkey_auth_finish",
+        challengeId: start.challengeId,
+        challenge: start.challenge,
+        ...assertion,
+        trust,
+      });
+      if (!done) return;
+      window.location.href = next;
+    } catch (e) {
+      setError(passkeyError(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submit() {
@@ -131,14 +156,33 @@ export function MfaChallenge({
                   className={`faqchip ${factor.id === f.id ? "on" : ""}`}
                   onClick={() => { setFactor(f); setChallengeId(null); setCode(""); setError(""); }}
                 >
-                  {f.kind === "totp" ? <Key size={12} /> : f.kind === "sms" ? <Phone size={12} /> : <Mail size={12} />}
+                  {f.kind === "totp" ? <Key size={12} />
+                    : f.kind === "sms" ? <Phone size={12} />
+                    : f.kind === "passkey" ? <Unlock size={12} />
+                    : <Mail size={12} />}
                   {KIND_LABEL[f.kind] ?? f.kind}
                 </button>
               ))}
             </div>
           )}
 
-          {factor.kind === "totp" ? (
+          {factor.kind === "passkey" ? (
+            <>
+              <p className="muted">
+                Unlock with your face, fingerprint or security key. Nothing to type.
+              </p>
+              <label className="prefcheck">
+                <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} />
+                <span>
+                  <b>Trust this device for 30 days</b>
+                  <span className="muted sm">Only on a machine that is yours alone.</span>
+                </span>
+              </label>
+              <button className="go accent" onClick={signInWithPasskey} disabled={busy}>
+                {busy ? "Waiting for your device..." : "Use your passkey"}
+              </button>
+            </>
+          ) : factor.kind === "totp" ? (
             <p className="muted">Open your authenticator app and type the six digits it shows.</p>
           ) : challengeId ? (
             <p className="muted">We sent a code to {sentTo}. It expires in ten minutes.</p>
@@ -153,7 +197,7 @@ export function MfaChallenge({
             </>
           )}
 
-          {(factor.kind === "totp" || challengeId) && (
+          {(factor.kind === "totp" || (challengeId && factor.kind !== "passkey")) && (
             <>
               <input
                 className="mfacode"

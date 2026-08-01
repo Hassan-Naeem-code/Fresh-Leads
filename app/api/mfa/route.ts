@@ -8,7 +8,12 @@ import {
   listFactors, beginTotp, beginSms, beginEmail, confirmFactor, removeFactor,
   answerTotp, answerChallenge, createChallenge, generateCode,
   issueRecoveryCodes, countRecoveryCodes, useRecoveryCode,
+  savePasskey, getPasskey, bumpSignCount, passkeyCredentialIds,
+  createPasskeyChallenge, consumePasskeyChallenge,
 } from "@/lib/mfa/store";
+import {
+  newChallenge, hashChallenge, relyingPartyId, verifyRegistration, verifyAssertion,
+} from "@/lib/mfa/passkey";
 import { generateSecret, otpauthUri } from "@/lib/mfa/totp";
 import {
   sendEmailCode, sendSmsCode, emailCodesAvailable, smsCodesAvailable, maskEmail, maskPhone,
@@ -34,6 +39,29 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("recovery"), code: z.string().min(4).max(20) }),
   z.object({ action: z.literal("new_recovery_codes") }),
   z.object({ action: z.literal("remove"), factorId: z.string().uuid() }),
+  z.object({ action: z.literal("passkey_register_start"), label: z.string().max(60).optional() }),
+  z.object({
+    action: z.literal("passkey_register_finish"),
+    challengeId: z.string().uuid(),
+    challenge: z.string().min(10).max(200),
+    credentialId: z.string().min(1).max(1000),
+    publicKey: z.string().min(1).max(4000),
+    algorithm: z.number().int(),
+    authenticatorData: z.string().min(1).max(4000),
+    clientDataJSON: z.string().min(1).max(4000),
+    label: z.string().max(60).optional(),
+  }),
+  z.object({ action: z.literal("passkey_auth_start") }),
+  z.object({
+    action: z.literal("passkey_auth_finish"),
+    challengeId: z.string().uuid(),
+    challenge: z.string().min(10).max(200),
+    credentialId: z.string().min(1).max(1000),
+    authenticatorData: z.string().min(1).max(4000),
+    clientDataJSON: z.string().min(1).max(4000),
+    signature: z.string().min(1).max(4000),
+    trust: z.boolean().optional(),
+  }),
 ]);
 
 export async function GET() {
@@ -50,7 +78,7 @@ export async function GET() {
     kind: me.kind,
     factors,
     recoveryCodesLeft: recovery,
-    available: { totp: true, email: emailCodesAvailable(), sms: smsCodesAvailable(), passkey: false },
+    available: { totp: true, email: emailCodesAvailable(), sms: smsCodesAvailable(), passkey: true },
   });
 }
 
@@ -186,6 +214,91 @@ export async function POST(req: NextRequest) {
 
     case "new_recovery_codes": {
       return NextResponse.json({ codes: await issueRecoveryCodes(me.owner) });
+    }
+
+    // ---- Passkeys -------------------------------------------------------
+    //
+    // Two round trips each way. The challenge is minted here and stored hashed, so a
+    // browser cannot choose its own and a leaked table cannot replay one.
+
+    case "passkey_register_start": {
+      const challenge = newChallenge();
+      const challengeId = await createPasskeyChallenge(me.owner, hashChallenge(challenge));
+      if (!challengeId) return NextResponse.json({ error: "Could not start that." }, { status: 500 });
+
+      return NextResponse.json({
+        challengeId,
+        challenge,
+        rpId: relyingPartyId(),
+        rpName: "Fresh Leads",
+        // The account handle the authenticator stores. The user id, not the email:
+        // an email can change and the key would then point at nothing.
+        userId: Buffer.from(me.kind === "admin" ? me.email : me.userId!).toString("base64url"),
+        userName: me.email,
+        excludeCredentials: await passkeyCredentialIds(me.owner),
+      });
+    }
+
+    case "passkey_register_finish": {
+      const spent = await consumePasskeyChallenge(me.owner, input.challengeId, hashChallenge(input.challenge));
+      if (!spent) return NextResponse.json({ error: "That attempt has expired. Try again." }, { status: 400 });
+
+      const check = verifyRegistration(input, input.challenge);
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+
+      const factorId = await savePasskey(me.owner, {
+        credentialId: input.credentialId,
+        publicKey: input.publicKey,
+        algorithm: input.algorithm,
+        signCount: check.signCount,
+        label: input.label?.trim() || "Passkey",
+      });
+      if (!factorId) return NextResponse.json({ error: "Could not save that key." }, { status: 500 });
+
+      await confirmFactor(me.owner, factorId);
+      const confirmed = await listFactors(me.owner, true);
+      const codes = confirmed.length === 1 ? await issueRecoveryCodes(me.owner) : null;
+
+      const res = NextResponse.json({ ok: true, recoveryCodes: codes });
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false);
+      return res;
+    }
+
+    case "passkey_auth_start": {
+      const ids = await passkeyCredentialIds(me.owner);
+      if (ids.length === 0) return NextResponse.json({ error: "No passkey on this account." }, { status: 404 });
+
+      const challenge = newChallenge();
+      const challengeId = await createPasskeyChallenge(me.owner, hashChallenge(challenge));
+      if (!challengeId) return NextResponse.json({ error: "Could not start that." }, { status: 500 });
+
+      return NextResponse.json({ challengeId, challenge, rpId: relyingPartyId(), allowCredentials: ids });
+    }
+
+    case "passkey_auth_finish": {
+      const spent = await consumePasskeyChallenge(me.owner, input.challengeId, hashChallenge(input.challenge));
+      if (!spent) return NextResponse.json({ error: "That attempt has expired. Try again." }, { status: 400 });
+
+      // Find the factor by the credential the browser actually signed with, rather
+      // than trusting the client to say which key it used.
+      const factors = await listFactors(me.owner, true);
+      let matched: { id: string; stored: Awaited<ReturnType<typeof getPasskey>> } | null = null;
+      for (const f of factors.filter((x) => x.kind === "passkey")) {
+        const stored = await getPasskey(me.owner, f.id);
+        if (stored && stored.credentialId === input.credentialId) {
+          matched = { id: f.id, stored };
+          break;
+        }
+      }
+      if (!matched?.stored) return NextResponse.json({ error: "That key is not on this account." }, { status: 400 });
+
+      const check = verifyAssertion(input, matched.stored, input.challenge);
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+
+      await bumpSignCount(matched.id, check.signCount);
+      const res = NextResponse.json({ ok: true });
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, input.trust === true);
+      return res;
     }
 
     case "remove": {
