@@ -87,7 +87,9 @@ jobs:
         # .env.local is gitignored; this catches a real key pasted into the tracked
         # template or anywhere else, which has happened before.
         run: |
-          if git grep -nIE 'sk_live_|sk_test_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}|SG\.[A-Za-z0-9_-]{20,}' -- . ':!*.md'; then
+          # Each token is written with a bracketed letter so the pattern matches a
+          # real credential but not this file, which would otherwise fail every run.
+          if git grep -nIE 'sk_[l]ive_|sk_[t]est_[A-Za-z0-9]{20,}|whs[e]c_[A-Za-z0-9]{20,}|S[G]\.[A-Za-z0-9_-]{20,}' -- . ':!*.md'; then
             echo "A real looking credential is committed. Move it to .env.local."
             exit 1
           fi
