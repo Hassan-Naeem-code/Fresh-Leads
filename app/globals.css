@@ -1832,3 +1832,27 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .enrichdone { flex-wrap: wrap; }
   .enrichdone .go { width: 100%; justify-content: center; }
 }
+
+/* --- CRM connections --- */
+.crmnote {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  padding: 12px 15px; border-radius: var(--r-md); font-size: 13.5px;
+}
+.crmnote.good { background: rgba(31,158,122,.09); border: 1px solid rgba(31,158,122,.35); color: var(--cool); }
+.crmnote.bad { background: rgba(245,83,61,.08); border: 1px solid rgba(245,83,61,.35); color: var(--hot); }
+.crmnote svg { flex: none; }
+
+.crmcard { margin-bottom: 14px; }
+.crmhead { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.crmlogo {
+  width: 40px; height: 40px; flex: none; border-radius: var(--r-md);
+  display: grid; place-items: center;
+  background: var(--panel2); border: 1px solid var(--border); color: var(--accent);
+}
+.crmhead > div { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 2px; }
+.crmhead b { font-size: 15px; font-weight: 650; }
+.crmhint { margin-top: 14px; line-height: 1.55; }
+.crmhint code {
+  font-size: 12px; background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 5px;
+}
