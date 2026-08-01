@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Clock, Coin, Upload, Key, Building, Mail, Lock } from "../icons";
+import {
+  Search, Clock, Coin, Upload, Key, Building, Mail, Lock, Sliders, Shield, LifeBuoy,
+} from "../icons";
 
 // The signed-in navigation, as a left rail rather than a top strip.
 //
@@ -22,6 +24,15 @@ const LINKS = [
   { href: "/dashboard/email", label: "Email", icon: Mail, exact: false, paid: true },
   { href: "/dashboard/crm", label: "CRM", icon: Building, exact: false, paid: true },
   { href: "/dashboard/api", label: "API keys", icon: Key, exact: false, paid: true },
+];
+
+// Settings and support, kept in their own group below a divider. They are not part of
+// the work, they are the things you go and find when you need them, and none of them
+// is ever locked.
+const PERSONAL = [
+  { href: "/dashboard/preferences", label: "Personalisation", icon: Sliders },
+  { href: "/dashboard/account", label: "Account and security", icon: Shield },
+  { href: "/dashboard/help", label: "Help", icon: LifeBuoy },
 ];
 
 export function SideNav({ canUseTools }: { canUseTools: boolean }) {
@@ -45,6 +56,23 @@ export function SideNav({ canUseTools }: { canUseTools: boolean }) {
             <Icon size={16} />
             <span>{label}</span>
             {locked && <Lock size={13} className="sidelock" />}
+          </Link>
+        );
+      })}
+
+      <hr className="sidedivide" />
+
+      {PERSONAL.map(({ href, label, icon: Icon }) => {
+        const active = pathname.startsWith(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={`sidelink ${active ? "on" : ""}`}
+            aria-current={active ? "page" : undefined}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
           </Link>
         );
       })}

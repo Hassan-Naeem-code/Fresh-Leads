@@ -1986,3 +1986,170 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .emailform { grid-template-columns: 1fr; }
   .seqbar .go, .seqbar .ghost { width: 100%; justify-content: center; }
 }
+
+/* ---------- Help, account and personalisation ---------- */
+
+.sidedivide {
+  border: 0; border-top: 1px solid var(--border);
+  margin: 12px 13px 10px;
+}
+
+/* FAQ. An accordion rather than a wall of text: people arrive with one question and
+   should not have to read sixteen answers to reach it. */
+.faqsearch {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border); background: var(--panel2);
+  border-radius: var(--pill); padding: 0 16px; margin-bottom: 14px;
+}
+.faqsearch svg { flex: none; color: var(--muted); }
+.faqsearch input {
+  border: 0; background: none; padding: 12px 0; width: 100%;
+  font-size: 14.5px; outline: none;
+}
+.faqsearch input:focus { box-shadow: none; border-color: transparent; }
+
+.faqtopics { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+.faqchip {
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  border-radius: var(--pill); padding: 6px 14px; font-size: 13px; font-weight: 550;
+  cursor: pointer; transition: border-color .16s var(--ease), color .16s var(--ease);
+}
+.faqchip:hover { border-color: var(--text); color: var(--text); }
+.faqchip.on { border-color: var(--accent); color: var(--accent); background: rgba(249,99,50,.07); }
+
+.faqlist { list-style: none; margin: 0; padding: 0; }
+.faqlist li { border-top: 1px solid var(--border); }
+.faqlist li:last-child { border-bottom: 1px solid var(--border); }
+.faqq {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: none; border: 0; cursor: pointer; text-align: left;
+  padding: 15px 2px; font-size: 15px; font-weight: 600; color: var(--text);
+}
+.faqq:hover { color: var(--accent); }
+.faqchev { flex: none; color: var(--muted); transition: transform .18s var(--ease); }
+.faqchev.on { transform: rotate(180deg); color: var(--accent); }
+.faqa { padding: 0 2px 16px; max-width: 68ch; }
+.faqa p { color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0 0 10px; }
+.faqa p:last-child { margin-bottom: 0; }
+.faqnone { padding: 18px 2px; }
+
+/* Tickets. */
+.tklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.tklist li {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 2px; border-bottom: 1px solid var(--border);
+}
+.tklist li:last-child { border-bottom: 0; }
+.tklist li > svg { flex: none; color: var(--muted); }
+.tklist li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tklist li b { font-size: 14.5px; }
+.tkstatus {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  border-radius: var(--pill); padding: 4px 11px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border); color: var(--muted);
+}
+.tkstatus.open { border-color: rgba(249,99,50,.4); color: var(--accent); }
+.tkstatus.answered { border-color: rgba(31,158,122,.4); color: var(--cool); }
+
+.tkform { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tkform .wide { grid-column: 1 / -1; }
+.tkform label { display: block; }
+.tkform textarea {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px; font: inherit;
+  font-size: 15px; outline: none; resize: vertical;
+}
+.tkform textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,99,50,.18); }
+.tkactions { display: flex; gap: 10px; align-items: center; margin-top: 4px; grid-column: 1 / -1; }
+
+/* A thread. The two sides are told apart by which edge they sit against and by the
+   ground they sit on, not by colour alone. */
+.tkthread { list-style: none; margin: 0 0 20px; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.tkthread li { border-radius: var(--r-md); padding: 14px 16px; background: var(--panel2); }
+.tkthread li.support { background: rgba(249,99,50,.06); border: 1px solid rgba(249,99,50,.2); }
+.tkwho { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.tkwho b { font-size: 13.5px; }
+.tkav {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  background: var(--dark); color: #fff; font-size: 10.5px; font-weight: 700;
+}
+.tkthread li.support .tkav { background: var(--accent); }
+.tkbody { margin: 0; white-space: pre-wrap; font-size: 14.5px; line-height: 1.6; }
+.tkreply { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.tkreply textarea {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px; font: inherit;
+  font-size: 15px; outline: none; resize: vertical;
+}
+.tkreply textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,99,50,.18); }
+.tkfoot { display: flex; align-items: center; gap: 7px; margin-top: 14px; }
+
+/* Account facts, and the forms under them. */
+.acctfacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin: 0; }
+.acctfacts dt {
+  display: flex; align-items: center; gap: 6px; margin: 0 0 5px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+}
+.acctfacts dd { margin: 0; font-size: 14.5px; font-weight: 600; word-break: break-word; }
+
+.acctform { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.acctform .wide { grid-column: 1 / -1; }
+.acctform textarea {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px; font: inherit;
+  font-size: 15px; outline: none; resize: vertical;
+}
+.acctform textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,99,50,.18); }
+
+/* Destructive. Red is reserved for it, so it never appears anywhere harmless. */
+.card.danger { border-color: rgba(245,83,61,.35); }
+.card.danger .cardtitle { display: flex; align-items: center; gap: 8px; color: var(--hot); }
+.ghost.danger { border-color: rgba(245,83,61,.45); color: var(--hot); }
+.ghost.danger:hover:not(:disabled) { border-color: var(--hot); background: rgba(245,83,61,.06); }
+.go.danger { background: var(--hot); }
+.go.danger:hover:not(:disabled) { box-shadow: 0 14px 30px -12px rgba(245,83,61,.55); }
+
+/* Personalisation. */
+.prefplaybooks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+.prefpb {
+  text-align: left; cursor: pointer; background: var(--panel2);
+  border: 1px solid var(--border); border-radius: var(--r-md); padding: 13px 15px;
+  display: flex; flex-direction: column; gap: 5px;
+  transition: border-color .16s var(--ease), background .16s var(--ease);
+}
+.prefpb b { font-size: 14px; color: var(--text); }
+.prefpb span { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.prefpb:hover { border-color: var(--text); }
+.prefpb.on { border-color: var(--accent); background: rgba(249,99,50,.07); }
+.prefpb.on b { color: var(--accent); }
+
+.prefcheck { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); margin: 0; }
+.prefcheck:last-of-type { border-bottom: 0; }
+.prefcheck input { width: 17px; height: 17px; flex: none; margin-top: 2px; accent-color: var(--accent); }
+.prefcheck > span { display: flex; flex-direction: column; gap: 3px; }
+.prefcheck b { font-size: 14px; font-weight: 600; color: var(--text); }
+.prefnote { margin-top: 14px; }
+
+@media (max-width: 640px) {
+  .tkform { grid-template-columns: 1fr; }
+  .tklist li { flex-wrap: wrap; }
+  .tklist li > div { flex-basis: 100%; order: -1; }
+  .tkactions .go, .tkactions .ghost { flex: 1; justify-content: center; }
+}
+
+/* Support queue in the admin panel. */
+.adm-tkfilter { display: flex; gap: 8px; margin-bottom: 16px; }
+.adm-tkfilter a {
+  border: 1px solid var(--border); border-radius: var(--pill);
+  padding: 6px 15px; font-size: 13px; font-weight: 550;
+  color: var(--muted); text-decoration: none;
+}
+.adm-tkfilter a.on { border-color: var(--accent); color: var(--accent); background: rgba(249,99,50,.07); }
+.adm-tkthread { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+.adm-tkthread textarea {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px; font: inherit;
+  font-size: 14.5px; outline: none; resize: vertical; margin-bottom: 10px;
+}
+.adm-tkthread textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,99,50,.18); }

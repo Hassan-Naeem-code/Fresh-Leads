@@ -287,3 +287,42 @@ export const Calendar = (p: IconProps) => (
     <path d="M8 3v4M16 3v4M3 11h18" />
   </Svg>
 );
+
+export const LifeBuoy = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="4" />
+    <path d="m4.9 4.9 4.2 4.2" />
+    <path d="m14.9 14.9 4.2 4.2" />
+    <path d="m19.1 4.9-4.2 4.2" />
+    <path d="m9.1 14.9-4.2 4.2" />
+  </Svg>
+);
+
+export const Shield = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </Svg>
+);
+
+export const Sliders = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3" />
+    <path d="M1 14h6M9 8h6M17 16h6" />
+  </Svg>
+);
+
+export const MessageSquare = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </Svg>
+);
+
+export const Trash = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 6h18" />
+    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M10 11v6M14 11v6" />
+  </Svg>
+);
