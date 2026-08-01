@@ -9,6 +9,7 @@ import { suppressedAmong } from "@/lib/email/suppression";
 import { unsubscribeToken } from "@/lib/email/compose";
 import { tokenSecret } from "@/lib/email/send";
 import type { Lead } from "@/lib/types";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,6 +35,8 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+    const gate = await toolsGate(user.id);
+    if (gate) return gate;
 
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });

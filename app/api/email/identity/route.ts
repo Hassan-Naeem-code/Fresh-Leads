@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { domainVerified, configured } from "@/lib/email/provider";
 import { suppressionSummary } from "@/lib/email/suppression";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ const Body = z.object({
 export async function GET() {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const admin = createAdminClient();
   const { data } = await admin
@@ -61,6 +64,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {

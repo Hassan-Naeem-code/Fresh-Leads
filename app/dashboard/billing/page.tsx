@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccess, SUBSCRIPTION_PRICE_CENTS } from "@/lib/access";
 import { getCreditHistory } from "@/lib/credits";
 import { BillingActions } from "./BillingActions";
-import { Coin, Check, Calendar, Dot } from "../../icons";
+import { Coin, Check, Calendar, Dot, Lock } from "../../icons";
 
 export const metadata: Metadata = {
   title: "Billing",
@@ -22,14 +22,32 @@ const REASON_LABEL: Record<string, string> = {
   admin_revoke: "Adjusted by support",
 };
 
-export default async function BillingPage() {
+// Which section sent someone here, in their words rather than a route name.
+const LOCKED_LABEL: Record<string, string> = {
+  history: "Search history",
+  enrich: "Enrich a list",
+  email: "Email sequences",
+  crm: "CRM push",
+  api: "The API",
+};
+
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/billing");
 
-  const [access, history] = await Promise.all([getAccess(user.id), getCreditHistory(user.id)]);
+  const [access, history, params] = await Promise.all([
+    getAccess(user.id),
+    getCreditHistory(user.id),
+    searchParams,
+  ]);
+  const lockedFrom = params.locked ? LOCKED_LABEL[params.locked] : null;
   const sub = access.subscription;
   const renews = sub?.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", {
@@ -52,6 +70,15 @@ export default async function BillingPage() {
           yours permanently, so viewing and exporting it again is always free.
         </p>
       </div>
+
+      {lockedFrom && (
+        <div className="crmnote bad">
+          <Lock size={15} />
+          {lockedFrom} is part of the {money(SUBSCRIPTION_PRICE_CENTS)} a year plan. Your free
+          credits cover searching and opening leads, and the plan opens everything you do with
+          them afterwards.
+        </div>
+      )}
 
       <div className="billgrid">
         {/* Balance */}

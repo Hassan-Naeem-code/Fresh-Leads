@@ -6,6 +6,7 @@ import { getUnlockedKeys, getOwnerUnlockedKeys } from "@/lib/credits";
 import { stripeConfigured } from "@/lib/stripe";
 import type { Lead, ResultLead } from "@/lib/types";
 import { viewLead } from "@/lib/lead-view";
+import { requireSubscription } from "@/lib/require-subscription";
 import { HistoryLeads } from "./HistoryLeads";
 
 // A saved search. Leads the user has paid for are shown in full; the rest are still
@@ -15,6 +16,7 @@ import { HistoryLeads } from "./HistoryLeads";
 // the contact details of leads that were never paid for. The lock state has to be
 // applied wherever leads are displayed, not only on the search screen.
 export default async function SearchDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireSubscription("history");
   const { id } = await params;
   const supabase = await createClient();
   const {

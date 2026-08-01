@@ -4,12 +4,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Mail, ChevronRight } from "../../../icons";
+import { requireSubscription } from "@/lib/require-subscription";
 import { SequenceEditor } from "./SequenceEditor";
 
 export const metadata: Metadata = { title: "Sequence", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function SequencePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireSubscription("email");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/email");

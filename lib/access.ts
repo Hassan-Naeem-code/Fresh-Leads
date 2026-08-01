@@ -47,6 +47,14 @@ export type Access = {
   canUnlock: boolean;
   /** May purchase more credits. */
   canBuyCredits: boolean;
+  /**
+   * May use the subscriber sections: history, bulk enrichment, email, CRM, the API.
+   *
+   * The free trial is deliberately narrow. It exists to prove the leads are real, which
+   * takes a search and an unlock, and nothing else. The tooling around those leads is
+   * what the yearly fee buys.
+   */
+  canUseTools: boolean;
   /** Never subscribed, still holding free signup credits. */
   onFreeTrial: boolean;
   /**
@@ -106,6 +114,7 @@ export function decideAccess(facts: {
       canSearch: true,
       canUnlock: true,
       canBuyCredits: false,
+      canUseTools: true,
       onFreeTrial: false,
       blockedBy: null,
     };
@@ -130,6 +139,7 @@ export function decideAccess(facts: {
     canSearch: hasAccess && credits > 0,
     canUnlock: hasAccess && credits > 0,
     canBuyCredits: subscribed,
+    canUseTools: subscribed,
     onFreeTrial,
     blockedBy,
   };

@@ -8,6 +8,7 @@ import { stripeConfigured } from "@/lib/stripe";
 import { pushLeads as pushHubspot } from "@/lib/crm/hubspot";
 import { pushLeads as pushSalesforce } from "@/lib/crm/salesforce";
 import type { Lead } from "@/lib/types";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
     const { data: { user: cookieUser } } = await supabase.auth.getUser();
     const userId = cookieUser?.id ?? (await userIdForApiKey(req.headers.get("authorization")));
     if (!userId) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+    const gate = await toolsGate(userId);
+    if (gate) return gate;
 
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });

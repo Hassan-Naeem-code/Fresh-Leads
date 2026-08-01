@@ -167,7 +167,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
   background: var(--accent); cursor: pointer; border: 0;
 }
 .ghost.sm { padding: 8px 14px; font-size: 13px; }
-button.linkish { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
+.linkish { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 
 /* ---------- Freshness pill + breakdown ---------- */
 .fresh {
@@ -703,7 +703,7 @@ a.go, a.ghost { text-decoration: none; }
 a.go { color: #fff; }
 a.ghost { color: var(--text); }
 
-button.linkish { font-weight: 600; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+.linkish { font-weight: 600; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
 
 /* Inputs: white fields on sand read as "enterable"; sand-on-sand does not. */
 label { font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); margin-bottom: 7px; }
@@ -1506,6 +1506,12 @@ a.vbadge { text-decoration: none; }
   box-shadow: inset 2px 0 0 var(--accent);
 }
 .sidelink.on svg { color: var(--accent); opacity: 1; }
+
+/* A section the yearly plan opens. Dimmed rather than hidden, with the padlock on the
+   right, so a trial account can see what it is not using yet. */
+.sidelink.locked { color: color-mix(in srgb, var(--muted) 62%, transparent); }
+.sidelink.locked .sidelock { margin-left: auto; opacity: .7; }
+.sidelink.locked:hover { color: var(--text); }
 
 /* The pages already center themselves; inside the shell the column IS the width. */
 .appmain { min-width: 0; }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ async function ownsSequence(userId: string, sequenceId: string) {
 export async function POST(req: Request) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const parsed = z.object({ sequenceId: z.string().uuid() })
     .safeParse(await req.json().catch(() => null));
@@ -53,6 +56,8 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const parsed = z.object({
     id: z.string().uuid(),
@@ -79,6 +84,8 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   const sequenceId = url.searchParams.get("sequenceId");

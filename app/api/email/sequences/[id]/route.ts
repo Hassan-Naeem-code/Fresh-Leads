@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,8 @@ async function ownedSequence(userId: string, id: string) {
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
   const { id } = await ctx.params;
 
   const sequence = await ownedSequence(user.id, id);
@@ -47,6 +50,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
   const { id } = await ctx.params;
   if (!(await ownedSequence(user.id, id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -89,6 +94,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
   const { id } = await ctx.params;
   if (!(await ownedSequence(user.id, id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

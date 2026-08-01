@@ -108,3 +108,45 @@ test("with payments unconfigured nothing is gated", () => {
   assert.equal(a.blockedBy, null);
   assert.equal(a.canBuyCredits, false, "there is no configured way to pay");
 });
+
+// The subscriber sections: history, bulk enrichment, email, CRM, the API.
+//
+// The trial exists to prove the leads are real, which takes a search and an unlock.
+// Everything built around those leads is what the yearly fee buys, so the trial must
+// not open any of it, however many free credits are still sitting in the account.
+
+test("the free trial does not open the subscriber sections", () => {
+  const a = at({ credits: 3 });
+  assert.equal(a.onFreeTrial, true, "still on the trial");
+  assert.equal(a.canSearch, true, "the trial can still search");
+  assert.equal(a.canUnlock, true, "and open a lead");
+  assert.equal(a.canUseTools, false, "but not the sections the plan pays for");
+});
+
+test("subscribing opens the sections, with or without a balance", () => {
+  for (const credits of [0, 3, 500]) {
+    const a = at({ credits, subscribed: true, hasSubscriptionRecord: true });
+    assert.equal(a.canUseTools, true, `credits: ${credits}`);
+  }
+});
+
+test("a lapsed subscription closes the sections again", () => {
+  // Was a customer, is not now: hasSubscriptionRecord is true but active is not.
+  const a = at({ credits: 10, subscribed: false, hasSubscriptionRecord: true });
+  assert.equal(a.canUseTools, false);
+  assert.equal(a.hasAccess, false, "not on the trial either, they have subscribed before");
+});
+
+test("the sections track the subscription, never the balance", () => {
+  for (const facts of [
+    { credits: 0, subscribed: true, hasSubscriptionRecord: true },
+    { credits: 999, subscribed: false },
+    { credits: 1 },
+  ]) {
+    assert.equal(at(facts).canUseTools, facts.subscribed === true, JSON.stringify(facts));
+  }
+});
+
+test("with payments unconfigured the sections stay open", () => {
+  assert.equal(at({ paymentsConfigured: false, credits: 0 }).canUseTools, true);
+});

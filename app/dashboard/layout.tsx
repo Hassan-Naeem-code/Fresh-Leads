@@ -74,7 +74,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </header>
       <div className="appshell">
         <aside className="appside">
-          <SideNav />
+          <SideNav canUseTools={access.canUseTools} />
         </aside>
         <main className="appmain">{children}</main>
       </div>

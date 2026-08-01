@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { authorizeUrl, hubspotConfigured, saveToken, checkToken } from "@/lib/crm/hubspot";
 import { deleteConnection } from "@/lib/crm/store";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,8 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/login?next=/dashboard/crm", req.url));
+  const gate = await toolsGate(user.id);
+  if (gate) return NextResponse.redirect(new URL("/dashboard/billing?locked=crm", req.url));
 
   if (!hubspotConfigured()) {
     return NextResponse.redirect(new URL("/dashboard/crm?error=not_configured", req.url));
@@ -42,6 +45,9 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const body = await req.json().catch(() => ({}));
   const token = typeof body.token === "string" ? body.token.trim() : "";

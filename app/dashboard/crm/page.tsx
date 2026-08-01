@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getConnection } from "@/lib/crm/store";
 import { hubspotConfigured } from "@/lib/crm/hubspot";
 import { salesforceConfigured } from "@/lib/crm/salesforce";
+import { requireSubscription } from "@/lib/require-subscription";
 import { Building } from "../../icons";
 import { CrmPanel } from "./CrmPanel";
 
@@ -15,6 +16,7 @@ export default async function CrmPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  await requireSubscription("crm");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/crm");

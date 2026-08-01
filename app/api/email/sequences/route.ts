@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ async function me() {
 export async function GET() {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const admin = createAdminClient();
   const { data: sequences } = await admin
@@ -52,6 +55,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await me();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const parsed = z.object({ name: z.string().trim().min(1).max(80) })
     .safeParse(await req.json().catch(() => null));

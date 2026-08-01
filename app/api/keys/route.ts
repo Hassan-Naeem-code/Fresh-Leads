@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createApiKey, listApiKeys, revokeApiKey } from "@/lib/api-keys";
+import { toolsGate } from "@/lib/tools-gate";
 
 // Managing API keys. Creating and revoking go through the server rather than the
 // browser writing to the table directly, because minting a credential and revoking one
@@ -18,12 +19,16 @@ async function signedInUser() {
 export async function GET() {
   const user = await signedInUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
   return NextResponse.json({ keys: await listApiKeys(user.id) });
 }
 
 export async function POST(req: Request) {
   const user = await signedInUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
 
   const parsed = z.object({ label: z.string().trim().max(60).optional() })
     .safeParse(await req.json().catch(() => ({})));
@@ -37,6 +42,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const user = await signedInUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const gate = await toolsGate(user.id);
+  if (gate) return gate;
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Which key?" }, { status: 400 });
   const ok = await revokeApiKey(user.id, id);

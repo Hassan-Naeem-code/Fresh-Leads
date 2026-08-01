@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireSubscription } from "@/lib/require-subscription";
 import { Key } from "../../icons";
 import { ApiKeys } from "./ApiKeys";
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "API keys", robots: { index: false, f
 export const dynamic = "force-dynamic";
 
 export default async function ApiPage() {
+  await requireSubscription("api");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/api");

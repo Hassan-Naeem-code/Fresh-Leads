@@ -7,6 +7,7 @@ import { spendCredits } from "@/lib/credits";
 import { stripeConfigured } from "@/lib/stripe";
 import { mapPool } from "@/lib/pool";
 import { parseCsv, enrichRow, toCsv, billableRows, type EnrichedRow } from "@/lib/bulk-enrich";
+import { toolsGate } from "@/lib/tools-gate";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,6 +33,9 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    const gate = await toolsGate(userId);
+    if (gate) return gate;
 
     const csv = await req.text();
     const rows = parseCsv(csv, MAX_ROWS);

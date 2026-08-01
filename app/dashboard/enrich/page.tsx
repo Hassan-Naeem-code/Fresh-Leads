@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAccess } from "@/lib/access";
+import { requireSubscription } from "@/lib/require-subscription";
 import { Upload } from "../../icons";
 import { EnrichForm } from "./EnrichForm";
 
@@ -9,6 +10,7 @@ export const metadata: Metadata = { title: "Enrich a list", robots: { index: fal
 export const dynamic = "force-dynamic";
 
 export default async function EnrichPage() {
+  await requireSubscription("enrich");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/enrich");

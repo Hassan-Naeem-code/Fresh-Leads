@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireSubscription } from "@/lib/require-subscription";
 import { ChevronRight } from "../../icons";
 
 type SearchRow = {
@@ -12,6 +13,7 @@ type SearchRow = {
 };
 
 export default async function HistoryPage() {
+  await requireSubscription("history");
   const supabase = await createClient();
   const { data } = await supabase
     .from("searches")
