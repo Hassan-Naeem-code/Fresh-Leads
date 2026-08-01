@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Building, Check, AlertTriangle, ArrowRight } from "../../icons";
 
 const MESSAGES: Record<string, string> = {
-  connected: "HubSpot connected. Open a lead, then push it from the lead panel.",
+  connected: "CRM connected. Open a lead, then push it from the lead panel.",
+  salesforce: "Salesforce connected. Open a lead, then push it from the lead panel.",
   declined: "You cancelled the connection, so nothing was changed.",
   bad_state: "That connection attempt could not be verified. Start again from this page.",
   exchange_failed: "HubSpot would not complete the connection. Try again in a moment.",
@@ -12,13 +13,21 @@ const MESSAGES: Record<string, string> = {
   not_configured: "HubSpot is not set up on this deployment yet.",
 };
 
+type Salesforce = {
+  connected: boolean;
+  account: string | null;
+  connectedAt: string | null;
+  configured: boolean;
+};
+
 export function CrmPanel({
-  connected, account, connectedAt, configured, notice,
+  connected, account, connectedAt, configured, salesforce, notice,
 }: {
   connected: boolean;
   account: string | null;
   connectedAt: string | null;
   configured: boolean;
+  salesforce: Salesforce;
   notice: string | null;
 }) {
   const [busy, setBusy] = useState(false);
@@ -138,12 +147,49 @@ export function CrmPanel({
           <div>
             <b>Salesforce</b>
             <span className="muted sm">
-              Not connected yet. The Salesforce ready CSV export imports without field mapping
-              in the meantime.
+              {salesforce.connected
+                ? `Connected${salesforce.account ? ` to ${salesforce.account}` : ""}${
+                    salesforce.connectedAt
+                      ? `, since ${new Date(salesforce.connectedAt).toLocaleDateString()}`
+                      : ""
+                  }`
+                : "Push opened leads in as Leads, matched on their website."}
             </span>
           </div>
-          <span className="muted sm">Coming later</span>
+          {salesforce.connected ? (
+            <button
+              className="ghost sm"
+              onClick={async () => {
+                await fetch("/api/crm/salesforce", { method: "DELETE" });
+                window.location.href = "/dashboard/crm";
+              }}
+            >
+              Disconnect
+            </button>
+          ) : salesforce.configured ? (
+            <a className="go accent sm" href="/api/crm/salesforce">
+              Connect <ArrowRight size={14} />
+            </a>
+          ) : (
+            <span className="muted sm">Not set up yet</span>
+          )}
         </div>
+
+        {!salesforce.configured && !salesforce.connected && (
+          <p className="muted sm crmhint">
+            Add <code>SALESFORCE_CLIENT_ID</code> and <code>SALESFORCE_CLIENT_SECRET</code> from
+            your External Client App and the Connect button turns on. The redirect URL to
+            register is <code>/api/crm/salesforce/callback</code> on this domain.
+          </p>
+        )}
+
+        {salesforce.connected && (
+          <p className="muted sm crmhint">
+            Businesses arrive as <b>Leads</b> rather than Accounts, which is what an unworked
+            prospect is in Salesforce, and they convert to an Account and Contact when you win
+            one. Pushing the same business again updates its Lead instead of adding another.
+          </p>
+        )}
       </div>
     </>
   );

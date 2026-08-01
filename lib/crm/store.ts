@@ -11,7 +11,7 @@ import { createAdminClient } from "../supabase/admin";
 // GCM rather than CBC because it authenticates as well as encrypts: a tampered
 // ciphertext fails to decrypt instead of silently producing different bytes.
 
-export type Provider = "hubspot";
+export type Provider = "hubspot" | "salesforce";
 
 export type Connection = {
   provider: Provider;
@@ -19,6 +19,12 @@ export type Connection = {
   refreshToken: string | null;
   expiresAt: string | null;
   accountLabel: string | null;
+  /**
+   * Salesforce only. Every org lives on its own host, handed back with the tokens,
+   * and a valid token sent to the wrong host fails. HubSpot has one endpoint for
+   * everybody, so this stays null there.
+   */
+  instanceUrl: string | null;
   connectedAt: string;
 };
 
@@ -63,7 +69,13 @@ export function decrypt(packed: string): string | null {
 export async function saveConnection(
   userId: string,
   provider: Provider,
-  c: { accessToken: string; refreshToken?: string | null; expiresIn?: number | null; accountLabel?: string | null }
+  c: {
+    accessToken: string;
+    refreshToken?: string | null;
+    expiresIn?: number | null;
+    accountLabel?: string | null;
+    instanceUrl?: string | null;
+  }
 ): Promise<boolean> {
   const admin = createAdminClient();
   const { error } = await admin.from("crm_connections").upsert(
@@ -74,6 +86,7 @@ export async function saveConnection(
       refresh_token: c.refreshToken ? encrypt(c.refreshToken) : null,
       expires_at: c.expiresIn ? new Date(Date.now() + c.expiresIn * 1000).toISOString() : null,
       account_label: c.accountLabel ?? null,
+      instance_url: c.instanceUrl ?? null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,provider" }
@@ -89,7 +102,7 @@ export async function getConnection(userId: string, provider: Provider): Promise
   const admin = createAdminClient();
   const { data } = await admin
     .from("crm_connections")
-    .select("provider, access_token, refresh_token, expires_at, account_label, connected_at")
+    .select("provider, access_token, refresh_token, expires_at, account_label, instance_url, connected_at")
     .eq("user_id", userId)
     .eq("provider", provider)
     .maybeSingle();
@@ -104,6 +117,7 @@ export async function getConnection(userId: string, provider: Provider): Promise
     refreshToken: data.refresh_token ? decrypt(data.refresh_token as string) : null,
     expiresAt: (data.expires_at as string) ?? null,
     accountLabel: (data.account_label as string) ?? null,
+    instanceUrl: (data.instance_url as string) ?? null,
     connectedAt: data.connected_at as string,
   };
 }

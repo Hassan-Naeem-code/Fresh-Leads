@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getConnection } from "@/lib/crm/store";
 import { hubspotConfigured } from "@/lib/crm/hubspot";
+import { salesforceConfigured } from "@/lib/crm/salesforce";
 import { Building } from "../../icons";
 import { CrmPanel } from "./CrmPanel";
 
@@ -18,7 +19,11 @@ export default async function CrmPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/crm");
 
-  const [conn, params] = await Promise.all([getConnection(user.id, "hubspot"), searchParams]);
+  const [conn, sfConn, params] = await Promise.all([
+    getConnection(user.id, "hubspot"),
+    getConnection(user.id, "salesforce"),
+    searchParams,
+  ]);
 
   return (
     <div className="wrap">
@@ -35,6 +40,12 @@ export default async function CrmPage({
         account={conn?.accountLabel ?? null}
         connectedAt={conn?.connectedAt ?? null}
         configured={hubspotConfigured()}
+        salesforce={{
+          connected: Boolean(sfConn),
+          account: sfConn?.accountLabel ?? null,
+          connectedAt: sfConn?.connectedAt ?? null,
+          configured: salesforceConfigured(),
+        }}
         notice={params.connected ? "connected" : (params.error ?? null)}
       />
     </div>

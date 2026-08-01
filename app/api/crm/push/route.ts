@@ -5,13 +5,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { userIdForApiKey } from "@/lib/api-keys";
 import { getUnlockedKeys } from "@/lib/credits";
 import { stripeConfigured } from "@/lib/stripe";
-import { pushLeads } from "@/lib/crm/hubspot";
+import { pushLeads as pushHubspot } from "@/lib/crm/hubspot";
+import { pushLeads as pushSalesforce } from "@/lib/crm/salesforce";
 import type { Lead } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const Body = z.object({ leadIds: z.array(z.string().uuid()).min(1).max(500) });
+const Body = z.object({
+  leadIds: z.array(z.string().uuid()).min(1).max(500),
+  provider: z.enum(["hubspot", "salesforce"]).default("hubspot"),
+});
 
 // Push leads into the connected CRM.
 //
@@ -51,17 +55,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await pushLeads(userId, leads);
+    const result = parsed.data.provider === "salesforce"
+      ? await pushSalesforce(userId, leads)
+      : await pushHubspot(userId, leads);
 
     if (result.error === "not_connected") {
       return NextResponse.json(
-        { error: "Connect HubSpot first, or reconnect it.", code: "not_connected" },
+        { error: `Connect ${parsed.data.provider === "salesforce" ? "Salesforce" : "HubSpot"} first, or reconnect it.`, code: "not_connected" },
         { status: 409 }
       );
     }
     if (result.error) {
       return NextResponse.json(
-        { error: "HubSpot rejected the push. Nothing was changed on your side.", code: result.error },
+        { error: "Your CRM rejected the push. Nothing was changed on your side.", code: result.error },
         { status: 502 }
       );
     }
