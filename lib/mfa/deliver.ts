@@ -1,4 +1,5 @@
 import { send as sendEmail, configured as emailConfigured } from "../email/provider";
+import { shell, heading, paragraph, codeBlock, divider, escapeHtml } from "../email/template";
 
 // Getting a code to the person.
 //
@@ -27,17 +28,27 @@ export async function sendEmailCode(
     "It works once and expires in ten minutes.",
     "",
     "If you were not signing in, somebody has your password. Change it as soon as you can.",
+    "",
+    "Fresh Leads, fresh-leads.io",
   ].join("\n");
 
-  const html = `
-    <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:480px">
-      <p style="font-size:15px;color:#333">Your sign in code is</p>
-      <p style="font-size:34px;font-weight:700;letter-spacing:.12em;margin:12px 0">${code}</p>
-      <p style="font-size:14px;color:#666">It works once and expires in ten minutes.</p>
-      <p style="font-size:13px;color:#888;margin-top:22px">
-        If you were not signing in, somebody has your password. Change it as soon as you can.
-      </p>
-    </div>`;
+  const html = shell({
+    // What Gmail shows beside the subject. Without it the client picks the first
+    // words of the body, which here would be the word "Your".
+    preheader: `${code} is your code. It expires in ten minutes.`,
+    body: [
+      heading("Here is your sign in code"),
+      paragraph("Enter it on the sign in screen to finish getting into your account."),
+      codeBlock(code),
+      paragraph("It works once and expires in ten minutes.", true),
+      divider(),
+      paragraph(
+        "If you were not signing in, somebody else has your password. Change it as soon as you can.",
+        true
+      ),
+    ].join(""),
+    footnote: `Sent to ${escapeHtml(to)} because a sign in was attempted on this account.`,
+  });
 
   const result = await sendEmail({
     fromEmail: FROM_EMAIL(),
