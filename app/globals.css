@@ -48,19 +48,19 @@ input, select {
   color: var(--text); border-radius: 10px; padding: 12px 14px; font-size: 15px; outline: none;
 }
 input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,99,50,.18); }
-button.go {
+.go {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff; border: 0; border-radius: 10px; padding: 12px 22px;
   font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap;
   transition: transform .08s ease, opacity .2s;
 }
-button.go:hover { transform: translateY(-1px); }
-button.go:disabled { opacity: .55; cursor: default; transform: none; }
-button.ghost {
+.go:hover { transform: translateY(-1px); }
+.go:disabled { opacity: .55; cursor: default; transform: none; }
+.ghost {
   background: var(--panel2); color: var(--text); border: 1px solid var(--border);
   border-radius: 10px; padding: 12px 18px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-button.ghost:disabled { opacity: .4; cursor: default; }
+.ghost:disabled { opacity: .4; cursor: default; }
 
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .chip {
@@ -166,7 +166,7 @@ button.ghost:disabled { opacity: .4; cursor: default; }
   -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
   background: var(--accent); cursor: pointer; border: 0;
 }
-button.ghost.sm { padding: 8px 14px; font-size: 13px; }
+.ghost.sm { padding: 8px 14px; font-size: 13px; }
 button.linkish { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 
 /* ---------- Freshness pill + breakdown ---------- */
@@ -237,7 +237,7 @@ button.linkish { background: none; border: 0; color: var(--accent); cursor: poin
 .bandhead b { display: inline-flex; align-items: center; gap: 7px; }
 .band p.act { display: flex; align-items: flex-start; gap: 6px; }
 .band p.act .icon { margin-top: 2px; flex: none; }
-button.ghost, button.go { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ghost, .go { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .status { align-items: flex-start; }
 .status .icon { margin-top: 2px; }
 
@@ -263,7 +263,7 @@ button.ghost, button.go { display: inline-flex; align-items: center; justify-con
 .authcard .sub { color: var(--muted); font-size: 14px; text-align: center; margin: 6px 0 22px; }
 .authform { display: grid; gap: 14px; }
 .authform label { margin-bottom: 6px; }
-.authform button.go { width: 100%; padding: 13px; margin-top: 4px; }
+.authform .go { width: 100%; padding: 13px; margin-top: 4px; }
 .authalt { text-align: center; color: var(--muted); font-size: 13.5px; margin-top: 18px; }
 .authalt a { color: var(--accent); text-decoration: none; }
 .authalt a:hover { text-decoration: underline; }
@@ -292,7 +292,7 @@ button.ghost, button.go { display: inline-flex; align-items: center; justify-con
 @media (max-width: 680px) { .obrow { grid-template-columns: 1fr; } }
 .obfield label { margin-bottom: 8px; }
 .obfield label b { color: var(--accent); }
-.obform button.go { justify-self: start; padding: 13px 26px; }
+.obform .go { justify-self: start; padding: 13px 26px; }
 
 /* ---------- Quote page ---------- */
 .qgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
@@ -313,7 +313,7 @@ button.ghost, button.go { display: inline-flex; align-items: center; justify-con
 .qbreak li { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; color: var(--muted); }
 .qbreak li b { color: var(--text); font-weight: 600; }
 .qbreak .icon { margin-top: 2px; flex: none; }
-.qplan button.go { width: 100%; }
+.qplan .go { width: 100%; }
 
 /* ---------- Admin panel ---------- */
 .adm { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
@@ -678,22 +678,31 @@ html { scroll-behavior: smooth; }
 h1, h2, h3, h4 { font-feature-settings: "ss01", "cv01", "cv11"; letter-spacing: -.022em; }
 
 /* ---------- Controls ---------- */
-button.go, button.ghost {
+.go, .ghost {
   border-radius: var(--pill);
   padding: 12px 22px;
   font-size: 14.5px;
   font-weight: 600;
   transition: transform .12s var(--spring), box-shadow .25s ease, background .2s ease, border-color .2s ease;
 }
-button.go { background: var(--dark); box-shadow: var(--sh-1); }
-button.go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 30px -12px rgba(35,8,0,.42); }
-button.go:active:not(:disabled) { transform: translateY(0) scale(.975); }
-button.go.accent { background: var(--accent); }
-button.go.accent:hover:not(:disabled) { box-shadow: 0 14px 30px -12px rgba(249,99,50,.55); }
-button.ghost { background: transparent; border-color: rgba(35,8,0,.18); }
-button.ghost:hover:not(:disabled) { border-color: var(--text); background: transparent; }
-button.ghost:active:not(:disabled) { transform: scale(.975); }
-button.ghost.sm { padding: 8px 15px; font-size: 13.5px; }
+.go { background: var(--dark); box-shadow: var(--sh-1); }
+.go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 30px -12px rgba(35,8,0,.42); }
+.go:active:not(:disabled) { transform: translateY(0) scale(.975); }
+.go.accent { background: var(--accent); }
+.go.accent:hover:not(:disabled) { box-shadow: 0 14px 30px -12px rgba(249,99,50,.55); }
+.ghost { background: transparent; border-color: rgba(35,8,0,.18); }
+.ghost:hover:not(:disabled) { border-color: var(--text); background: transparent; }
+.ghost:active:not(:disabled) { transform: scale(.975); }
+.ghost.sm { padding: 8px 15px; font-size: 13.5px; }
+.go.sm { padding: 9px 17px; font-size: 13.5px; }
+
+/* A link that acts as a button has to look like one. Anchors carry an underline and
+   the browser link colour by default, and without this a Connect link sits next to a
+   real button looking like a mistake. */
+a.go, a.ghost { text-decoration: none; }
+a.go { color: #fff; }
+a.ghost { color: var(--text); }
+
 button.linkish { font-weight: 600; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
 
 /* Inputs: white fields on sand read as "enterable"; sand-on-sand does not. */
@@ -765,7 +774,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* ---------- Search form ---------- */
 .form { gap: 14px; }
-.form button.go { padding: 12px 26px; }
+.form .go { padding: 12px 26px; }
 
 /* ---------- Stats ---------- */
 .summary .exportbtn { margin-left: auto; }
@@ -814,7 +823,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .authcard h2 { font-size: 30px; text-align: left; letter-spacing: -.032em; line-height: 1.12; }
 .authcard .sub { text-align: left; font-size: 15px; margin: 10px 0 28px; line-height: 1.55; }
 .authform { gap: 16px; }
-.authform button.go { border-radius: var(--pill); padding: 14px; font-size: 15px; margin-top: 8px; }
+.authform .go { border-radius: var(--pill); padding: 14px; font-size: 15px; margin-top: 8px; }
 .authalt { text-align: left; font-size: 14px; margin-top: 22px; }
 .authalt a { font-weight: 600; }
 .authmsg { border-radius: var(--r-sm); font-weight: 500; }
@@ -851,7 +860,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .qplan h3 { font-size: 19px; }
 .qprice b { font-size: 42px; letter-spacing: -.035em; }
 .qbreak { gap: 11px; margin-bottom: 26px; }
-.qplan button.go { border-radius: var(--pill); padding: 13px; }
+.qplan .go { border-radius: var(--pill); padding: 13px; }
 .obfield label b { color: var(--accent); }
 .onboard .obform { gap: 22px; }
 
@@ -1017,7 +1026,7 @@ input:-webkit-autofill:focus {
 .contact-point a:hover { text-decoration: underline; }
 .contact-form { display: grid; gap: 16px; padding: 26px; }
 .contact-form textarea { width: 100%; resize: vertical; min-height: 120px; }
-.contact-form button.go { width: 100%; padding: 14px; border-radius: var(--pill); margin-top: 4px; }
+.contact-form .go { width: 100%; padding: 14px; border-radius: var(--pill); margin-top: 4px; }
 .contact-sent { text-align: center; padding: 44px 30px; display: grid; gap: 10px; place-items: center; }
 .contact-senticon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--cool) 14%, transparent); color: var(--cool); }
 .contact-sent h3 { font-size: 20px; }
