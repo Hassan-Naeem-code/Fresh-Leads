@@ -487,7 +487,15 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .pr-card b { font-size: 16px; display: block; margin-bottom: 7px; }
 .pr-card p { color: var(--muted); font-size: 14px; line-height: 1.55; font-weight: 500; }
 .pr-cardproof { margin-top: auto; padding-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.pr-proofval { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: var(--text); background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; white-space: nowrap; }
+.pr-proofval {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px;
+  color: var(--text); background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 9px;
+  /* Was nowrap. A short token still sits on one line, but a long one now wraps
+     instead of forcing its grid column wider than the page. That single property
+     pushed the integrations page 1034px past the viewport at desktop width. */
+  max-width: 100%; overflow-wrap: anywhere;
+}
 .pr-prooftag { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--cool); white-space: nowrap; }
 
 /* Step card footers */
@@ -2711,3 +2719,15 @@ table { max-width: 100%; }
 }
 .landsignals li svg { flex: none; margin-top: 2px; color: var(--cool); }
 .landniches { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+
+/* A grid item's default minimum size is its CONTENT, not zero, so one unbreakable
+   string inside any card can widen the whole track and push the page sideways. This
+   is the guard for that, applied where cards live. */
+.pr-grid4 > *, .pr-steps > *, .price-grid > *, .bands > * { min-width: 0; }
+
+/* Integrations card footer: a status chip and a sentence that is allowed to wrap. */
+.pr-cardfoot {
+  margin-top: auto; padding-top: 18px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+}
+.intdetail { font-size: 12.5px; color: var(--muted); line-height: 1.5; }

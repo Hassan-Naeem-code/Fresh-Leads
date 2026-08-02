@@ -96,9 +96,9 @@ export default async function IntegrationsPage() {
               <span className="pr-cardicon">{i.icon}</span>
               <b>{i.name}</b>
               <p>{i.body}</p>
-              <div className="pr-cardproof">
-                <span className="pr-proofval">{i.detail}</span>
+              <div className="pr-cardfoot">
                 <span className="pr-prooftag"><Check size={11} /> {i.status}</span>
+                <span className="intdetail">{i.detail}</span>
               </div>
             </div>
           ))}
