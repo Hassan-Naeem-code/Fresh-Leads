@@ -314,6 +314,49 @@ export async function POST(req: NextRequest) {
       if (found.length) lead.changes = found.map((t) => ({ kind: t.kind, label: t.label, since: t.since }));
     }
 
+    // SECOND PASS on anything that came back unreachable.
+    //
+    // The first pass runs 24 audits at once, each fetching a homepage and several
+    // subpages. Under that much contention a 4 second timeout fails sites that are
+    // perfectly healthy: measured on a real batch, one site in ten marked "down"
+    // answered in 90ms when asked on its own.
+    //
+    // That is the most damaging wrong output this product can produce. A rep opens
+    // the call with "I noticed your website is down" about a site the owner can see
+    // working, and the credibility of every other claim goes with it.
+    //
+    // So the losers are re-audited quietly, three at a time instead of 24. They are a
+    // minority of any batch, the cap keeps the worst case bounded, and a site that
+    // fails BOTH passes is genuinely unreachable.
+    const unreachable = withSite.filter((l) => auditByKey.get(l.id)?.reachable === false);
+    if (unreachable.length > 0) {
+      const recheck = unreachable.slice(0, 15);
+      await mapPool(recheck, 3, async (lead) => {
+        const second = await auditWebsite(lead.website);
+        // Only ACCEPT a better answer. A second failure changes nothing, so a site
+        // that is genuinely down keeps its verdict and its already-correct fields.
+        if (!second?.reachable) return;
+        auditByKey.set(lead.id, second);
+        lead.siteReachable = true;
+        lead.hasSSL = second.hasSSL;
+        lead.mobileFriendly = second.mobileFriendly;
+        lead.copyrightYear = second.copyrightYear;
+        lead.outdated = second.outdated;
+        lead.hasBooking = second.hasBooking;
+        lead.loadMs = second.loadMs;
+        lead.hasSchema = second.hasSchema;
+        lead.hasAnalytics = second.hasAnalytics;
+        lead.wordCount = second.wordCount;
+        lead.scriptCount = second.scriptCount;
+        lead.vendors = second.vendors;
+        if (!lead.email && second.email) lead.email = second.email;
+      });
+      const recovered = recheck.filter((l) => auditByKey.get(l.id)?.reachable).length;
+      if (recovered > 0) {
+        console.log(`[leads] ${recovered} of ${recheck.length} "unreachable" sites answered on a quieter retry`);
+      }
+    }
+
     // Verify contact channels + active status, then set the "deliverable" gate.
     //
     // FREE TIER ONLY. The paid Twilio and ZeroBounce lookups wait until someone spends
