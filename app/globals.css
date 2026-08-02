@@ -2731,3 +2731,29 @@ table { max-width: 100%; }
   display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
 }
 .intdetail { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* ==========================================================================
+   The signed-in header on a small phone.
+
+   Measured, not guessed: at 365px the header overflowed the document by 17px.
+   Four things sit on the right, the balance, Upgrade, the avatar and Sign out,
+   and at 24px of side padding they simply do not fit. Nothing wrapped because
+   the row had no permission to.
+
+   Below 400px the padding tightens, the row is allowed to wrap, and Sign out
+   loses its label rather than being removed: an account you cannot leave is
+   worse than one with a slightly cryptic button, and the title attribute keeps
+   it announced correctly.
+   ========================================================================== */
+@media (max-width: 400px) {
+  .topinner { padding: 11px 12px; gap: 8px; flex-wrap: wrap; }
+  .topright { gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  .topbrand { font-size: 15px; }
+  .creditpill { padding: 5px 10px; font-size: 12.5px; }
+  .topright .go, .topright .ghost { padding: 7px 12px; font-size: 12.5px; }
+  .avatar { width: 26px; height: 26px; font-size: 11px; }
+}
+
+/* The loading rail mirrors the real one, so nothing jumps when it is replaced. */
+.adm-side .adm-nav .skel { border-radius: var(--r-md); }
+.adm-brand .skel { flex: none; }
