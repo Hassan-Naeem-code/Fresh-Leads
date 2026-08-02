@@ -70,7 +70,7 @@ export const ENDPOINTS: Endpoint[] = [
     response: "{ owner: Owner | null, creditsLeft: number }",
     notes: [
       "The lead has to be open first: selling the owner of a business you cannot otherwise see would be selling a fragment.",
-      "Roughly a third of small businesses name an owner anywhere we can read. When we are not confident, we return null rather than a guess.",
+      "We find an owner on roughly four in ten businesses, and it varies by trade: a dental practice or a vet usually names the practitioner, a restaurant or a salon usually does not. When we are not confident, we return null rather than a guess.",
     ],
   },
   {

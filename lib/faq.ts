@@ -90,7 +90,7 @@ export const FAQ: FaqEntry[] = [
     topic: "leads",
     q: "Why does a lead sometimes have no owner name?",
     a: [
-      "Because we could not find one we were confident in. Roughly a third of small businesses name an owner anywhere we can read, and we would rather show nothing than show you a guess.",
+      "Because we could not find one we were confident in. We find an owner on roughly four in ten businesses, and it depends heavily on the trade: professions where a named practitioner is the product, like dentists and vets, name someone about six times in ten, while restaurants and salons name someone about twice in ten. We would rather show nothing than show you a guess.",
       "A wrong name in the first line of an email is worse than no name at all, so the sequence tools hold a message back rather than send one with a blank where a name should be.",
     ],
     keywords: ["owner", "contact name", "who", "missing"],
