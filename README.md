@@ -1,18 +1,63 @@
+<div align="center">
+
 # Fresh Leads
 
-Local business lead generation for people who sell to small businesses.
+**Local business leads that are verified the moment you search, not the month they were scraped.**
+
+[![CI](https://github.com/Hassan-Naeem-code/Fresh-Leads/actions/workflows/ci.yml/badge.svg)](https://github.com/Hassan-Naeem-code/Fresh-Leads/actions/workflows/ci.yml)
+![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3FCF8E?logo=supabase&logoColor=white)
+![Stripe](https://img.shields.io/badge/Stripe-Checkout-635BFF?logo=stripe&logoColor=white)
+![275 tests](https://img.shields.io/badge/tests-275%20passing-1F9E7A)
+![Two factor](https://img.shields.io/badge/2FA-required-F96332)
+
+[Live site](https://www.fresh-leads.io) &nbsp;&middot;&nbsp; [API reference](https://www.fresh-leads.io/docs) &nbsp;&middot;&nbsp; [How we compare](https://www.fresh-leads.io/compare) &nbsp;&middot;&nbsp; [Security](SECURITY.md)
+
+</div>
+
+---
 
 Fresh Leads finds real companies in a given area, verifies that their phone numbers and
 email addresses actually work, confirms they are still trading, grades each one on how well
 it fits what you sell, and tells you what changed at that business since the last time
-anyone looked. Live at [fresh-leads.io](https://www.fresh-leads.io).
+anyone looked.
 
 Most lead tools hand you a list and leave you to work out who is worth calling. This one
 scores every business against a buyer playbook, so a card terminal reseller and a web
 designer looking at the same street get two completely different lists.
 
+```
+     A SEARCH                                    WHAT YOU GET BACK
+  ┌──────────────┐                          ┌───────────────────────────┐
+  │ dentists     │                          │  Austin Dental Specialty  │
+  │ Austin, TX   │  ───────────────────▶    │  HOT  68/100              │
+  │ I sell       │                          │  (512) 555 0142  verified │
+  │ websites     │                          │  hello@...       verified │
+  └──────────────┘                          │  Owner: Sarah Behmanesh   │
+                                            │  Site down since 30 Jul   │
+       free                                 │  ──────────────────────   │
+                                            │  1 credit to open  ($1)   │
+                                            └───────────────────────────┘
+```
+
+## Try it in two minutes
+
+```bash
+git clone https://github.com/Hassan-Naeem-code/Fresh-Leads.git
+cd Fresh-Leads && npm install
+cp .env.local.example .env.local     # add the three Supabase keys
+MFA_DISABLED=1 npm run dev           # http://localhost:3000
+```
+
+Only the three Supabase variables are needed to boot. Without Stripe there is no payment
+gating, which is the fastest way to look around. Full detail in
+[Getting started](#getting-started).
+
 ## Contents
 
+- [Try it in two minutes](#try-it-in-two-minutes)
 - [What it does](#what-it-does)
 - [How a search works](#how-a-search-works)
 - [Playbooks](#playbooks)
@@ -52,20 +97,38 @@ designer looking at the same street get two completely different lists.
 
 ## How a search works
 
-1. **Discover.** Overpass and Google Places are queried for the trade and area, then merged
-   on a stable business key so the same shop from two sources is one lead.
-2. **Audit.** Up to 24 websites are fetched in parallel, with a quieter second pass for
-   anything that came back unreachable, because a false "their site is down" is the most
-   damaging wrong output this product can make.
-3. **Verify, free tier.** Offline format and MX checks, plus trading status.
-4. **Score.** Each lead is graded against the buyer's playbook, so the same business scores
-   differently for different customers.
-5. **Filter.** Anything with no way to reach it at all is dropped rather than sold.
-6. **Snapshot and diff.** Today's observation is stored and compared against the last one,
-   and anything that changed is recorded against the business.
+```mermaid
+flowchart LR
+    A["Trade + area<br/>or a sentence"] --> B["Discover<br/>OpenStreetMap + Places"]
+    B --> C["Merge and dedupe<br/>one shop, one lead"]
+    C --> D["Audit the website<br/>24 at a time"]
+    D --> E["Free verification<br/>format, MX, still trading"]
+    E --> F["Grade 0 to 100<br/>against your playbook"]
+    F --> G["Drop the unreachable"]
+    G --> H["Snapshot and diff<br/>what changed since last time"]
+    H --> I(["Locked results"])
 
-Searching is free. Paid verification and the owner crawl only run when a credit is spent,
-because a search finds around forty businesses and gets paid for the few that are opened.
+    I -.->|"1 credit"| J["Paid verification<br/>Twilio + ZeroBounce"]
+    J --> K["Owner crawl<br/>contact, about, team"]
+    K --> L(["Open lead"])
+
+    style A fill:#fff5f0,stroke:#f96332
+    style I fill:#f9f3ee,stroke:#7c6c61
+    style L fill:#fff5f0,stroke:#f96332
+    style J fill:#fff,stroke:#1f9e7a
+    style K fill:#fff,stroke:#1f9e7a
+```
+
+Everything above the dotted line is **free**. A search finds around forty businesses and
+gets paid for the few that are opened, so the expensive checks wait until a credit is spent.
+
+| Step | Why it is done this way |
+| --- | --- |
+| Merge and dedupe | The same shop from two sources is one lead, keyed on a stable business id |
+| Audit | A quieter second pass re-checks anything that looked unreachable, because a false "their site is down" is the most damaging wrong output this product can make |
+| Grade | The same business scores differently for different customers, because the playbook decides which signals count |
+| Drop the unreachable | A lead with no phone, site or email is not sold at all |
+| Snapshot and diff | Today's observation is compared against the last one, and change is what nobody else can sell |
 
 ## Playbooks
 
@@ -81,7 +144,22 @@ What the customer sells decides which signals are scored and shown.
 
 ## Credits and access
 
-Two independent things, and both are needed:
+Two independent purchases, and **both** are needed. This is the single thing people
+misunderstand, so it is worth the diagram.
+
+```mermaid
+flowchart TD
+    S["$30 a year<br/>ACCESS"] --> P{"Can you use<br/>the platform?"}
+    C["$1 each<br/>CREDITS"] --> Q{"Can you open<br/>a lead?"}
+    P -->|yes| R["Search, history, enrich,<br/>email, CRM, API"]
+    Q -->|yes| T["One credit,<br/>one lead, forever"]
+    S -.->|"includes ZERO credits"| C
+
+    style S fill:#fff5f0,stroke:#f96332
+    style C fill:#fff5f0,stroke:#f96332
+    style R fill:#f9f3ee,stroke:#7c6c61
+    style T fill:#f9f3ee,stroke:#7c6c61
+```
 
 - **Access** costs $30 a year and keeps the account open. It includes no credits.
 - **Credits** cost $1 each. One credit opens one lead, permanently, and re-opening or
@@ -135,19 +213,33 @@ because they have to hold under concurrent requests.
 Measured on 1 August 2026: 318 leads discovered and 80 opened across eight trades in eight
 cities (dentists, plumbers, hair salons, restaurants, law firms, auto repair, gyms, vets).
 
-| Field | Coverage |
-| --- | --- |
-| Phone present | 98% |
-| Website | 90% |
-| Email, on opened leads | 83% |
-| Socials, on opened leads | 81% |
-| Hiring known, on opened leads | 89% |
-| Owner name, on opened leads | 41% |
+```
+  Phone present        ████████████████████████████████████████████████  98%
+  Website              ████████████████████████████████████████████      90%
+  Hiring known         ███████████████████████████████████████████       89%
+  Email                ████████████████████████████████████████          83%
+  Socials              ███████████████████████████████████████           81%
+  Owner name           ████████████████████                              41%
+                       └────────────────────────────────────────────────┘
+                       0%                                            100%
+```
 
-Owner coverage varies enormously by trade, and the spread matters more than the average.
-Dentists and vets around 60%, law firms and gyms around 50%, plumbers 40%, auto repair 30%,
-hair salons and restaurants 20%. Professions where a named practitioner is the product name
-someone; trades where the business itself is the brand usually do not.
+Owner coverage varies enormously by trade, and **the spread matters more than the average**.
+
+```
+  Dentists      ████████████████████████████████  60%
+  Veterinarians ████████████████████████████████  60%
+  Law firms     ██████████████████████████        50%
+  Gyms          ██████████████████████████        50%
+  Plumbers      █████████████████████             40%
+  Auto repair   ████████████████                  30%
+  Hair salons   ███████████                       20%
+  Restaurants   ███████████                       20%
+```
+
+Professions where a named practitioner **is** the product name someone. Trades where the
+business itself is the brand usually do not. Quote the trade figure to a customer in that
+trade, not the best one on the chart.
 
 Owner email is only ever shown when the mailbox actually accepted mail. A guessed address
 never survives, which keeps the number lower and the sender reputation intact.
@@ -330,6 +422,43 @@ metadata, and the API reference against the routes that actually exist.
 webhooks, and balances under parallel spend.
 
 ## Project structure
+
+```mermaid
+flowchart TB
+    subgraph Browser
+        M["Marketing pages<br/>landing, pricing, compare,<br/>docs, faq, security"]
+        D["Dashboard<br/>search, leads, billing,<br/>email, CRM, help"]
+        A["Operator panel<br/>users, activity, support"]
+    end
+
+    subgraph Edge
+        MW["middleware<br/>auth + two factor gate"]
+    end
+
+    subgraph Server
+        R["Route handlers<br/>/api/*"]
+        L["lib/<br/>score, playbooks, credits,<br/>access, snapshots, mfa"]
+    end
+
+    subgraph Data
+        DB[("Supabase Postgres<br/>row level security")]
+        ST["Stripe"]
+        EX["OSM, Places,<br/>Twilio, ZeroBounce,<br/>Resend, HubSpot, Salesforce"]
+    end
+
+    M --> MW
+    D --> MW
+    A --> MW
+    MW --> R
+    R --> L
+    L --> DB
+    L --> EX
+    R --> ST
+    ST -.->|"webhook, verified<br/>against Stripe's own copy"| R
+
+    style MW fill:#fff5f0,stroke:#f96332
+    style DB fill:#f9f3ee,stroke:#1f9e7a
+```
 
 ```
 app/

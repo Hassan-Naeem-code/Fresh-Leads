@@ -60,6 +60,7 @@ test("no em or en dashes anywhere in the copy", () => {
   // The whole site avoids them; a landing page is still the site.
   for (const l of LANDINGS) {
     const all = [l.headline, l.accent, l.intro, l.metaTitle, l.metaDescription, ...l.signals].join(" ");
-    assert.ok(!/[—–]/.test(all), `dash found in ${l.slug}`);
+    // Escapes, not the characters. See the same note in api-docs.test.mjs.
+    assert.ok(!/[\u2014\u2013]/.test(all), `dash found in ${l.slug}`);
   }
 });

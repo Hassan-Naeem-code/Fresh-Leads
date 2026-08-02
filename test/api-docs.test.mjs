@@ -59,7 +59,9 @@ test("the error table covers the ones a caller will actually hit", () => {
 
 test("no em or en dashes in the reference", () => {
   const all = JSON.stringify(ENDPOINTS) + JSON.stringify(ERRORS);
-  assert.ok(!/[—–]/.test(all));
+  // Escapes, not the characters themselves: the CI guard greps the whole repo for
+  // these, and a test that checks for them would otherwise fail the build it protects.
+  assert.ok(!/[\u2014\u2013]/.test(all));
 });
 
 test("nothing documented is missing from the api directory", () => {
