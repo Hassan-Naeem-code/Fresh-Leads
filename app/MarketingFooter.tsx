@@ -26,6 +26,14 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
             <Link href="/signup">Get started</Link>
           </div>
           <div className="mkt-footcol">
+            <span className="mkt-foothead">Who it is for</span>
+            <Link href="/for/web-designers">Web designers</Link>
+            <Link href="/for/pos-and-payments">Payments and POS</Link>
+            <Link href="/for/marketing-agencies">Marketing agencies</Link>
+            <Link href="/for/booking-software">Booking software</Link>
+            <Link href="/for/local-sales-teams">Local sales teams</Link>
+          </div>
+          <div className="mkt-footcol">
             <span className="mkt-foothead">Company</span>
             <Link href="/about">About us</Link>
             <Link href="/compare">How we compare</Link>

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { LANDINGS } from "@/lib/landing";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://fresh-leads.io";
 
@@ -24,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/privacy", priority: 0.3, changeFrequency: "monthly" },
     { path: "/terms", priority: 0.3, changeFrequency: "monthly" },
   ];
+  // One page per kind of seller. These are the pages that answer a job somebody
+  // typed into a search engine, which is where non-branded traffic comes from.
+  for (const l of LANDINGS) {
+    pages.push({ path: `/for/${l.slug}`, priority: 0.7, changeFrequency: "monthly" });
+  }
+
   return pages.map((p) => ({
     url: `${BASE}${p.path}`,
     lastModified: now,

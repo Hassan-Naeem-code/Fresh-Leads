@@ -2701,3 +2701,13 @@ table { max-width: 100%; }
   .adm-main { max-width: 1320px; }
   .appshell { max-width: 1720px; margin-inline: auto; }
 }
+
+/* Trade landing pages. */
+.landsignals { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 13px; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.landsignals li {
+  display: flex; align-items: flex-start; gap: 11px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 15px 17px; font-size: 14.5px; line-height: 1.5; box-shadow: var(--sh-1);
+}
+.landsignals li svg { flex: none; margin-top: 2px; color: var(--cool); }
+.landniches { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
