@@ -21,6 +21,7 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
             <span className="mkt-foothead">Product</span>
             <Link href="/pricing">Pricing</Link>
             <Link href="/integrations">Integrations</Link>
+            <Link href="/docs">API reference</Link>
             <Link href="/#how">How it works</Link>
             <Link href="/#quality">Quality standards</Link>
             <Link href="/signup">Get started</Link>
