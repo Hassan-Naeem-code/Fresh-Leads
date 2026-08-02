@@ -385,6 +385,125 @@ function personName(v: unknown): string | null {
   return null;
 }
 
+/**
+ * The owner, taken from the business name itself.
+ *
+ * Measured gap: the crawl reads a site's pages and never looks at the sign above the
+ * door, yet "Edwin Webb, DDS" and "Dr Sarah Behmanesh Family Dentistry" name the
+ * person more reliably than anything on the About page. It is why owner coverage
+ * splits so hard by trade: professions where the practitioner IS the brand were being
+ * missed by a crawler that only read prose.
+ *
+ * Deliberately strict. The trade words are stripped and whatever remains must survive
+ * looksLikeName, which already rejects headings, plurals and the stoplist. "Austin
+ * Dentistry" leaves "Austin", one word, rejected. "Smiles by Garcia" leaves "Garcia",
+ * one word, rejected. Only a genuine first and last name gets through.
+ */
+const TRADE_WORDS = new RegExp(
+  String.raw`\b(` +
+    [
+      "dentistry", "dental", "dentist", "orthodontics?", "orthodontist", "periodontics?",
+      "endodontics?", "prosthodontics?", "oral", "surgery", "surgical", "smiles?",
+      "veterinary", "vet", "animal", "hospital", "clinic", "clinics", "medical", "medicine",
+      "health", "healthcare", "wellness", "care", "family", "practice", "practices",
+      "law", "legal", "attorneys?", "lawyers?", "firm", "associates?", "partners?",
+      "chiropractic", "physical", "therapy", "optometry", "eye", "vision", "skin",
+      "salon", "spa", "studio", "barbers?", "hair", "beauty", "nails?",
+      "plumbing", "plumbers?", "heating", "cooling", "hvac", "electric(al)?", "roofing",
+      "construction", "contracting", "landscaping", "auto", "automotive", "motors?",
+      "repair", "service", "services", "solutions?", "group", "center", "centre",
+      "company", "co", "inc", "llc", "llp", "pllc", "pc", "ltd", "and", "the", "of", "at", "by",
+    ].join("|") +
+    String.raw`)\b`,
+  "gi"
+);
+
+export function ownerFromBusinessName(
+  businessName: string
+): { name: string; role: string } | null {
+  if (!businessName) return null;
+
+  let text = businessName;
+
+  // EVIDENCE FIRST. Strip the trade words out of "Round Rock Family Dental" and you
+  // are left with "Round Rock", which reads exactly like a person and is a town. No
+  // vocabulary separates the two, so the name alone is never enough: there has to be
+  // a marker that a PERSON is being named.
+  //
+  //   a credential   Edwin Webb, DDS
+  //   an honorific   Dr Sarah Behmanesh Family Dentistry
+  //
+  // A possessive was tried as a third marker and removed: "Mother Earth's Nail Bar"
+  // became "Mother Earth's Bar", which is the exact failure this guard exists to
+  // prevent.
+  //
+  // This costs coverage on businesses that quietly carry an owner's full name with no
+  // marker at all. That is the right trade: a wrong owner name printed on a call sheet
+  // is worse than an empty field, because the rep reads it out.
+  const cred = new RegExp(String.raw`\b(${PRACTITIONER_TITLES.join("|")})\b`).exec(text);
+  const honorific = /\b(dr|doctor|prof|professor)\.?\s/i.test(text);
+  if (!cred && !honorific) return null;
+
+  let role = "owner";
+  if (cred) role = cred[1];
+
+  text = text
+    // Strip credentials, honorifics and anything after a separator: "Webb Dental,
+    // formerly Smith" would otherwise contribute two surnames.
+    .replace(new RegExp(String.raw`\b(${PRACTITIONER_TITLES.join("|")})\b`, "g"), " ")
+    .replace(/\b(dr|doctor|mr|mrs|ms|miss|prof|professor)\.?\b/gi, " ")
+    .split(/[|\u2022:;\/]|\s-\s/)[0]
+    .replace(TRADE_WORDS, " ")
+    .replace(/[.,&]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // looksLikeName does the rest: two or three capitalised parts, no stoplist word,
+  // no digits. A single leftover surname fails it, which is the intent.
+  if (!looksLikeName(text)) return null;
+  return { name: text, role };
+}
+
+/**
+ * The owner, taken from the copyright line.
+ *
+ * "Copyright 2026 John Smith" is a person often enough to be worth one regex, and it
+ * appears in the footer of sites that name nobody anywhere else.
+ */
+export function ownerFromCopyright(html: string): { name: string; role: string } | null {
+  const text = cleanText(html);
+  const re = /(?:\u00a9|&copy;|copyright)\s*(?:\d{4}(?:\s*[-\u2013]\s*\d{4})?)?\s*,?\s*([^.<|]{4,60})/gi;
+
+  for (const m of text.matchAll(re)) {
+    const chunk = m[1];
+
+    // A copyright line names the COMPANY far more often than a person. Measured on a
+    // real batch, an unguarded version of this produced "All Rights Reserved" and
+    // "Lokal Homes" as owner names, which is precisely the confident wrong answer that
+    // gets read aloud on a call.
+    //
+    // So the same evidence rule as the business name applies: something has to say a
+    // PERSON is being named. In a footer that is a credential or an honorific.
+    const cred = new RegExp(String.raw`\b(${PRACTITIONER_TITLES.join("|")})\b`).exec(chunk);
+    const honorific = /\b(dr|doctor|prof|professor)\.?\s/i.test(chunk);
+    if (!cred && !honorific) continue;
+
+    const candidate = chunk
+      .replace(new RegExp(String.raw`\b(${PRACTITIONER_TITLES.join("|")})\b`, "g"), " ")
+      .replace(/\b(dr|doctor|prof|professor)\.?\b/gi, " ")
+      .replace(/\ball rights reserved\b/gi, " ")
+      .replace(TRADE_WORDS, " ")
+      .replace(/[.,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (looksLikeName(candidate)) {
+      return { name: candidate, role: cred ? cred[1] : "owner" };
+    }
+  }
+  return null;
+}
+
 export function extractSocials(html: string): Socials {
   const out: Socials = {};
   for (const [key, re] of SOCIAL_PATTERNS) {
@@ -448,7 +567,7 @@ function candidatePages(html: string, base: URL): string[] {
  */
 export async function enrichBusiness(
   website: string,
-  opts: { verifyGuesses?: boolean } = {}
+  opts: { verifyGuesses?: boolean; businessName?: string } = {}
 ): Promise<Enrichment> {
   const out: Enrichment = { ...EMPTY_ENRICHMENT, socials: {} };
   if (!website) return out;
@@ -485,11 +604,31 @@ export async function enrichBusiness(
           out.ownerRole = owner.role;
         }
       }
+      // Footer credit, when the pages named nobody. Lower confidence than a schema
+      // Person or a team card, so it only runs once those have failed.
+      if (!out.ownerName) {
+        const fromCopyright = ownerFromCopyright(html);
+        if (fromCopyright) {
+          out.ownerName = fromCopyright.name;
+          out.ownerRole = fromCopyright.role;
+        }
+      }
       out.socials = { ...extractSocials(html), ...out.socials };
       if (out.hiring !== true) out.hiring = detectHiring(html);
       if (!out.scrapedEmail) {
         const found = pickBestEmail(html, html.toLowerCase(), base.toString());
         if (found) out.scrapedEmail = found;
+      }
+    }
+
+    // Last: the sign above the door. "Edwin Webb, DDS" names the person more
+    // reliably than anything on the About page, and a crawler that only reads prose
+    // was missing exactly the trades where the practitioner is the brand.
+    if (!out.ownerName && opts.businessName) {
+      const fromName = ownerFromBusinessName(opts.businessName);
+      if (fromName) {
+        out.ownerName = fromName.name;
+        out.ownerRole = fromName.role;
       }
     }
 

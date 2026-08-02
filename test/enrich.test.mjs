@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  extractOwner, extractSocials, detectHiring, inferEmails, looksLikeName,
+  extractOwner,
+  extractSocials,
+  detectHiring,
+  inferEmails,
+  looksLikeName,
+  ownerFromBusinessName,
+  ownerFromCopyright,
 } from "./.build/enrich.mjs";
 
 // Owner extraction is regex over other people's HTML, which means the danger is not
@@ -204,4 +210,103 @@ test("email guesses are ordered most likely first", () => {
 test("a guess is never produced without both a name and a domain", () => {
   assert.deepEqual(inferEmails("Jane", "bellapizza.com"), []);
   assert.deepEqual(inferEmails("Jane Doe", ""), []);
+});
+
+// The owner, taken from the business name and the copyright line.
+//
+// These two sources exist because owner coverage split hard by trade: a crawler that
+// only reads prose misses exactly the practices where the practitioner IS the brand.
+// They are also the two most likely to produce a confident wrong answer, so most of
+// what follows is about what they must REFUSE.
+
+test("a business named after a person yields that person", () => {
+  for (const [input, expected] of [
+    ["Edwin Webb, DDS", "Edwin Webb"],
+    ["Dr. Sarah Behmanesh Family Dentistry", "Sarah Behmanesh"],
+    ["Nicholas Madere DDS", "Nicholas Madere"],
+    ["Dr James O'Brien Plumbing", "James O'Brien"],
+  ]) {
+    const got = ownerFromBusinessName(input);
+    assert.ok(got, `no owner from "${input}"`);
+    assert.equal(got.name, expected);
+  }
+});
+
+test("a real person with no marker is missed, and that is the trade", () => {
+  // "Toai Pham Dental Care" IS a person. Without a credential, an honorific or a
+  // possessive there is nothing separating it from "Round Rock Family Dental", which
+  // is a town. We choose the miss: a wrong owner name gets read aloud on a call.
+  assert.equal(ownerFromBusinessName("Toai Pham Dental Care"), null);
+  assert.equal(ownerFromBusinessName("Dr Toai Pham Dental Care")?.name, "Toai Pham");
+});
+
+test("a credential in the name becomes the role", () => {
+  assert.equal(ownerFromBusinessName("Edwin Webb, DDS").role, "DDS");
+  assert.equal(ownerFromBusinessName("Dr James O'Brien Plumbing").role, "owner");
+});
+
+test("a business NOT named after a person yields nothing", () => {
+  // Every one of these would be a confident wrong answer printed on a call sheet.
+  for (const input of [
+    "Austin Dentistry",
+    "Smiles by Garcia",
+    "Round Rock Family Dental",
+    "North Austin Dentistry",
+    "The Dental Group",
+    "Sola Smile Co.",
+    "Austin Dental Specialty Group",
+    "KC Dental",
+    "Downtown Animal Hospital",
+    "24 Hour Plumbing",
+    "A1 Auto Repair",
+    // No marker that a person is named. Reads like a person, is a town.
+    "Round Rock Family Dental",
+    "North Austin Dental",
+    "Cedar Park Veterinary",
+    // A possessive is not enough evidence. This exact input produced "Mother Earth's
+    // Bar" as an owner name before the rule was tightened.
+    "Mother Earth's Nail Bar",
+    "Webb's Plumbing",
+  ]) {
+    assert.equal(ownerFromBusinessName(input), null, `wrongly found an owner in "${input}"`);
+  }
+});
+
+test("an empty or junk business name is safe", () => {
+  for (const input of ["", "   ", "LLC", "Inc.", "&", "1234"]) {
+    assert.equal(ownerFromBusinessName(input), null, `junk accepted: "${input}"`);
+  }
+});
+
+test("a copyright line naming a person WITH a marker is read", () => {
+  assert.equal(ownerFromCopyright("<footer>Copyright 2026 Dr John Smith</footer>")?.name, "John Smith");
+  assert.equal(ownerFromCopyright("<footer>&copy; 2026 John Smith, DDS</footer>")?.name, "John Smith");
+});
+
+test("a copyright line with no marker is refused, however much it looks like a name", () => {
+  // Measured against a real batch: without this rule the footer produced "All Rights
+  // Reserved" and "Lokal Homes" as owner names.
+  for (const html of [
+    "<footer>Copyright 2026 John Smith. All rights reserved.</footer>",
+    "<footer>&copy; 2026 Lokal Homes</footer>",
+    "<footer>Copyright 2026 All Rights Reserved</footer>",
+    "<footer>&copy; 2026 Cathedral Park</footer>",
+  ]) {
+    assert.equal(ownerFromCopyright(html), null, `wrongly read: ${html}`);
+  }
+});
+
+test("a copyright line naming a company is not", () => {
+  for (const html of [
+    "<footer>Copyright 2026 Austin Dental Group</footer>",
+    "<footer>&copy; 2026 The Smile Company LLC</footer>",
+    "<footer>Copyright 2020 - 2026 Downtown Clinic</footer>",
+  ]) {
+    assert.equal(ownerFromCopyright(html), null, `wrongly read: ${html}`);
+  }
+});
+
+test("a year range does not become part of the name", () => {
+  const html = "<footer>&copy; 2019 - 2026 Dr Rachel Adams</footer>";
+  assert.equal(ownerFromCopyright(html)?.name, "Rachel Adams");
 });

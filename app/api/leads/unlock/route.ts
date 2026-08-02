@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     if (lead.website && !lead.enrichedAt) {
       const budgetMs = 12_000;
       const enrichment = await Promise.race([
-        enrichBusiness(lead.website, { verifyGuesses: true }),
+        enrichBusiness(lead.website, { verifyGuesses: true, businessName: lead.name }),
         new Promise<null>((r) => setTimeout(() => r(null), budgetMs)),
       ]).catch(() => null);
 
