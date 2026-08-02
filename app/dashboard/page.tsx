@@ -12,6 +12,7 @@ import type { Watchlist } from "@/lib/watchlists";
 import { PROBLEMS, problemById } from "@/lib/problems";
 import { PLAYBOOKS, DEFAULT_PLAYBOOK, playbookById, playbookFactors, type PlaybookId } from "@/lib/playbooks";
 import { GRADE_SCALE, FACTOR_CATALOG, MAX_ATTAINABLE, LEGACY_ATTAINABLE, TIER_RANK, bandFor, gradePct } from "@/lib/score";
+import { FirstRun } from "./FirstRun";
 import {
   FRESHNESS_SCALE,
   bandFor as freshnessBandFor,
@@ -692,6 +693,20 @@ export default function Home() {
 
       {open && (
         <LeadModal lead={open} justUnlocked={justUnlocked} onClose={() => setOpen(null)} />
+      )}
+
+      {/* A brand new account has three credits and no idea what to type. Shown only
+          until the first search returns, then never again. */}
+      {!result && !loading && !error && (
+        <FirstRun
+          playbook={playbook}
+          busy={loading}
+          onRunExample={(exNiche, exLocation) => {
+            setNiche(exNiche);
+            setLocation(exLocation);
+            run(undefined, { niche: exNiche, location: exLocation });
+          }}
+        />
       )}
 
       {result && (

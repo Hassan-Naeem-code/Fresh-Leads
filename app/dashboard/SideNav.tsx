@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Search, Clock, Coin, Upload, Key, Building, Mail, Lock, Sliders, Shield, LifeBuoy,
+  Search, Clock, Coin, Upload, Key, Building, Mail, Lock, Sliders, Shield, LifeBuoy, Flame,
 } from "../icons";
 
 // The signed-in navigation, as a left rail rather than a top strip.
@@ -18,6 +18,7 @@ import {
 
 const LINKS = [
   { href: "/dashboard", label: "Search", icon: Search, exact: true, paid: false },
+  { href: "/dashboard/changes", label: "What changed", icon: Flame, exact: false, paid: true },
   { href: "/dashboard/history", label: "History", icon: Clock, exact: false, paid: true },
   { href: "/dashboard/enrich", label: "Enrich a list", icon: Upload, exact: false, paid: true },
   { href: "/dashboard/billing", label: "Billing", icon: Coin, exact: false, paid: false },
