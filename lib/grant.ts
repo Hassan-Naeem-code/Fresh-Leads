@@ -3,6 +3,7 @@ import { createAdminClient } from "./supabase/admin";
 import { grantCredits } from "./credits";
 import { maybeGrantVolumeBonus } from "./volume-bonus";
 import { bonusForPurchase } from "./pricing";
+import { getStripe } from "./stripe";
 
 // Turning Stripe events into access. This is the ONLY place access is granted: the
 // success page is UX, the webhook is truth.
@@ -35,10 +36,43 @@ const asId = (v: unknown): string | null =>
   typeof v === "string" ? v : v && typeof v === "object" && "id" in v ? String((v as { id: string }).id) : null;
 
 /**
+ * Ask Stripe whether this session is real, and take the numbers from THEIR copy.
+ *
+ * Signature verification proves the message came from someone holding the signing
+ * secret. It does not prove the session exists. If that secret ever leaks, from a
+ * log, an env dump, a compromised laptop, the holder can mint a perfectly signed
+ * event awarding themselves any number of credits under a session id they invented.
+ *
+ * Testing found exactly that: a forged event with a valid signature was accepted.
+ * It granted nothing only because the session id collided with one already in the
+ * ledger, which is luck rather than design.
+ *
+ * One extra API call closes it. A session id Stripe has never heard of fails here,
+ * and the amounts used are the ones Stripe holds rather than the ones the payload
+ * claims, so a tampered but validly signed payload cannot inflate a purchase either.
+ *
+ * Fails CLOSED by throwing: the webhook answers 500, Stripe retries for days, and a
+ * genuine payment is granted late rather than never. Granting on a failed lookup
+ * would reintroduce the hole this closes.
+ */
+async function authoritativeSession(
+  session: Stripe.Checkout.Session
+): Promise<Stripe.Checkout.Session> {
+  // A session object with no id cannot be checked and must not be trusted.
+  if (!session.id) throw new Error("checkout session had no id");
+  const fresh = await getStripe().checkout.sessions.retrieve(session.id);
+  return fresh;
+}
+
+/**
  * A completed Checkout Session: either a credit purchase or the start of a
  * subscription.
  */
-export async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
+export async function handleCheckoutCompleted(input: Stripe.Checkout.Session): Promise<void> {
+  // Everything below reads from Stripe's copy of the session, never from the payload
+  // that arrived. See authoritativeSession above for why.
+  const session = await authoritativeSession(input);
+
   // `completed` also fires for payment methods still processing. Those are granted
   // later, by invoice.paid / the async_payment_succeeded event.
   if (session.payment_status === "unpaid") return;
