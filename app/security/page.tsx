@@ -124,7 +124,9 @@ export default async function SecurityPage() {
           <a className="pr-btn accent" href="mailto:security@fresh-leads.io">
             <Mail size={16} /> security@fresh-leads.io
           </a>
-          <Link className="pr-btn ghost" href="/contact">Contact us <AlertTriangle size={15} /></Link>
+          <a className="pr-btn ghost" href="https://github.com/Hassan-Naeem-code/Fresh-Leads/blob/main/SECURITY.md" target="_blank" rel="noreferrer">
+            What we have already tested <AlertTriangle size={15} />
+          </a>
         </Reveal>
         <Reveal>
           <p className="muted sm" style={{ marginTop: 18, maxWidth: "62ch" }}>
