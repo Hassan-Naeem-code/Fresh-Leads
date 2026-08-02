@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { enrichBusiness } from "@/lib/enrich";
 import { unlockLead, hasUnlocked } from "@/lib/credits";
 import { verifyAndPersist } from "@/lib/verify/persist";
 import { stripeConfigured } from "@/lib/stripe";
@@ -76,6 +77,55 @@ export async function POST(req: NextRequest) {
         },
         { status: 409 }
       );
+    }
+
+    // THE OWNER, SOCIALS AND HIRING CRAWL.
+    //
+    // This is the moment it is supposed to run, and until now it did not run at all.
+    // lib/enrich.ts was wired only into bulk CSV enrichment, so a lead opened from the
+    // dashboard never had ownerName, socials or hiring filled in. The consequence was
+    // worse than thin data: /api/leads/owner only READS stored owner detail, so the
+    // paid owner reveal could never return anything for anybody.
+    //
+    // Runs once per lead. `enrichedAt` is persisted, so re-opening a lead never
+    // re-crawls the site, and a second customer opening the same business gets the
+    // work already done.
+    //
+    // Bounded, because a slow site must not hold up a paid unlock. If the budget
+    // expires the lead is delivered with whatever we had, which is exactly what the
+    // customer got before this existed.
+    if (lead.website && !lead.enrichedAt) {
+      const budgetMs = 12_000;
+      const enrichment = await Promise.race([
+        enrichBusiness(lead.website, { verifyGuesses: true }),
+        new Promise<null>((r) => setTimeout(() => r(null), budgetMs)),
+      ]).catch(() => null);
+
+      if (enrichment) {
+        if (enrichment.ownerName) {
+          lead.ownerName = enrichment.ownerName;
+          lead.ownerRole = enrichment.ownerRole;
+          // Read off their own pages, not bought. The customer is told which, because
+          // "their website says so" and "a database says so" are different claims.
+          lead.ownerSource = "site";
+        }
+        if (enrichment.ownerEmail) lead.ownerEmail = enrichment.ownerEmail;
+        if (Object.keys(enrichment.socials).length) lead.socials = enrichment.socials;
+        if (enrichment.hiring !== null) {
+          lead.hiring = enrichment.hiring;
+          lead.hiringUrl = enrichment.hiringUrl;
+        }
+        // A business address found on a contact page beats having none at all.
+        if (!lead.email && enrichment.scrapedEmail) lead.email = enrichment.scrapedEmail;
+        lead.enrichedAt = new Date().toISOString();
+
+        // Persist, so the crawl is paid for once per business rather than once per
+        // person who opens it.
+        await createAdminClient()
+          .from("leads")
+          .update({ raw: lead })
+          .eq("id", row.id as string);
+      }
     }
 
     // Demo deployments (no Stripe keys) have nothing to sell, so nothing is charged.
