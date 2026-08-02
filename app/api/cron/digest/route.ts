@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runWeeklyDigest, isDigestDay } from "@/lib/digest";
+import { purgeExpired } from "@/lib/housekeeping";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -28,6 +29,12 @@ export async function GET(req: NextRequest) {
   const force = new URL(req.url).searchParams.get("force") === "1";
   const summary = await runWeeklyDigest(force);
 
-  console.log("[digest-cron]", JSON.stringify({ digestDay: isDigestDay(), force, ...summary }));
-  return NextResponse.json(summary);
+  // Housekeeping rides along here rather than in a third cron, because the plan
+  // allows two and both are spoken for. It runs every day regardless of whether the
+  // digest sent anything: expired challenges and stale counters accumulate daily,
+  // and a table that only gets tidied on Mondays is a table that grows all week.
+  const purged = await purgeExpired();
+
+  console.log("[digest-cron]", JSON.stringify({ digestDay: isDigestDay(), force, ...summary, purged }));
+  return NextResponse.json({ ...summary, purged });
 }
