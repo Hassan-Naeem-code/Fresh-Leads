@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { guard, clientIp } from "@/lib/rate-limit";
+import { geocode } from "@/lib/geocode";
+import { resolveNiche } from "@/lib/niche";
+import { pickSources } from "@/lib/sources";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -19,56 +22,48 @@ export async function GET(req: NextRequest) {
   const limited = await guard("search", clientIp(req), "diagnostics");
   if (limited) return limited;
 
-  // A deliberately tiny query. If Overpass is willing to talk to us at all, this
-  // returns in a second; if it is refusing or throttling, that shows up as a status
-  // or a timeout rather than as a slow but successful answer.
-  const query = `[out:json][timeout:20];node["amenity"="cafe"](30.20,-97.80,30.30,-97.70);out 5;`;
-
-  const endpoints = [
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-  ];
-
-  const results = [];
-  for (const url of endpoints) {
-    const started = Date.now();
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20_000);
-      const res = await fetch(url, {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(query)}`,
-      });
-      clearTimeout(timer);
-
-      const text = await res.text();
-      let elements = -1;
-      try {
-        elements = (JSON.parse(text).elements ?? []).length;
-      } catch {
-        // Not JSON. Overpass answers a rejection in prose, and the first line of it
-        // is the useful part.
-      }
-      results.push({
-        endpoint: new URL(url).hostname,
-        status: res.status,
-        ms: Date.now() - started,
-        elements,
-        // Truncated hard: this is for a human reading a rejection message, not a body dump.
-        body: elements === -1 ? text.slice(0, 200).replace(/\s+/g, " ") : null,
-      });
-    } catch (e) {
-      results.push({
-        endpoint: new URL(url).hostname,
-        status: 0,
-        ms: Date.now() - started,
-        elements: -1,
-        body: e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 200) : "threw",
-      });
-    }
+  // Uses the REAL client, not a hand written fetch.
+  //
+  // The first version of this sent a bare request without our User-Agent and got 406
+  // and 429 from both endpoints, from the deployed host AND from a laptop. That looked
+  // like a decisive result and was worth nothing: it proved only that Overpass rejects
+  // anonymous requests, which we already knew and already handle. A diagnostic that
+  // does not exercise the path being diagnosed answers a different question confidently.
+  const area = await geocode("Austin, TX");
+  if (!area) {
+    return NextResponse.json({ error: "geocoding failed, which is its own problem" }, { status: 502 });
   }
+
+  const resolved = resolveNiche("cafes");
+  const source = pickSources().find((s) => s.name === "osm");
+  if (!source) {
+    return NextResponse.json({ error: "the OpenStreetMap source is not configured" }, { status: 500 });
+  }
+
+  const started = Date.now();
+  let rows = -1;
+  let failure: string | null = null;
+  try {
+    const found = await source.search({
+      filters: resolved.filters,
+      nicheLabel: resolved.label,
+      area,
+      limit: 20,
+    });
+    rows = found.length;
+  } catch (e) {
+    failure = e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 200) : "threw";
+  }
+
+  const results = [
+    {
+      via: "the real OverpassSource, same headers and retries as a live search",
+      area: area.displayName,
+      rows,
+      ms: Date.now() - started,
+      failure,
+    },
+  ];
 
   return NextResponse.json({ ranFrom: "server", results });
 }
