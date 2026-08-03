@@ -2922,3 +2922,13 @@ table { max-width: 100%; }
 @media (max-width: 640px) {
   .pr-mockcap { margin-top: 26px; font-size: clamp(21px, 6vw, 26px); max-width: 20ch; }
 }
+
+/* Shown where the Buy button would be when the yearly plan is missing. It explains
+   and then does the next thing, rather than refusing and explaining underneath. */
+.bl-needsub {
+  display: flex; flex-direction: column; gap: 13px; align-items: flex-start;
+  background: rgba(249,99,50,.07); border: 1px solid rgba(249,99,50,.28);
+  border-radius: var(--r-md); padding: 16px 18px;
+}
+.bl-needsub p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); }
+@media (max-width: 480px) { .bl-needsub .go { width: 100%; justify-content: center; } }

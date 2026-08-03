@@ -122,16 +122,36 @@ export function BillingActions({
           />
         </label>
 
-        <button
-          className="go"
-          onClick={() => go("credits")}
-          disabled={busy !== null || !canBuyCredits || amount < MIN_CREDIT_PURCHASE}
-        >
-          <Coin size={15} />
-          {busy === "credits"
-            ? "Starting checkout…"
-            : `Buy ${amount} credits, ${formatMoney(creditCostCents(amount))}`}
-        </button>
+        {/* A DEAD BUTTON IS NOT AN EXPLANATION.
+            Credits need the yearly plan first. This used to show the whole basket and
+            then a greyed out Buy button with the reason in small print underneath, so
+            somebody picked an amount, pressed it, and nothing happened. The button now
+            does the thing that has to happen next instead of refusing to do the thing
+            that cannot. */}
+        {canBuyCredits ? (
+          <button
+            className="go"
+            onClick={() => go("credits")}
+            disabled={busy !== null || amount < MIN_CREDIT_PURCHASE}
+          >
+            <Coin size={15} />
+            {busy === "credits"
+              ? "Starting checkout…"
+              : `Buy ${amount} credits, ${formatMoney(creditCostCents(amount))}`}
+          </button>
+        ) : (
+          <div className="bl-needsub">
+            <p>
+              <b>Credits need the {dollars} a year plan first.</b> The plan keeps your account
+              open; credits are what you spend on leads. Your basket is remembered, so you can
+              come straight back to it.
+            </p>
+            <button className="go accent" onClick={() => go("sub")} disabled={busy !== null}>
+              <Coin size={15} />
+              {busy === "sub" ? "Starting checkout…" : `Get access, ${dollars} a year`}
+            </button>
+          </div>
+        )}
 
         {bonusForPurchase(amount) > 0 && (
           <span className="muted sm">
@@ -152,12 +172,7 @@ export function BillingActions({
           be one order.
         </span>
 
-        {!canBuyCredits && (
-          <span className="muted sm">
-            Credits are available once you&rsquo;re subscribed. The {dollars}/year plan is what keeps
-            your account active.
-          </span>
-        )}
+
       </div>
 
       {error && (
