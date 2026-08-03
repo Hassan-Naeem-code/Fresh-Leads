@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  Mail, Phone, Building, Clock, Search, ArrowRight, Check, Gauge, MapPin, Flame, Download, Coin,
+  Mail, Phone, Building, Clock, Search, ArrowRight, Check, Gauge, Download, Coin,
 } from "./icons";
 import { SIGNUP_BONUS_CREDITS } from "@/lib/credits";
 import { getSiteSettings } from "@/lib/site-settings.server";
@@ -172,25 +172,6 @@ export default async function Landing() {
           { icon: <Check size={22} />, num: "04", title: "You only pay for real", body: "We check the phone and the mailbox before a credit is spent. If a lead turns out to be unreachable, you keep the credit." },
         ]}
       />
-
-      {/* Sample lead, dark panel */}
-      <Reveal as="section" className="pr pr-section">
-        <div className="pr-dark">
-          <div className="pr-preview">
-            <div className="pr-previewbadge">92<small>HOT</small></div>
-            <div>
-              <div className="pr-eyebrow" style={{ justifyContent: "flex-start", marginBottom: 12 }}><span className="pill">Sample lead</span></div>
-              <h2 className="pr-h2" style={{ textAlign: "left", fontSize: "clamp(24px,3vw,34px)" }}>A graded, verified prospect</h2>
-              <div className="pr-metarow">
-                <span><Phone size={14} /> verified</span>
-                <span><Mail size={14} /> deliverable</span>
-                <span><MapPin size={14} /> active</span>
-                <span><Flame size={14} /> no website, high need</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Reveal>
 
       {/* Testimonials, hover flips each card to dark */}
       <section className="pr pr-section">

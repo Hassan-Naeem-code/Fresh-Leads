@@ -531,11 +531,6 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .pr-step p { color: var(--muted); font-size: 14.5px; line-height: 1.55; font-weight: 500; }
 
 /* Sample lead preview */
-.pr-preview { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
-.pr-previewbadge { flex: none; width: 84px; height: 84px; border-radius: 20px; display: grid; place-items: center; font-weight: 800; font-size: 28px; color: #fff; background: var(--accent); }
-.pr-previewbadge small { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-align: center; }
-.pr-metarow { display: flex; gap: 16px; flex-wrap: wrap; color: rgba(255,255,255,.7); font-size: 14px; margin-top: 10px; }
-.pr-metarow span { display: inline-flex; align-items: center; gap: 6px; }
 
 /* CTA + footer */
 .pr-cta { text-align: center; }
