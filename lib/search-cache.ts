@@ -67,9 +67,14 @@ export async function readDiscovery(niche: string, area: string): Promise<Cached
     const leads = (data.payload as RawLead[]) ?? [];
     if (!Array.isArray(leads) || leads.length === 0) return null;
 
-    // Counted, not awaited: the number decides what the refresher prioritises, and a
-    // slow write here would put the cost back into the request the cache is saving.
-    void admin.rpc("touch_search_cache", { p_key: key });
+    // AWAITED, despite the cost of one fast round trip.
+    //
+    // It was fired and forgotten on the same reasoning as the writes were, and it
+    // failed the same way: the function freezes when the response returns, so the
+    // count stayed at zero through every hit. That number is the only thing telling
+    // the refresher which searches people actually run, so an uncounted hit means the
+    // popular entries are never the ones kept warm.
+    await admin.rpc("touch_search_cache", { p_key: key });
 
     const ageMs = Date.now() - new Date(data.refreshed_at as string).getTime();
     return {
@@ -137,7 +142,7 @@ export async function readAudits(hosts: string[]): Promise<CachedAudits> {
         byHost.set(row.host as string, row.audit as Audit);
         if (new Date(row.expires_at as string).getTime() < now) staleHosts.push(row.host as string);
       }
-      void admin.rpc("touch_audit_cache", { p_hosts: slice });
+      await admin.rpc("touch_audit_cache", { p_hosts: slice });
     }
   } catch (e) {
     console.error("[cache] audit read failed:", e instanceof Error ? e.message : e);
