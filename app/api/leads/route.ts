@@ -4,6 +4,7 @@ import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
 import { observeAndDiff, recentTriggers } from "@/lib/snapshots";
 import { guard } from "@/lib/rate-limit";
+import { readDiscovery, writeDiscovery, readAudits, writeAudits, hostKey } from "@/lib/search-cache";
 import { seenKeys, markSeen } from "@/lib/watchlists";
 import { userIdForApiKey } from "@/lib/api-keys";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
@@ -58,6 +59,31 @@ const REQUEST_BUDGET_MS = 38_000;
  * spends is a second the whole search does not have.
  */
 const RECHECK_BUDGET_MS = 6_000;
+
+/**
+ * Copy an audit's findings onto the lead.
+ *
+ * Extracted because there are now THREE places an audit arrives from: a live crawl,
+ * the cache, and the quieter second pass. They were separate copies of the same
+ * fifteen assignments, which is how one of them ends up missing a field that the
+ * others set.
+ */
+function applyAudit(lead: Lead, audit: Audit): void {
+  lead.siteAudited = true;
+  lead.siteReachable = audit.reachable;
+  lead.hasSSL = audit.hasSSL;
+  lead.mobileFriendly = audit.mobileFriendly;
+  lead.copyrightYear = audit.copyrightYear;
+  lead.outdated = audit.outdated;
+  lead.hasBooking = audit.hasBooking;
+  lead.loadMs = audit.loadMs;
+  lead.hasSchema = audit.hasSchema;
+  lead.hasAnalytics = audit.hasAnalytics;
+  lead.wordCount = audit.wordCount;
+  lead.scriptCount = audit.scriptCount;
+  lead.vendors = audit.vendors;
+  if (!lead.email && audit.email) lead.email = audit.email;
+}
 
 // Build a Lead skeleton from a source RawLead, audit + verification fill the rest.
 function rawToLead(r: RawLead): Lead {
@@ -262,6 +288,20 @@ export async function POST(req: NextRequest) {
     // then merge/dedupe into one raw list.
     const sources = pickSources();
 
+    // CACHE. Which businesses are in an area is the same answer for everybody, and
+    // finding out costs the slowest stage of the search. A hit removes it entirely.
+    //
+    // Google Places is still called live on every search: their terms permit storing
+    // place_id and coordinates and nothing else, so only the OSM half is cached. That
+    // is a real cost knowingly paid.
+    const cached = await readDiscovery(niche, resolved.label);
+    const cachedOsm = cached?.leads ?? [];
+    if (cached) {
+      console.log(
+        `[cache] discovery hit for "${niche} / ${resolved.label}", ${cachedOsm.length} businesses, ${cached.ageHours}h old${cached.stale ? ", stale" : ""}`
+      );
+    }
+
     // Discovery gets a ceiling too. Overpass asks for a 25 second server side timeout
     // but nothing stopped a slow response from spending far longer than that here, and
     // discovery running long leaves no room for anything after it. A source that does
@@ -270,7 +310,12 @@ export async function POST(req: NextRequest) {
     const DISCOVERY_BUDGET_MS = 14_000;
     const lists = await Promise.all(
       sources.map((s) =>
-        Promise.race([
+        // A fresh cache entry answers for OSM, so only Places is asked. A stale entry
+        // is still SERVED, and refreshed below, rather than making this customer wait
+        // for the crawl the cache exists to avoid.
+        s.name === "osm" && cachedOsm.length > 0 && !cached?.stale
+          ? Promise.resolve(cachedOsm)
+          : Promise.race([
           s.search({ filters: resolved.filters, nicheLabel: resolved.label, area, limit: cap }),
           new Promise<RawLead[]>((resolve) =>
             setTimeout(() => {
@@ -282,6 +327,15 @@ export async function POST(req: NextRequest) {
       )
     );
     const merged = mergeRawLeads(lists);
+
+    // File what OSM returned, so the next person asking this question does not wait.
+    // Only written when it came from a live call: re-writing what we just read would
+    // extend the expiry of data nobody re-fetched, which is how a cache quietly stops
+    // being a cache and becomes a stale copy.
+    const freshOsm = lists.flat().filter((l) => l.source === "osm");
+    if (freshOsm.length > 0 && (!cachedOsm.length || cached?.stale)) {
+      void writeDiscovery(niche, resolved.label, freshOsm);
+    }
 
     if (merged.length === 0) {
       // Distinguishable from "this area genuinely has none": both sources timed out.
@@ -313,28 +367,43 @@ export async function POST(req: NextRequest) {
     // Kept so the crawl can be filed as a dated observation once the batch is done.
     // Change over time is the one signal a live query cannot produce (lib/snapshots.ts).
     const auditByKey = new Map<string, Audit>();
-    await mapPool(withSite, 24, async (lead) => {
+
+    // CACHE. A website does not change between two people searching an hour apart, and
+    // fetching one is the single most expensive thing this route does. Cached audits
+    // are applied first; only the misses are actually crawled.
+    //
+    // Cached for a day rather than a week, because "their site is down" has to be
+    // true when it is said. A day old audit is defensible and a week old one is not.
+    const auditCache = await readAudits(withSite.map((l) => hostKey(l.website) ?? "").filter(Boolean));
+    const toCrawl: typeof withSite = [];
+    for (const lead of withSite) {
+      const host = hostKey(lead.website);
+      const hit = host ? auditCache.byHost.get(host) : undefined;
+      // A stale entry is re-crawled rather than served: the freshness of this
+      // particular fact is what the product is selling.
+      if (hit && host && !auditCache.staleHosts.includes(host)) {
+        auditByKey.set(lead.id, hit);
+        applyAudit(lead, hit);
+      } else {
+        toCrawl.push(lead);
+      }
+    }
+    if (auditCache.byHost.size > 0) {
+      console.log(`[cache] ${withSite.length - toCrawl.length} of ${withSite.length} audits served from cache`);
+    }
+
+    const freshAudits: { host: string; audit: Audit }[] = [];
+    await mapPool(toCrawl, 24, async (lead) => {
       if (Date.now() > auditDeadline) {
         auditsSkipped++;
         return;
       }
       const audit = await auditWebsite(lead.website);
       if (audit) {
+        const host = hostKey(lead.website);
+        if (host) freshAudits.push({ host, audit });
         auditByKey.set(lead.id, audit);
-        lead.siteAudited = true;
-        lead.siteReachable = audit.reachable;
-        lead.hasSSL = audit.hasSSL;
-        lead.mobileFriendly = audit.mobileFriendly;
-        lead.copyrightYear = audit.copyrightYear;
-        lead.outdated = audit.outdated;
-        lead.hasBooking = audit.hasBooking;
-        lead.loadMs = audit.loadMs;
-        lead.hasSchema = audit.hasSchema;
-        lead.hasAnalytics = audit.hasAnalytics;
-        lead.wordCount = audit.wordCount;
-        lead.scriptCount = audit.scriptCount;
-        lead.vendors = audit.vendors;
-        if (!lead.email && audit.email) lead.email = audit.email;
+        applyAudit(lead, audit);
       }
     });
     if (auditsSkipped > 0) {
@@ -402,25 +471,20 @@ export async function POST(req: NextRequest) {
         // that is genuinely down keeps its verdict and its already-correct fields.
         if (!second?.reachable) return;
         auditByKey.set(lead.id, second);
-        lead.siteReachable = true;
-        lead.hasSSL = second.hasSSL;
-        lead.mobileFriendly = second.mobileFriendly;
-        lead.copyrightYear = second.copyrightYear;
-        lead.outdated = second.outdated;
-        lead.hasBooking = second.hasBooking;
-        lead.loadMs = second.loadMs;
-        lead.hasSchema = second.hasSchema;
-        lead.hasAnalytics = second.hasAnalytics;
-        lead.wordCount = second.wordCount;
-        lead.scriptCount = second.scriptCount;
-        lead.vendors = second.vendors;
-        if (!lead.email && second.email) lead.email = second.email;
+        applyAudit(lead, second);
+        const host = hostKey(lead.website);
+        // The corrected verdict replaces the wrong one in the cache, so the next
+        // search does not repeat the mistake this pass just fixed.
+        if (host) freshAudits.push({ host, audit: second });
       });
       const recovered = recheck.filter((l) => auditByKey.get(l.id)?.reachable).length;
       if (recovered > 0) {
         console.log(`[leads] ${recovered} of ${recheck.length} "unreachable" sites answered on a quieter retry`);
       }
     }
+
+    // File everything crawled this run, so the next search skips it.
+    if (freshAudits.length > 0) void writeAudits(freshAudits);
 
     // Verify contact channels + active status, then set the "deliverable" gate.
     //

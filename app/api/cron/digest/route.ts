@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runWeeklyDigest, isDigestDay } from "@/lib/digest";
 import { purgeExpired } from "@/lib/housekeeping";
+import { refreshCache } from "@/lib/cache-refresh";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -35,6 +36,11 @@ export async function GET(req: NextRequest) {
   // and a table that only gets tidied on Mondays is a table that grows all week.
   const purged = await purgeExpired();
 
-  console.log("[digest-cron]", JSON.stringify({ digestDay: isDigestDay(), force, ...summary, purged }));
-  return NextResponse.json({ ...summary, purged });
+  // Keeping the search cache warm rides along here for the same reason housekeeping
+  // does: the plan allows two cron jobs and both are spoken for. It has its own
+  // budget, so a slow refresh cannot take the digest down with it.
+  const cache = await refreshCache();
+
+  console.log("[digest-cron]", JSON.stringify({ digestDay: isDigestDay(), force, ...summary, purged, cache }));
+  return NextResponse.json({ ...summary, purged, cache });
 }
