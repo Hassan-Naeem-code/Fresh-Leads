@@ -3,10 +3,11 @@ import "./globals.css";
 import { themeCss } from "@/lib/site-settings";
 import { getSiteSettings } from "@/lib/site-settings.server";
 import { OrganizationSchema, ProductSchema } from "./StructuredData";
+import { siteUrl } from "@/lib/site-url";
 
 // Title/description follow the live brand so a rename in /admin/branding shows in
 // the browser tab and share cards too.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://fresh-leads.io";
+const SITE_URL = siteUrl();
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSiteSettings();

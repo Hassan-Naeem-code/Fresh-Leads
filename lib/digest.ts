@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { send as sendEmail, configured } from "./email/provider";
 import { shell, heading, paragraph, button, divider, escapeHtml } from "./email/template";
+import { siteUrl } from "./site-url";
 
 // The weekly summary: what changed at the businesses a customer has actually opened.
 //
@@ -16,7 +17,7 @@ import { shell, heading, paragraph, button, divider, escapeHtml } from "./email/
 
 const FROM_EMAIL = () => process.env.MFA_FROM_EMAIL || "security@fresh-leads.io";
 const FROM_NAME = () => process.env.MFA_FROM_NAME || "Fresh Leads";
-const SITE = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.fresh-leads.io";
+const SITE = () => siteUrl();
 
 /** Which day the summary goes out. 1 is Monday: the week's calls get planned then. */
 const SEND_WEEKDAY = 1;

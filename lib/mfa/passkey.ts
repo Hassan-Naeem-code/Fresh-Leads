@@ -1,4 +1,5 @@
 import { createHash, createVerify, createPublicKey, randomBytes, timingSafeEqual } from "node:crypto";
+import { siteUrl } from "../site-url";
 
 // Passkeys: Face ID, Touch ID, Windows Hello, a hardware key.
 //
@@ -20,7 +21,7 @@ export const newChallenge = (): string => randomBytes(CHALLENGE_BYTES).toString(
 
 /** The site the browser will bind the key to. Never trust the client for this. */
 export function expectedOrigin(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://www.fresh-leads.io";
+  return siteUrl();
 }
 
 /** The relying party id: the registrable domain, no scheme and no port. */

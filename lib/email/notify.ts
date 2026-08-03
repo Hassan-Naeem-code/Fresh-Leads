@@ -1,5 +1,6 @@
 import { send as sendEmail, configured } from "./provider";
 import { shell, heading, paragraph, button, divider, escapeHtml } from "./template";
+import { siteUrl } from "../site-url";
 
 // Mail the product sends on its own behalf: a ticket arriving, a reply going back.
 //
@@ -19,7 +20,7 @@ const FROM_NAME = () => process.env.MFA_FROM_NAME || "Fresh Leads";
 const OPERATOR_EMAIL = () =>
   process.env.SUPPORT_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || "info@fresh-leads.io";
 
-const SITE = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.fresh-leads.io";
+const SITE = () => siteUrl();
 
 /** A short, safe excerpt. The full thread is one click away and lives in the app. */
 function excerpt(body: string, max = 400): string {

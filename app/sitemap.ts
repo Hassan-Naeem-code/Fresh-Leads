@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { LANDINGS } from "@/lib/landing";
+import { siteUrl } from "@/lib/site-url";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://fresh-leads.io";
+const BASE = siteUrl();
 
 // Every page we WANT indexed, and only those: anything covered by a disallow rule
 // in robots.ts must not appear here. /login is deliberately absent, it has no

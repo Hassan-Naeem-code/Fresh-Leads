@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_PRICE_CENTS, CREDIT_PRICE_CENTS } from "@/lib/pricing";
+import { siteUrl } from "@/lib/site-url";
 
 // Structured data, so a search engine can describe the product without guessing.
 //
@@ -11,7 +12,7 @@ import { SUBSCRIPTION_PRICE_CENTS, CREDIT_PRICE_CENTS } from "@/lib/pricing";
 // rating we do not have, or an FAQ that is not on the page, is a manual action from
 // Google and the listing disappears entirely.
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.fresh-leads.io";
+const SITE = siteUrl();
 
 function Json({ data }: { data: Record<string, unknown> }) {
   return (

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "./supabase/admin";
 import { getStripe } from "./stripe";
+import { siteUrl } from "./site-url";
 
 // Shared plumbing for the two things we sell: the yearly subscription and credit
 // top-ups.
@@ -30,7 +31,7 @@ export async function getOrCreateCustomer(userId: string, email: string | null):
 
 /** Hosts we will redirect back to after Stripe. */
 function allowedOrigin(req: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  const configured = siteUrl();
   const origin = req.headers.get("origin");
 
   // The Origin header decides which host we return to, so the session cookie is
@@ -42,7 +43,11 @@ function allowedOrigin(req: NextRequest): string {
     if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return origin;
     if (configured && isSiblingHost(origin, configured)) return origin;
   }
-  return configured ?? new URL(req.url).origin;
+  // NEVER the request host. A checkout that starts on a preview or deployment URL
+  // would send the customer back there after paying, and that URL 404s the moment the
+  // deployment is superseded. That is exactly the "DEPLOYMENT_NOT_FOUND" a customer
+  // saw after handing over their card.
+  return configured;
 }
 
 function sameHost(a: string, b: string): boolean {

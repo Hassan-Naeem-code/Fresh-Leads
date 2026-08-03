@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueSteps } from "@/lib/email/send";
+import { siteUrl } from "@/lib/site-url";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,7 +30,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+  // The canonical site, never the request host. These become unsubscribe links in
+  // real mail, and a link built from a deployment URL is dead the moment that
+  // deployment is superseded.
+  const origin = siteUrl();
   const summary = await runDueSteps(origin);
 
   // Logged as one line so a problem shows up as a number in the Vercel logs rather
