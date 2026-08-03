@@ -65,5 +65,16 @@ export async function GET(req: NextRequest) {
     },
   ];
 
-  return NextResponse.json({ ranFrom: "server", results });
+  return NextResponse.json({
+    // Which commit is actually serving. "Is my fix live?" has come up repeatedly and
+    // been answered by waiting and hoping; Vercel exposes the SHA, so it can be
+    // answered in one request instead.
+    deployed: {
+      commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
+      message: process.env.VERCEL_GIT_COMMIT_MESSAGE?.split("\n")[0] ?? null,
+      env: process.env.VERCEL_ENV ?? "local",
+    },
+    ranFrom: "server",
+    results,
+  });
 }
