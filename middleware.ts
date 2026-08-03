@@ -14,7 +14,7 @@ const PROTECTED_PREFIXES = ["/dashboard"];
 // the enrolment screen, the routes behind them, and signing out.
 const MFA_EXEMPT = [
   "/verify",
-  "/security",
+  "/two-factor",
   "/api/mfa",
   "/api/auth",
   "/auth/signout",

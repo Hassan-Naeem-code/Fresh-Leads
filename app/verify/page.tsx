@@ -24,7 +24,7 @@ export default async function VerifyPage({
   const factors = await listFactors({ userId: user.id }, true);
   // Nothing set up yet means enrolment, not a challenge. Sending someone to a code box
   // they cannot possibly fill is the fastest way to lose them.
-  if (factors.length === 0) redirect(`/security?next=${encodeURIComponent(next)}`);
+  if (factors.length === 0) redirect(`/two-factor?next=${encodeURIComponent(next)}`);
 
   return (
     <div className="susp">
