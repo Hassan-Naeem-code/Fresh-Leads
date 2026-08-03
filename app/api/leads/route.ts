@@ -30,10 +30,16 @@ export const maxDuration = 60;
  * maxDuration for discovery, verification, scoring and the history write, so a
  * slow batch of websites degrades gracefully instead of killing the request.
  */
-const AUDIT_BUDGET_MS = 28_000;
+const AUDIT_BUDGET_MS = 22_000;
 
 /**
  * The whole request's budget, a margin inside maxDuration.
+ *
+ * Sized from measurement, not taste. With the earlier numbers a search for personal
+ * injury lawyers in Austin came back in 58 seconds against a 60 second limit, which is
+ * a pass by two seconds and not a pass at all. The stages AFTER the budget still cost
+ * real time: scoring every lead, filtering, and writing forty rows with their full
+ * payload. This leaves room for them.
  *
  * Without this, a slow area ran past the platform's 60 second limit and the function
  * was killed mid-flight. The customer did not get a timeout page: they got Vercel's
@@ -43,7 +49,7 @@ const AUDIT_BUDGET_MS = 28_000;
  * Every stage after discovery checks this and degrades rather than continuing, so a
  * slow search returns fewer enriched leads instead of returning nothing at all.
  */
-const REQUEST_BUDGET_MS = 44_000;
+const REQUEST_BUDGET_MS = 38_000;
 
 /**
  * How long the quieter re-check of unreachable sites may run, in total.
@@ -51,7 +57,7 @@ const REQUEST_BUDGET_MS = 44_000;
  * Small on purpose. It exists to correct a minority of leads, and every second it
  * spends is a second the whole search does not have.
  */
-const RECHECK_BUDGET_MS = 8_000;
+const RECHECK_BUDGET_MS = 6_000;
 
 // Build a Lead skeleton from a source RawLead, audit + verification fill the rest.
 function rawToLead(r: RawLead): Lead {
@@ -261,7 +267,7 @@ export async function POST(req: NextRequest) {
     // discovery running long leaves no room for anything after it. A source that does
     // not answer in time contributes nothing rather than sinking the whole search: with
     // two sources configured, one slow one still leaves the other's results.
-    const DISCOVERY_BUDGET_MS = 20_000;
+    const DISCOVERY_BUDGET_MS = 14_000;
     const lists = await Promise.all(
       sources.map((s) =>
         Promise.race([
@@ -384,7 +390,7 @@ export async function POST(req: NextRequest) {
     // had already used its 28. "restaurants in Austin" hit the platform's 60 second
     // limit and returned a plain text error; "dentists in Austin" finished in 36 and
     // looked fine. The difference was how many sites failed the first pass.
-    const recheckDeadline = Math.min(Date.now() + RECHECK_BUDGET_MS, requestDeadline - 8_000);
+    const recheckDeadline = Math.min(Date.now() + RECHECK_BUDGET_MS, requestDeadline - 6_000);
     if (unreachable.length > 0 && Date.now() < recheckDeadline) {
       const recheck = unreachable.slice(0, 15);
       await mapPool(recheck, 3, async (lead) => {
