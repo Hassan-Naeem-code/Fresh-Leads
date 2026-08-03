@@ -15,7 +15,7 @@ export function HeroMock() {
         <span className="mock-dots"><i /><i /><i /></span>
         <div className="mock-search">
           <Search size={14} />
-          <span>coffee shops · Austin, TX · 15&nbsp;km</span>
+          <span>coffee shops · Austin, TX · 10&nbsp;miles</span>
         </div>
         <span className="mock-live"><i />live</span>
       </div>

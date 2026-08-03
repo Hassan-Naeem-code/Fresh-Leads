@@ -113,7 +113,7 @@ export default async function Landing() {
             <p>Describe your ideal customer in a sentence, or pick the business type and the area you cover.</p>
             <div className="pr-stepproof">
               <span className="pr-schip">Plumbers</span>
-              <span className="pr-schip">Austin · 15&nbsp;km</span>
+              <span className="pr-schip">Austin · 10&nbsp;miles</span>
               <span className="pr-schip">Independent</span>
             </div>
           </div>

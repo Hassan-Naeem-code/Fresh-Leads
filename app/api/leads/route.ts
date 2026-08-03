@@ -32,6 +32,19 @@ export const maxDuration = 60;
  */
 const AUDIT_BUDGET_MS = 28_000;
 
+/**
+ * The whole request's budget, a margin inside maxDuration.
+ *
+ * Without this, a slow area ran past the platform's 60 second limit and the function
+ * was killed mid-flight. The customer did not get a timeout page: they got Vercel's
+ * plain text error, which the browser then tried to parse as JSON and reported as
+ * "Unexpected token 'A'". Measured: one search took 185 seconds.
+ *
+ * Every stage after discovery checks this and degrades rather than continuing, so a
+ * slow search returns fewer enriched leads instead of returning nothing at all.
+ */
+const REQUEST_BUDGET_MS = 50_000;
+
 // Build a Lead skeleton from a source RawLead, audit + verification fill the rest.
 function rawToLead(r: RawLead): Lead {
   const fresh = assessFreshness(r.lastUpdated);
@@ -129,6 +142,9 @@ function leadToRow(searchId: string, userId: string, l: Lead) {
 }
 
 export async function POST(req: NextRequest) {
+  // Started before anything else, so every later stage measures against the real
+  // arrival time rather than against whenever its own section happened to begin.
+  const requestDeadline = Date.now() + REQUEST_BUDGET_MS;
   try {
     const {
       niche,
@@ -256,7 +272,7 @@ export async function POST(req: NextRequest) {
     // Social/marketplace pages are excluded: auditing facebook.com would measure
     // Facebook's HTTPS and mobile support, not the business's.
     const withSite = leads.filter((l) => l.hasWebsite && l.website);
-    const auditDeadline = Date.now() + AUDIT_BUDGET_MS;
+    const auditDeadline = Math.min(Date.now() + AUDIT_BUDGET_MS, requestDeadline);
     let auditsSkipped = 0;
     // Kept so the crawl can be filed as a dated observation once the batch is done.
     // Change over time is the one signal a live query cannot produce (lib/snapshots.ts).
@@ -329,7 +345,9 @@ export async function POST(req: NextRequest) {
     // minority of any batch, the cap keeps the worst case bounded, and a site that
     // fails BOTH passes is genuinely unreachable.
     const unreachable = withSite.filter((l) => auditByKey.get(l.id)?.reachable === false);
-    if (unreachable.length > 0) {
+    // Skipped entirely when the request is already late. It improves accuracy on a
+    // minority of leads; finishing at all matters more.
+    if (unreachable.length > 0 && Date.now() < requestDeadline - 12_000) {
       const recheck = unreachable.slice(0, 15);
       await mapPool(recheck, 3, async (lead) => {
         const second = await auditWebsite(lead.website);
@@ -362,7 +380,12 @@ export async function POST(req: NextRequest) {
     // FREE TIER ONLY. The paid Twilio and ZeroBounce lookups wait until someone spends
     // a credit on the lead (app/api/leads/unlock), because we discover ~40 leads per
     // search and get paid for the few that are opened, see lib/verify/contact.ts.
-    await mapPool(leads, 12, (lead) => verifyContact(lead, "free"));
+    await mapPool(leads, 12, async (lead) => {
+      // Late arrivals keep the offline checks already done at discovery rather than
+      // holding the whole response open for one more lookup.
+      if (Date.now() >= requestDeadline) return;
+      await verifyContact(lead, "free");
+    });
 
     for (const lead of leads) {
       const s = scoreLead(lead, playbook);

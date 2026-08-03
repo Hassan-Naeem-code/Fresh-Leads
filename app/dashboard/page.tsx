@@ -274,7 +274,29 @@ export default function Home() {
           webPresence: overrides?.webPresence ?? webPresence,
         }),
       });
-      const data = await res.json();
+      // Read as TEXT first, then parse.
+      //
+      // A platform level failure (a timeout, a cold start that died, a 502 from the
+      // edge) answers with plain prose, not JSON, and res.json() throws on it. The
+      // customer then saw "Unexpected token 'A', \"An error o\"... is not valid JSON",
+      // which tells them nothing and reads like the site is broken beyond use.
+      const raw = await res.text();
+      // Deliberately loose: this is a parsed response, and the branches below narrow
+      // it themselves. A stricter type here buys nothing and fights every use.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        setError(
+          res.status === 504 || /timed? ?out/i.test(raw)
+            ? "That search took too long and was cut off. Try a smaller area, or ask for fewer results."
+            : "Something went wrong on our side and the search did not finish. Nothing was charged. Try again in a moment."
+        );
+        setLoading(false);
+        return;
+      }
+
       if (res.ok && activeWatch) loadWatchlists();
       if (!res.ok) {
         if (typeof data.credits === "number") setCredits(data.credits);
