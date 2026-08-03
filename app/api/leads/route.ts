@@ -43,7 +43,15 @@ const AUDIT_BUDGET_MS = 28_000;
  * Every stage after discovery checks this and degrades rather than continuing, so a
  * slow search returns fewer enriched leads instead of returning nothing at all.
  */
-const REQUEST_BUDGET_MS = 50_000;
+const REQUEST_BUDGET_MS = 44_000;
+
+/**
+ * How long the quieter re-check of unreachable sites may run, in total.
+ *
+ * Small on purpose. It exists to correct a minority of leads, and every second it
+ * spends is a second the whole search does not have.
+ */
+const RECHECK_BUDGET_MS = 8_000;
 
 // Build a Lead skeleton from a source RawLead, audit + verification fill the rest.
 function rawToLead(r: RawLead): Lead {
@@ -247,12 +255,34 @@ export async function POST(req: NextRequest) {
     // Discover from every configured source (OSM free by default; Places when keyed),
     // then merge/dedupe into one raw list.
     const sources = pickSources();
+
+    // Discovery gets a ceiling too. Overpass asks for a 25 second server side timeout
+    // but nothing stopped a slow response from spending far longer than that here, and
+    // discovery running long leaves no room for anything after it. A source that does
+    // not answer in time contributes nothing rather than sinking the whole search: with
+    // two sources configured, one slow one still leaves the other's results.
+    const DISCOVERY_BUDGET_MS = 20_000;
     const lists = await Promise.all(
       sources.map((s) =>
-        s.search({ filters: resolved.filters, nicheLabel: resolved.label, area, limit: cap }).catch(() => [])
+        Promise.race([
+          s.search({ filters: resolved.filters, nicheLabel: resolved.label, area, limit: cap }),
+          new Promise<RawLead[]>((resolve) =>
+            setTimeout(() => {
+              console.warn(`[leads] ${s.name} did not answer within the discovery budget`);
+              resolve([]);
+            }, DISCOVERY_BUDGET_MS)
+          ),
+        ]).catch(() => [] as RawLead[])
       )
     );
     const merged = mergeRawLeads(lists);
+
+    if (merged.length === 0) {
+      // Distinguishable from "this area genuinely has none": both sources timed out.
+      notes.push(
+        "The map data source was slow to answer, so this search may be missing businesses. Trying again usually works."
+      );
+    }
 
     // Businesses the user has seen before are deliberately NOT filtered out. With
     // permanent per-lead unlocks, one they already paid for is free to see again,
@@ -347,9 +377,20 @@ export async function POST(req: NextRequest) {
     const unreachable = withSite.filter((l) => auditByKey.get(l.id)?.reachable === false);
     // Skipped entirely when the request is already late. It improves accuracy on a
     // minority of leads; finishing at all matters more.
-    if (unreachable.length > 0 && Date.now() < requestDeadline - 12_000) {
+    //
+    // BOUNDED, and this is why: as first written it had no deadline of its own. Up to
+    // fifteen sites, three at a time, and a single audit can spend 27 seconds across
+    // its four attempts, so the worst case was over two minutes AFTER the audit stage
+    // had already used its 28. "restaurants in Austin" hit the platform's 60 second
+    // limit and returned a plain text error; "dentists in Austin" finished in 36 and
+    // looked fine. The difference was how many sites failed the first pass.
+    const recheckDeadline = Math.min(Date.now() + RECHECK_BUDGET_MS, requestDeadline - 8_000);
+    if (unreachable.length > 0 && Date.now() < recheckDeadline) {
       const recheck = unreachable.slice(0, 15);
       await mapPool(recheck, 3, async (lead) => {
+        // Checked per lead, not just once at the top: the whole point is that any one
+        // of these can be slow, so the budget has to be re-read as the queue drains.
+        if (Date.now() >= recheckDeadline) return;
         const second = await auditWebsite(lead.website);
         // Only ACCEPT a better answer. A second failure changes nothing, so a site
         // that is genuinely down keeps its verdict and its already-correct fields.
