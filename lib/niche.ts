@@ -82,10 +82,40 @@ const CUISINES = new Set([
 
 export function resolveNiche(raw: string): ResolvedNiche {
   const q = raw.toLowerCase().trim();
+  // WHOLE WORDS, not substrings.
+  //
+  // q.includes(k) meant "barbers" matched the keyword "bar", so a search for barbers
+  // returned every bar and pub in the city alongside the hairdressers. Prefixes are
+  // allowed deliberately, because "dentists" has to match "dentist" and "plumbing"
+  // has to match "plumber", but a keyword may only start at a word boundary.
+  const words = q.split(/[^a-z0-9]+/).filter(Boolean);
+
+  // A keyword matches a word only when the leftover is a plural or a verb ending.
+  // "bars" matches "bar" because the leftover is "s"; "barbers" does not, because the
+  // leftover is "bers". A bare prefix rule got that wrong in both directions: it
+  // returned bars for barbers, then barbers for bars.
+  const ENDINGS = new Set(["", "s", "es", "ies"]);
+  const matches = (k: string) => {
+    // A keyword containing a space is a PHRASE and has to be looked for in the whole
+    // query. Checking it word by word means "car dealer" never matches "car
+    // dealership", so only "dealership" was consumed and "car" survived as a
+    // qualifier, narrowing car dealers to the ones with "car" in their name.
+    if (k.includes(" ")) return q.includes(k);
+    return words.some((w) => {
+      if (w === k) return true;
+      if (w.startsWith(k) && ENDINGS.has(w.slice(k.length))) return true;
+      if (k.startsWith(w) && ENDINGS.has(k.slice(w.length))) return true;
+      // Different endings on the same root: plumbing and plumber, roofing and roofer.
+      // Five characters is long enough that collisions are rare and short words like
+      // "bar" and "spa" are excluded from it entirely.
+      return k.length >= 5 && w.length >= 5 && k.slice(0, 5) === w.slice(0, 5);
+    });
+  };
+
   const scored = CATALOG.map((def) => ({
     def,
-    hits: def.keywords.filter((k) => q.includes(k)).length,
-    matched: def.keywords.filter((k) => q.includes(k)),
+    hits: def.keywords.filter(matches).length,
+    matched: def.keywords.filter(matches),
   }))
     .filter((s) => s.hits > 0)
     .sort((a, b) => b.hits - a.hits);
@@ -101,7 +131,12 @@ export function resolveNiche(raw: string): ResolvedNiche {
     // threw "sushi" away, so the search returned every restaurant in the city. Same
     // for "car accident law firm", which returned every law firm. The qualifier is
     // usually the entire point of what was typed.
-    const consumed = new Set(top.flatMap((s) => s.matched));
+    // Multi word keywords like "car dealer" have to contribute BOTH words, or "car
+    // dealership" leaves "car" behind as a qualifier and narrows a car dealer search
+    // to dealers with "car" in the name.
+    const consumed = new Set(
+      top.flatMap((s) => s.matched).flatMap((k) => [k, ...k.split(/\s+/)])
+    );
     const leftover = q
       .split(/\s+/)
       .map((w) => w.replace(/[^a-z0-9]/g, ""))
@@ -138,8 +173,8 @@ export function resolveNiche(raw: string): ResolvedNiche {
 
   // Fallback: unknown niche. Search common business tags whose name contains the
   // niche words. This keeps the tool truly niche-agnostic.
-  const words = q.split(/\s+/).filter((w) => w.length > 2 && !NOISE.has(w));
-  const word = words[0] || q;
+  const fallbackWords = q.split(/\s+/).filter((w) => w.length > 2 && !NOISE.has(w));
+  const word = fallbackWords[0] || q;
   const nameRegex = escapeRegex(word);
   const filters = [
     `"shop"~".*"]["name"~"${nameRegex}",i`,

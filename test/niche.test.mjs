@@ -62,3 +62,32 @@ test("a qualifier cannot inject an Overpass expression", () => {
     assert.ok(!/\[\"amenity/.test(tail), `unescaped bracket reached the filter: ${f}`);
   }
 });
+
+test("a keyword matches a whole word, not a substring inside one", () => {
+  // "barbers" contains "bar", so a substring rule returned every bar and pub in the
+  // city alongside the hairdressers. The reverse broke too once a naive stem was
+  // added: "bars" started matching "barber".
+  assert.match(resolveNiche("barbers").label, /Salons/);
+  assert.doesNotMatch(resolveNiche("barbers").label, /Bars/);
+  assert.match(resolveNiche("bars").label, /Bars/);
+  assert.doesNotMatch(resolveNiche("bars").label, /Salons/);
+});
+
+test("plurals and verb endings still match their keyword", () => {
+  for (const [q, expected] of [
+    ["dentists", /Dental/],
+    ["plumbers", /Home services/],
+    ["plumbing", /Home services/],
+    ["roofing", /Home services/],
+    ["gyms", /Gyms/],
+    ["veterinarians", /Veterinary/],
+  ]) {
+    assert.match(resolveNiche(q).label, expected, `"${q}" did not resolve`);
+  }
+});
+
+test("a multi word keyword consumes both of its words", () => {
+  // Otherwise "car dealership" leaves "car" behind and narrows car dealers to the
+  // ones with "car" in their name.
+  assert.equal(resolveNiche("car dealership").qualifier, null);
+});

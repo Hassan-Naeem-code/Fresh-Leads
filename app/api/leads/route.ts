@@ -331,6 +331,15 @@ export async function POST(req: NextRequest) {
         ]).catch(() => [] as RawLead[])
       )
     );
+    // Which source actually contributed. Production was returning leads that were
+    // 100% Google Places with nothing from OpenStreetMap, while the same query from a
+    // laptop returned 143 OSM rows in six seconds. That is worth seeing in the logs
+    // rather than inferring from an empty cache, because the discovery cache can only
+    // ever hold OSM rows and stays empty for as long as OSM contributes none.
+    for (let i = 0; i < sources.length; i++) {
+      console.log(`[leads] source ${sources[i].name}: ${lists[i]?.length ?? 0} rows`);
+    }
+
     const merged = mergeRawLeads(lists);
 
     // NARROWING MUST NOT MEAN EMPTY.
