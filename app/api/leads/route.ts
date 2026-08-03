@@ -294,7 +294,12 @@ export async function POST(req: NextRequest) {
     // Google Places is still called live on every search: their terms permit storing
     // place_id and coordinates and nothing else, so only the OSM half is cached. That
     // is a real cost knowingly paid.
-    const cached = await readDiscovery(niche, resolved.label);
+    // Collected and awaited before the response goes out. See the note where they are
+    // flushed: a promise left running on a serverless function is a promise that gets
+    // frozen mid write.
+    const cacheWrites: Promise<void>[] = [];
+
+    const cached = await readDiscovery(niche, location);
     const cachedOsm = cached?.leads ?? [];
     if (cached) {
       console.log(
@@ -368,7 +373,7 @@ export async function POST(req: NextRequest) {
     // being a cache and becomes a stale copy.
     const freshOsm = lists.flat().filter((l) => l.source === "osm");
     if (freshOsm.length > 0 && (!cachedOsm.length || cached?.stale)) {
-      void writeDiscovery(niche, resolved.label, freshOsm);
+      cacheWrites.push(writeDiscovery(niche, location, freshOsm));
     }
 
     if (merged.length === 0) {
@@ -518,7 +523,7 @@ export async function POST(req: NextRequest) {
     }
 
     // File everything crawled this run, so the next search skips it.
-    if (freshAudits.length > 0) void writeAudits(freshAudits);
+    if (freshAudits.length > 0) cacheWrites.push(writeAudits(freshAudits));
 
     // Verify contact channels + active status, then set the "deliverable" gate.
     //
@@ -742,6 +747,23 @@ export async function POST(req: NextRequest) {
       watchlistId: watchlistId ?? null,
       newCount,
     };
+
+    // FLUSH THE CACHE WRITES BEFORE RESPONDING.
+    //
+    // They were fired and forgotten, which is wrong on serverless: the function is
+    // frozen the moment the body is returned, so a write still in flight simply never
+    // lands. Measured after shipping it that way: six searches produced one cache
+    // entry and zero cached audits.
+    //
+    // Awaited with a ceiling, because a slow write must delay the response by a little
+    // rather than risk the whole request. Failures are swallowed by the writers
+    // themselves, so a cache problem costs the next search's speed and nothing else.
+    if (cacheWrites.length > 0) {
+      await Promise.race([
+        Promise.allSettled(cacheWrites),
+        new Promise((r) => setTimeout(r, 3_000)),
+      ]);
+    }
 
     return NextResponse.json(result);
   } catch (e) {
