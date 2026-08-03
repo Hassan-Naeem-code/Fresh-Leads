@@ -69,6 +69,14 @@ export default async function Landing() {
             <span><Clock size={14} /> Confirmed active</span>
             <span><Coin size={14} /> $1 a credit, yours forever</span>
           </Reveal>
+          {/* The line the mock needs to earn its space. Without it the screenshot is
+              just a list; with it, the reader knows what they are looking at and why
+              it is different from every other lead tool they have tried. */}
+          <Reveal immediate delay={380}>
+            <p className="pr-mockcap">
+              We score digital footprints so you can predict lead quality before you pitch.
+            </p>
+          </Reveal>
           <Reveal immediate delay={420}><HeroMock /></Reveal>
         </header>
       </div>
@@ -137,6 +145,21 @@ export default async function Landing() {
         </Reveal>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="pr pr-section pr-cta">
+        <Reveal className="pr-eyebrow"><span className="pill">Pricing</span></Reveal>
+        <Reveal><h2 className="pr-h2">Pay for exactly what you need</h2></Reveal>
+        <Reveal><p className="pr-sectionlead">No sales calls, no bloated subscriptions. Pay $30 a year to keep your account active, then credits are $1 each. You only pay for fully verified leads, guaranteed.</p></Reveal>
+        <Reveal delay={120}>
+          <div className="pr-herobtns" style={{ marginTop: 28 }}>
+            <Link href="/signup" className="pr-btn accent">
+              Start with {SIGNUP_BONUS_CREDITS} free credits <ArrowRight size={16} />
+            </Link>
+            <Link href="/pricing" className="pr-btn ghost">See pricing</Link>
+          </div>
+        </Reveal>
+      </section>
+
       {/* Our values, pinned title, cards scroll horizontally (Primer effect) */}
       <HScrollCards
         eyebrow="What we stand for"
@@ -191,21 +214,6 @@ export default async function Landing() {
               </div>
             </div>
           ))}
-        </Reveal>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="pr pr-section pr-cta">
-        <Reveal className="pr-eyebrow"><span className="pill">Pricing</span></Reveal>
-        <Reveal><h2 className="pr-h2">Pay for exactly what you need</h2></Reveal>
-        <Reveal><p className="pr-sectionlead">No sales calls, no bloated subscriptions. Pay $30 a year to keep your account active, then credits are $1 each. You only pay for fully verified leads, guaranteed.</p></Reveal>
-        <Reveal delay={120}>
-          <div className="pr-herobtns" style={{ marginTop: 28 }}>
-            <Link href="/signup" className="pr-btn accent">
-              Start with {SIGNUP_BONUS_CREDITS} free credits <ArrowRight size={16} />
-            </Link>
-            <Link href="/pricing" className="pr-btn ghost">See pricing</Link>
-          </div>
         </Reveal>
       </section>
 

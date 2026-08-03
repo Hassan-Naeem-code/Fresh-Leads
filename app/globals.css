@@ -2907,3 +2907,16 @@ table { max-width: 100%; }
   .chgicon { width: 30px; height: 30px; }
   .chgactions { grid-column: 2; margin-top: 8px; }
 }
+
+/* The line above the hero mock. Sized between the standfirst and the trust row, so
+   it reads as a caption for the screenshot rather than a second paragraph. */
+.pr-mockcap {
+  margin: 30px auto 14px;
+  max-width: 54ch;
+  font-size: clamp(15px, 1.7vw, 17px);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: center;
+}
+@media (max-width: 640px) { .pr-mockcap { margin-top: 22px; font-size: 15px; } }
