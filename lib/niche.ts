@@ -43,28 +43,103 @@ export type ResolvedNiche = {
   label: string;
   filters: string[];
   generic: boolean;
+  /**
+   * The words the customer typed that the category did not account for, e.g. "sushi"
+   * in "best sushi restaurant". Kept so the caller can say what was narrowed on.
+   */
+  qualifier: string | null;
 };
+
+// Words that carry no meaning for a search. "best sushi restaurant" and "sushi
+// restaurant" are the same request, and treating "best" as a qualifier would narrow
+// the search to businesses with "best" in their name.
+const NOISE = new Set([
+  "best", "top", "good", "great", "local", "nearby", "near", "me", "the", "a", "an",
+  "in", "of", "for", "and", "my", "our", "your", "some", "any", "all", "new",
+  "small", "big", "large", "independent", "cheap", "affordable", "quality",
+  "companies", "company", "business", "businesses", "services", "service", "firms",
+  "firm", "shops", "shop", "places", "place", "providers", "provider",
+  // Ranking words. "top rated dentists" narrowed to dentists with "rated" in their
+  // name, which is nobody. These describe how a customer feels about a result, not
+  // what they are looking for.
+  "rated", "reviewed", "recommended", "trusted", "reliable", "professional",
+  "experienced", "certified", "licensed", "award", "winning", "leading", "premier",
+]);
+
+/**
+ * Cuisines OpenStreetMap actually tags, so a food qualifier can use the real tag
+ * rather than guessing from the business name.
+ *
+ * A name match finds "Tokyo Sushi" and misses "Nobu". The cuisine tag finds both,
+ * because somebody recorded what the restaurant serves rather than what it is called.
+ */
+const CUISINES = new Set([
+  "sushi", "japanese", "chinese", "thai", "indian", "italian", "pizza", "mexican",
+  "vietnamese", "korean", "greek", "french", "spanish", "turkish", "lebanese",
+  "american", "burger", "barbecue", "bbq", "seafood", "steak", "vegan", "vegetarian",
+  "ramen", "noodle", "sandwich", "breakfast", "brunch", "bakery", "dessert", "ice_cream",
+]);
 
 export function resolveNiche(raw: string): ResolvedNiche {
   const q = raw.toLowerCase().trim();
   const scored = CATALOG.map((def) => ({
     def,
     hits: def.keywords.filter((k) => q.includes(k)).length,
+    matched: def.keywords.filter((k) => q.includes(k)),
   }))
     .filter((s) => s.hits > 0)
     .sort((a, b) => b.hits - a.hits);
 
   if (scored.length) {
-    // Merge filters from all matching categories (e.g. "restaurant pos" -> restaurants).
     const top = scored.filter((s) => s.hits === scored[0].hits).slice(0, 2);
     const filters = Array.from(new Set(top.flatMap((s) => s.def.filters)));
     const label = top.map((s) => s.def.label).join(" + ");
-    return { label, filters, generic: false };
+
+    // WHAT DID THE CATEGORY NOT ACCOUNT FOR?
+    //
+    // "best sushi restaurant" matched Restaurants on the word "restaurant" and then
+    // threw "sushi" away, so the search returned every restaurant in the city. Same
+    // for "car accident law firm", which returned every law firm. The qualifier is
+    // usually the entire point of what was typed.
+    const consumed = new Set(top.flatMap((s) => s.matched));
+    const leftover = q
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-z0-9]/g, ""))
+      .filter((w) => w.length > 2)
+      .filter((w) => !NOISE.has(w))
+      .filter((w) => ![...consumed].some((k) => k.includes(w) || w.includes(k)));
+
+    if (leftover.length === 0) {
+      return { label, filters, generic: false, qualifier: null };
+    }
+
+    const qualifier = leftover.join(" ");
+    const regex = escapeRegex(leftover.join("|"));
+
+    // A known cuisine gets the real tag. Everything else narrows on the name, which
+    // is weaker but still far closer to what was asked for than ignoring it.
+    const cuisineWords = leftover.filter((w) => CUISINES.has(w));
+    const narrowed = filters.flatMap((f) =>
+      cuisineWords.length > 0
+        ? [
+            `${f}]["cuisine"~"${escapeRegex(cuisineWords.join("|"))}",i`,
+            `${f}]["name"~"${regex}",i`,
+          ]
+        : [`${f}]["name"~"${regex}",i`]
+    );
+
+    return {
+      label: `${label}, ${qualifier}`,
+      filters: narrowed,
+      generic: false,
+      qualifier,
+    };
   }
 
   // Fallback: unknown niche. Search common business tags whose name contains the
   // niche words. This keeps the tool truly niche-agnostic.
-  const word = q.split(/\s+/).filter((w) => w.length > 2)[0] || q;
+  const words = q.split(/\s+/).filter((w) => w.length > 2 && !NOISE.has(w));
+  const word = words[0] || q;
   const nameRegex = escapeRegex(word);
   const filters = [
     `"shop"~".*"]["name"~"${nameRegex}",i`,
@@ -72,7 +147,7 @@ export function resolveNiche(raw: string): ResolvedNiche {
     `"amenity"~".*"]["name"~"${nameRegex}",i`,
     `"craft"~".*"]["name"~"${nameRegex}",i`,
   ];
-  return { label: `"${raw}" (name match)`, filters, generic: true };
+  return { label: `"${raw}" (name match)`, filters, generic: true, qualifier: word };
 }
 
 function escapeRegex(s: string): string {

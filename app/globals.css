@@ -2911,12 +2911,19 @@ table { max-width: 100%; }
 /* The line above the hero mock. Sized between the standfirst and the trust row, so
    it reads as a caption for the screenshot rather than a second paragraph. */
 .pr-mockcap {
-  margin: 30px auto 14px;
-  max-width: 54ch;
-  font-size: clamp(15px, 1.7vw, 17px);
-  font-weight: 600;
-  line-height: 1.5;
+  margin: 34px auto 18px;
+  max-width: 22ch;
+  /* Sized to match the section headings rather than the body copy. It is a statement
+     about the product, not a caption under a figure, and at 17px it read as small
+     print above a large screenshot. */
+  font-size: clamp(24px, 3.4vw, 34px);
+  font-weight: 700;
+  letter-spacing: -.025em;
+  line-height: 1.2;
+  text-wrap: balance;
   color: var(--text);
   text-align: center;
 }
-@media (max-width: 640px) { .pr-mockcap { margin-top: 22px; font-size: 15px; } }
+@media (max-width: 640px) {
+  .pr-mockcap { margin-top: 26px; font-size: clamp(21px, 6vw, 26px); max-width: 20ch; }
+}

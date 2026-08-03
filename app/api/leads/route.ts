@@ -328,6 +328,40 @@ export async function POST(req: NextRequest) {
     );
     const merged = mergeRawLeads(lists);
 
+    // NARROWING MUST NOT MEAN EMPTY.
+    //
+    // "car accident law firm" now searches law firms whose name mentions it, which is
+    // what was asked for and is also a much smaller set. In a town with four such
+    // firms that is four leads, and a customer who typed a longer sentence should not
+    // be punished with a shorter list than the person who typed less.
+    //
+    // So a thin narrowed result falls back to the whole category, and the narrowed
+    // matches stay at the front where the scoring already puts the best fit.
+    let broadened = false;
+    if (resolved.qualifier && merged.length < 10 && Date.now() < requestDeadline - 15_000) {
+      const broad = resolveNiche(niche.replace(new RegExp(resolved.qualifier, "ig"), "").trim() || niche);
+      if (broad.filters.length && broad.filters.join() !== resolved.filters.join()) {
+        const extra = await Promise.all(
+          sources.map((src) =>
+            Promise.race([
+              src.search({ filters: broad.filters, nicheLabel: broad.label, area, limit: cap }),
+              new Promise<RawLead[]>((r) => setTimeout(() => r([]), 10_000)),
+            ]).catch(() => [] as RawLead[])
+          )
+        );
+        const widened = mergeRawLeads([merged, ...extra]);
+        if (widened.length > merged.length) {
+          broadened = true;
+          notes.push(
+            `Only ${merged.length} match "${resolved.qualifier}" exactly, so the rest of the category is included below.`
+          );
+          merged.length = 0;
+          merged.push(...widened);
+        }
+      }
+    }
+    void broadened;
+
     // File what OSM returned, so the next person asking this question does not wait.
     // Only written when it came from a live call: re-writing what we just read would
     // extend the expiry of data nobody re-fetched, which is how a cache quietly stops
