@@ -105,3 +105,14 @@ export function formatMoney(cents: number): string {
     maximumFractionDigits: decimals,
   })}`;
 }
+
+
+/**
+ * How many leads a trial account sees in a result set.
+ *
+ * The trial exists to prove the leads are real, which takes seeing a few and opening
+ * one. It is not a free tier. Three matches the three free credits, so a trial can
+ * open everything it is shown and reach the end of the trial having used it properly
+ * rather than having browsed a hundred businesses for nothing.
+ */
+export const FREE_PREVIEW_LEADS = 3;

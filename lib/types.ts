@@ -203,6 +203,14 @@ export type SearchResult = {
   watchlistId?: string | null;
   /** How many of these businesses that watchlist had never shown before. */
   newCount?: number;
+  /**
+   * Leads found but withheld because the account is on the trial rather than the
+   * plan. Zero for a subscriber. Carried so the interface can say how many are
+   * waiting instead of implying the search only found three.
+   */
+  hiddenByPlan?: number;
+  /** What the search actually found, before the trial cap. */
+  totalFound?: number;
   /** ISO time this search ran, the "scanned at" clock for every lead in it. */
   scannedAt: string;
   /** The user's credit balance after this search (searching itself is free). */

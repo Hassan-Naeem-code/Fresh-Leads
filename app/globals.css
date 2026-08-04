@@ -2932,3 +2932,38 @@ table { max-width: 100%; }
 }
 .bl-needsub p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); }
 @media (max-width: 480px) { .bl-needsub .go { width: 100%; justify-content: center; } }
+
+/* ==========================================================================
+   What the trial is not showing.
+
+   The ghost cards behind the panel hold no data: the server withheld those
+   leads entirely, so this is a picture of absence rather than a blur over
+   something still sitting in the payload.
+   ========================================================================== */
+.planwall { position: relative; margin: 18px 0 22px; }
+.planwallghosts {
+  display: flex; flex-direction: column; gap: 12px;
+  filter: blur(5px); opacity: .5; pointer-events: none; user-select: none;
+}
+.planghost {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 22px 24px;
+  display: flex; flex-direction: column; gap: 11px;
+}
+.planghostbadge { width: 52px; height: 52px; border-radius: 14px; background: var(--sand2); }
+.planghostline { height: 13px; border-radius: 7px; background: var(--panel2); width: 45%; }
+.planghostline.wide { width: 72%; height: 17px; }
+
+.planwallcard {
+  position: absolute; inset: 0; margin: auto;
+  height: fit-content; max-width: 460px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 24px 26px; box-shadow: var(--sh-3);
+}
+.planwallcard b { font-size: 16.5px; line-height: 1.4; }
+.planwallcard p { margin: 0; line-height: 1.6; }
+@media (max-width: 560px) {
+  .planwallcard { position: static; max-width: none; margin-top: -140px; }
+  .planwallcard .go { width: 100%; justify-content: center; }
+}

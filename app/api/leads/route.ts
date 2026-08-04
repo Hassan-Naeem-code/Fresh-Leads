@@ -22,6 +22,7 @@ import { stripeConfigured } from "@/lib/stripe";
 import { pickSources, mergeRawLeads, type RawLead } from "@/lib/sources";
 import { verifyContact } from "@/lib/verify/contact";
 import { mapPool } from "@/lib/pool";
+import { FREE_PREVIEW_LEADS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -734,7 +735,21 @@ export async function POST(req: NextRequest) {
       isNew: isNewKey(l.id),
     }));
 
-    const newCount = resultLeads.filter((l) => l.isNew).length;
+    // WHAT A TRIAL ACCOUNT SEES.
+    //
+    // Cut here rather than hidden in the interface. Blurring in CSS leaves the whole
+    // result set in the browser's network tab, which is not a limit, it is a costume.
+    //
+    // Subscribers are untouched. The trial keeps enough to prove the leads are real,
+    // which is what it is for.
+    let hiddenByPlan = 0;
+    let visibleLeads = resultLeads;
+    if (access && !access.subscribed && resultLeads.length > FREE_PREVIEW_LEADS) {
+      hiddenByPlan = resultLeads.length - FREE_PREVIEW_LEADS;
+      visibleLeads = resultLeads.slice(0, FREE_PREVIEW_LEADS);
+    }
+
+    const newCount = visibleLeads.filter((l) => l.isNew).length;
     if (user && watchlistId) {
       // Awaited, not fired and forgotten: work left running after the response is
       // returned gets killed on serverless, and a run that failed to record itself
@@ -747,8 +762,12 @@ export async function POST(req: NextRequest) {
       location,
       resolvedArea: area.displayName,
       matchedTags,
-      count: resultLeads.length,
-      leads: resultLeads,
+      count: visibleLeads.length,
+      leads: visibleLeads,
+      // How many were found but not shown, so the interface can say so honestly
+      // rather than pretending the search returned three businesses.
+      hiddenByPlan,
+      totalFound: resultLeads.length,
       notes,
       scannedAt,
       credits: access?.credits ?? 0,

@@ -61,15 +61,21 @@ export async function POST(req: NextRequest) {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-    // The PDF call sheet is what the yearly subscription buys on top of the raw data.
+    // EXPORTING IS PART OF THE PLAN, in every format.
+    //
+    // CSV used to be free and the PDF was not, which drew the line in an odd place:
+    // the spreadsheet is the more valuable of the two, since it is the one that goes
+    // into a CRM or a dialler. The trial is for proving the leads are real, and taking
+    // a file away is not that.
+    //
     // Checked before any credit is spent, so a refusal never costs anything.
-    const wantsPdf = parsed.data.format === "pdf";
-    if (wantsPdf && stripeConfigured()) {
+    if (stripeConfigured()) {
       const access = await getAccess(user.id);
       if (!access.subscribed) {
         return NextResponse.json(
           {
-            error: "The PDF call sheet is part of the $30/year plan. CSV export is always available.",
+            error:
+              "Exporting is part of the $30 a year plan. Your free credits cover searching and opening leads, and everything you opened stays yours.",
             code: "subscription_required",
           },
           { status: 403 }
@@ -144,7 +150,7 @@ export async function POST(req: NextRequest) {
     const credits = await getCreditBalance(user.id);
     const stamp = new Date().toISOString().slice(0, 10);
 
-    if (wantsPdf) {
+    if (parsed.data.format === "pdf") {
       const [{ buildLeadsPdf }, settings] = await Promise.all([
         import("@/lib/pdf"),
         getSiteSettings(),

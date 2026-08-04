@@ -21,9 +21,7 @@ import {
   type FreshnessLevel,
 } from "@/lib/freshness";
 import {
-  Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Download, Info,
-  AlertTriangle, Clock, Flame, Gauge, Building, Search, ChevronDown,
-  ChevronRight, ArrowRight, RotateCcw, Dot, Check, Coin, Plus, X,
+  Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Download, Info, AlertTriangle, Clock, Flame, Gauge, Building, Search, ChevronDown, ChevronRight, ArrowRight, RotateCcw, Dot, Check, Coin, Plus, X, Lock,
 } from "../icons";
 
 
@@ -789,28 +787,32 @@ export default function Home() {
             <div className="exportgroup">
               <button
                 className="ghost exportbtn"
-                onClick={() => exportLeads("csv")}
+                onClick={() => (subscribed ? exportLeads("csv") : (window.location.href = "/dashboard/billing"))}
                 disabled={!visible.length || exporting !== null}
                 title={
-                  lockedVisible > 0
-                    ? `${lockedVisible} of these ${visible.length} are still locked, so this export costs ${lockedVisible} credit${lockedVisible === 1 ? "" : "s"}`
-                    : "Every lead here is already yours, this export is free"
+                  !subscribed
+                    ? "Exporting is part of the $30 a year plan"
+                    : lockedVisible > 0
+                      ? `${lockedVisible} of these ${visible.length} are still locked, so this export costs ${lockedVisible} credit${lockedVisible === 1 ? "" : "s"}`
+                      : "Every lead here is already yours, this export is free"
                 }
               >
                 <Download size={15} />
                 {exporting === "csv"
                   ? "Exporting…"
-                  : lockedVisible > 0
-                    ? `CSV ${visible.length} (${lockedVisible} credit${lockedVisible === 1 ? "" : "s"})`
-                    : `CSV ${visible.length} (free)`}
+                  : !subscribed
+                    ? "CSV (plan only)"
+                    : lockedVisible > 0
+                      ? `CSV ${visible.length} (${lockedVisible} credit${lockedVisible === 1 ? "" : "s"})`
+                      : `CSV ${visible.length} (free)`}
               </button>
-              {/* The call sheet is what the yearly plan buys on top of the data. The
-                  server enforces this too; the button only avoids a pointless round
-                  trip and explains why it is disabled. */}
+              {/* Both formats are part of the plan. The server enforces it; these
+                  buttons send somebody to the plan rather than refusing silently,
+                  because a disabled control explains nothing. */}
               <button
                 className="ghost exportbtn"
-                onClick={() => exportLeads("pdf")}
-                disabled={!visible.length || exporting !== null || !subscribed}
+                onClick={() => (subscribed ? exportLeads("pdf") : (window.location.href = "/dashboard/billing"))}
+                disabled={!visible.length || exporting !== null}
                 title={
                   subscribed
                     ? "A printable call sheet: one block per business, number and pitch ready to dial"
@@ -917,6 +919,39 @@ export default function Home() {
                 No leads match these filters. <button className="linkish" onClick={resetFilters}>Reset filters</button>
               </div>
             )}
+            {/* WHAT THE TRIAL IS NOT SHOWING.
+                The server cut these, so this is a statement about a real number
+                rather than a blur over content that is quietly still in the payload.
+                The blurred cards behind it are decoration, and hold no data at all. */}
+            {(result.hiddenByPlan ?? 0) > 0 && (
+              <div className="planwall">
+                <div className="planwallghosts" aria-hidden="true">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <div className="planghost" key={i}>
+                      <span className="planghostbadge" />
+                      <span className="planghostline wide" />
+                      <span className="planghostline" />
+                    </div>
+                  ))}
+                </div>
+                <div className="planwallcard">
+                  <span className="pill"><Lock size={13} /> {result.hiddenByPlan} more found</span>
+                  <b>
+                    This search found {result.totalFound ?? (result.hiddenByPlan ?? 0) + visible.length}{" "}
+                    businesses. Your free credits show the first {visible.length}.
+                  </b>
+                  <p className="muted sm">
+                    The $30 a year plan opens the rest of every search, plus exports, history,
+                    email sequences and your CRM. Credits stay $1 each and everything you have
+                    already opened stays yours.
+                  </p>
+                  <a className="go accent" href="/dashboard/billing">
+                    See the plan <ArrowRight size={15} />
+                  </a>
+                </div>
+              </div>
+            )}
+
             {visible.map((l) =>
               l.locked ? (
                 <div key={l.id} className="newwrap">
