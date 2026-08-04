@@ -18,7 +18,14 @@ export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 /** "Trust this device", for people who sign in daily. */
 export const TRUSTED_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-type Payload = { sub: string; exp: number };
+// `trusted` is what the "Trust this device for 30 days" checkbox actually buys.
+//
+// Without it in the token there is no way to tell the two kinds of pass apart later,
+// and signing out could not clear one while keeping the other. That was the bug: sign
+// out left the cookie behind whatever the customer had chosen, so declining to trust
+// the machine still skipped the second factor for twelve hours, across sign outs. The
+// checkbox decided how LONG, when what it says is WHETHER.
+type Payload = { sub: string; exp: number; trusted?: boolean };
 
 function secret(): string {
   return (
@@ -33,11 +40,38 @@ function secret(): string {
 const sign = (data: string): string =>
   createHmac("sha256", secret()).update(data).digest("base64url");
 
-export function mint(subject: string, ttlMs = SESSION_TTL_MS): string {
-  const body = Buffer.from(JSON.stringify({ sub: subject, exp: Date.now() + ttlMs })).toString(
-    "base64url"
-  );
+export function mint(subject: string, ttlMs = SESSION_TTL_MS, trusted = false): string {
+  const body = Buffer.from(
+    JSON.stringify({ sub: subject, exp: Date.now() + ttlMs, trusted })
+  ).toString("base64url");
   return `${body}.${sign(body)}`;
+}
+
+/**
+ * Did this pass come from a device the person asked us to remember?
+ *
+ * Used by sign out, which must keep a trusted pass and drop an ordinary one. The
+ * signature is checked first: an unsigned cookie claiming to be trusted is a forged
+ * request to skip the second factor, which is the whole thing being protected. A token
+ * minted before this field existed has no claim to trust and is treated as untrusted,
+ * so the worst it costs anyone is one extra prompt.
+ */
+export function isTrusted(token: string | undefined | null): boolean {
+  if (!token) return false;
+  const [body, sig] = token.split(".");
+  if (!body || !sig) return false;
+
+  const expected = sign(body);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+
+  try {
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as Payload;
+    return payload.trusted === true && typeof payload.exp === "number" && payload.exp > Date.now();
+  } catch {
+    return false;
+  }
 }
 
 /**

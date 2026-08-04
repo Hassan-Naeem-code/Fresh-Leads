@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { totpNow, verifyTotp, generateSecret, base32Encode, base32Decode, otpauthUri } from "./.build/totp.mjs";
-import { mint, verify } from "./.build/mfa-session.mjs";
+import { mint, verify, isTrusted, TRUSTED_TTL_MS, SESSION_TTL_MS } from "./.build/mfa-session.mjs";
 
 // Two factor is now the only thing between a stolen password and an account, so these
 // are the tests that matter most in the suite.
@@ -95,4 +95,49 @@ test("a tampered token is refused", () => {
 
 test("an empty subject never passes", () => {
   assert.equal(verify(mint(""), ""), false);
+});
+
+// "Trust this device for 30 days" decides WHETHER, not just how long.
+//
+// Measured on production before this existed: ticking the box gave a 720 hour pass and
+// leaving it alone gave a 12 hour one, but signing out cleared NEITHER, so declining to
+// trust the machine still walked you back in without a code for the rest of the day.
+// On a borrowed laptop that is the entire reason someone presses sign out.
+//
+// The flag has to live inside the signed token. A cookie lifetime cannot tell sign out
+// which of the two kinds of pass it is holding.
+
+test("a trusted pass is marked as one, and an ordinary pass is not", () => {
+  assert.equal(isTrusted(mint("user-1", TRUSTED_TTL_MS, true)), true);
+  assert.equal(isTrusted(mint("user-1", SESSION_TTL_MS, false)), false);
+  assert.equal(isTrusted(mint("user-1")), false, "the default must be untrusted");
+});
+
+test("trust cannot be claimed by editing the cookie", () => {
+  // The payload is readable, so the only thing stopping anyone appending trusted:true
+  // is the signature. If this ever passes, the second factor is optional.
+  const forged = Buffer.from(JSON.stringify({
+    sub: "user-1", exp: Date.now() + 60_000, trusted: true,
+  })).toString("base64url");
+  const stolenSig = mint("user-1", SESSION_TTL_MS, false).split(".")[1];
+  assert.equal(isTrusted(`${forged}.${stolenSig}`), false);
+  assert.equal(isTrusted(forged), false, "no signature at all");
+});
+
+test("an expired trusted pass is not trusted", () => {
+  assert.equal(isTrusted(mint("user-1", -1000, true)), false);
+});
+
+test("a token minted before the flag existed is treated as untrusted", () => {
+  // Old cookies in the wild have no flag. Costing one extra prompt is the correct way
+  // to be wrong about that.
+  const legacy = Buffer.from(JSON.stringify({ sub: "user-1", exp: Date.now() + 60_000 }))
+    .toString("base64url");
+  assert.equal(isTrusted(legacy), false);
+});
+
+test("the trusted lifetime is thirty days and the ordinary one is not", () => {
+  // The checkbox says 30 days out loud, so the number is part of the promise.
+  assert.equal(TRUSTED_TTL_MS, 30 * 24 * 60 * 60 * 1000);
+  assert.ok(SESSION_TTL_MS < TRUSTED_TTL_MS);
 });

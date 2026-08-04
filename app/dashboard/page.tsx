@@ -919,10 +919,35 @@ export default function Home() {
                 No leads match these filters. <button className="linkish" onClick={resetFilters}>Reset filters</button>
               </div>
             )}
+            {visible.map((l) =>
+              l.locked ? (
+                <div key={l.id} className="newwrap">
+                  {l.isNew && <span className="newflag">new</span>}
+                  <LockedLeadCard
+                  lead={l}
+                  alreadyPaid={Boolean(l.dbId && paidIds.has(l.dbId))}
+                  busy={unlocking === l.id}
+                  disabled={unlocking !== null}
+                  onUnlock={() => unlock(l)}
+                  />
+                </div>
+              ) : (
+                <div key={l.id} className="leadclick newwrap" onClick={() => { setJustUnlocked(false); setOpen(l); }}>
+                  {l.isNew && <span className="newflag">new</span>}
+                  <LeadCard lead={l} />
+                </div>
+              )
+            )}
+
             {/* WHAT THE TRIAL IS NOT SHOWING.
                 The server cut these, so this is a statement about a real number
                 rather than a blur over content that is quietly still in the payload.
-                The blurred cards behind it are decoration, and hold no data at all. */}
+                The blurred cards behind it are decoration, and hold no data at all.
+
+                BELOW the leads, not above them. It used to open the results, so the
+                first thing a new account saw after its first search was a price, with
+                the three leads it came for pushed under a wall of blur. Ask for the
+                money after the product has done something, not instead of it. */}
             {(result.hiddenByPlan ?? 0) > 0 && (
               <div className="planwall">
                 <div className="planwallghosts" aria-hidden="true">
@@ -950,26 +975,6 @@ export default function Home() {
                   </a>
                 </div>
               </div>
-            )}
-
-            {visible.map((l) =>
-              l.locked ? (
-                <div key={l.id} className="newwrap">
-                  {l.isNew && <span className="newflag">new</span>}
-                  <LockedLeadCard
-                  lead={l}
-                  alreadyPaid={Boolean(l.dbId && paidIds.has(l.dbId))}
-                  busy={unlocking === l.id}
-                  disabled={unlocking !== null}
-                  onUnlock={() => unlock(l)}
-                  />
-                </div>
-              ) : (
-                <div key={l.id} className="leadclick newwrap" onClick={() => { setJustUnlocked(false); setOpen(l); }}>
-                  {l.isNew && <span className="newflag">new</span>}
-                  <LeadCard lead={l} />
-                </div>
-              )
             )}
           </div>
         </>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { MFA_COOKIE } from "@/lib/mfa/session";
 import { passwordMatches, changePassword, deleteAccount } from "@/lib/account";
 import { guard, clientIp } from "@/lib/rate-limit";
 
@@ -95,5 +96,9 @@ export async function POST(req: NextRequest) {
   // The user is gone, so the session refers to nothing. Clearing it is what stops
   // the browser sitting on a dashboard that no longer has an account behind it.
   await supabase.auth.signOut();
-  return NextResponse.json({ ok: true, deleted: true });
+  // The second factor pass goes unconditionally here, trusted or not. "Trust this
+  // device" is a promise about an account that still exists.
+  const res = NextResponse.json({ ok: true, deleted: true });
+  res.cookies.delete(MFA_COOKIE);
+  return res;
 }

@@ -331,9 +331,11 @@ export async function POST(req: NextRequest) {
 /** Attach the "second factor passed" cookie for whichever audience this is. */
 function applyPass(res: NextResponse, kind: "admin" | "user", subject: string, trust: boolean) {
   const ttl = trust ? TRUSTED_TTL_MS : SESSION_TTL_MS;
+  // The trusted flag travels IN the token, so sign out can keep this pass and drop an
+  // ordinary one. The lifetime alone could never carry that: both are just cookies.
   res.cookies.set(
     kind === "admin" ? MFA_ADMIN_COOKIE : MFA_COOKIE,
-    mint(subject, ttl),
+    mint(subject, ttl, trust),
     cookieOptions(ttl)
   );
 }
