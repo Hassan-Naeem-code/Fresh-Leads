@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { geocode } from "@/lib/geocode";
 import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
-import { observeAndDiff, recentTriggers } from "@/lib/snapshots";
+import { observeAndDiff, recentTriggers, type Trigger } from "@/lib/snapshots";
 import { guard } from "@/lib/rate-limit";
 import { readDiscovery, writeDiscovery, readAudits, writeAudits, hostKey } from "@/lib/search-cache";
 import { seenKeys, markSeen } from "@/lib/watchlists";
@@ -32,7 +32,7 @@ export const maxDuration = 60;
  * maxDuration for discovery, verification, scoring and the history write, so a
  * slow batch of websites degrades gracefully instead of killing the request.
  */
-const AUDIT_BUDGET_MS = 22_000;
+const AUDIT_BUDGET_MS = 18_000;
 
 /**
  * The whole request's budget, a margin inside maxDuration.
@@ -51,7 +51,7 @@ const AUDIT_BUDGET_MS = 22_000;
  * Every stage after discovery checks this and degrades rather than continuing, so a
  * slow search returns fewer enriched leads instead of returning nothing at all.
  */
-const REQUEST_BUDGET_MS = 38_000;
+const REQUEST_BUDGET_MS = 30_000;
 
 /**
  * How long the quieter re-check of unreachable sites may run, in total.
@@ -59,7 +59,7 @@ const REQUEST_BUDGET_MS = 38_000;
  * Small on purpose. It exists to correct a minority of leads, and every second it
  * spends is a second the whole search does not have.
  */
-const RECHECK_BUDGET_MS = 6_000;
+const RECHECK_BUDGET_MS = 5_000;
 
 /**
  * Copy an audit's findings onto the lead.
@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
     // discovery running long leaves no room for anything after it. A source that does
     // not answer in time contributes nothing rather than sinking the whole search: with
     // two sources configured, one slow one still leaves the other's results.
-    const DISCOVERY_BUDGET_MS = 14_000;
+    const DISCOVERY_BUDGET_MS = 11_000;
     const lists = await Promise.all(
       sources.map((s) =>
         // A fresh cache entry answers for OSM, so only Places is asked. A stale entry
@@ -353,7 +353,7 @@ export async function POST(req: NextRequest) {
     // So a thin narrowed result falls back to the whole category, and the narrowed
     // matches stay at the front where the scoring already puts the best fit.
     let broadened = false;
-    if (resolved.qualifier && merged.length < 10 && Date.now() < requestDeadline - 15_000) {
+    if (resolved.qualifier && merged.length < 10 && Date.now() < requestDeadline - 18_000) {
       const broad = resolveNiche(niche.replace(new RegExp(resolved.qualifier, "ig"), "").trim() || niche);
       if (broad.filters.length && broad.filters.join() !== resolved.filters.join()) {
         const extra = await Promise.all(
@@ -470,7 +470,11 @@ export async function POST(req: NextRequest) {
     //
     // Nothing consumes these triggers yet. Snapshots have to accumulate before any
     // business has two of them, so this is storing history now to sell it later.
-    const changes = await observeAndDiff(leads, auditByKey);
+    // Skipped when late. Change detection is the signal nobody else can sell, and it
+    // is still worth less than the search returning: a missed observation costs one
+    // day of history, a timeout costs the whole result.
+    const changes: Map<string, Trigger[]> =
+      Date.now() < requestDeadline ? await observeAndDiff(leads, auditByKey) : new Map();
     if (changes.size > 0) {
       console.log(`[leads] ${changes.size} business${changes.size === 1 ? "" : "es"} changed since last seen`);
     }
@@ -478,7 +482,8 @@ export async function POST(req: NextRequest) {
     // Everything detected at these businesses in the last month, not only what this
     // search happened to notice. A change found on Tuesday by somebody else's search is
     // still news to whoever looks on Thursday.
-    const known = await recentTriggers(leads.map((l) => l.id));
+    const known: Map<string, Trigger[]> =
+      Date.now() < requestDeadline ? await recentTriggers(leads.map((l) => l.id)) : new Map();
     for (const lead of leads) {
       const found = known.get(lead.id) ?? changes.get(lead.id) ?? [];
       if (found.length) lead.changes = found.map((t) => ({ kind: t.kind, label: t.label, since: t.since }));
