@@ -464,6 +464,7 @@ export async function POST(req: NextRequest) {
         applyAudit(lead, audit);
       }
     });
+    mark("audit_pool");
     if (auditsSkipped > 0) {
       notes.push(
         `${auditsSkipped} website${auditsSkipped === 1 ? "" : "s"} could not be checked in time, ` +
@@ -484,6 +485,7 @@ export async function POST(req: NextRequest) {
     // day of history, a timeout costs the whole result.
     const changes: Map<string, Trigger[]> =
       Date.now() < requestDeadline ? await observeAndDiff(leads, auditByKey) : new Map();
+    mark("observe");
     if (changes.size > 0) {
       console.log(`[leads] ${changes.size} business${changes.size === 1 ? "" : "es"} changed since last seen`);
     }
@@ -493,6 +495,7 @@ export async function POST(req: NextRequest) {
     // still news to whoever looks on Thursday.
     const known: Map<string, Trigger[]> =
       Date.now() < requestDeadline ? await recentTriggers(leads.map((l) => l.id)) : new Map();
+    mark("triggers");
     for (const lead of leads) {
       const found = known.get(lead.id) ?? changes.get(lead.id) ?? [];
       if (found.length) lead.changes = found.map((t) => ({ kind: t.kind, label: t.label, since: t.since }));
@@ -546,6 +549,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    mark("recheck");
     // File everything crawled this run, so the next search skips it.
     if (freshAudits.length > 0) cacheWrites.push(writeAudits(freshAudits));
     mark("audits");
