@@ -186,6 +186,14 @@ export async function POST(req: NextRequest) {
   // Started before anything else, so every later stage measures against the real
   // arrival time rather than against whenever its own section happened to begin.
   const requestDeadline = Date.now() + REQUEST_BUDGET_MS;
+  const startedAt = Date.now();
+  // Stage timings, returned with the result.
+  //
+  // Budgets were being tuned by guessing which stage was slow, tightening it, and
+  // measuring the total again. That found the audit and the re-check and then stopped
+  // working, because the remaining cost was spread across stages nobody was timing.
+  const timings: Record<string, number> = {};
+  const mark = (stage: string) => { timings[stage] = Date.now() - startedAt; };
   try {
     const {
       niche,
@@ -342,6 +350,7 @@ export async function POST(req: NextRequest) {
     }
 
     const merged = mergeRawLeads(lists);
+    mark("discovery");
 
     // NARROWING MUST NOT MEAN EMPTY.
     //
@@ -539,6 +548,7 @@ export async function POST(req: NextRequest) {
 
     // File everything crawled this run, so the next search skips it.
     if (freshAudits.length > 0) cacheWrites.push(writeAudits(freshAudits));
+    mark("audits");
 
     // Verify contact channels + active status, then set the "deliverable" gate.
     //
@@ -754,6 +764,7 @@ export async function POST(req: NextRequest) {
       visibleLeads = resultLeads.slice(0, FREE_PREVIEW_LEADS);
     }
 
+    mark("scoring");
     const newCount = visibleLeads.filter((l) => l.isNew).length;
     if (user && watchlistId) {
       // Awaited, not fired and forgotten: work left running after the response is
@@ -779,6 +790,7 @@ export async function POST(req: NextRequest) {
       searchId,
       watchlistId: watchlistId ?? null,
       newCount,
+      timings,
     };
 
     // FLUSH THE CACHE WRITES BEFORE RESPONDING.
@@ -791,6 +803,7 @@ export async function POST(req: NextRequest) {
     // Awaited with a ceiling, because a slow write must delay the response by a little
     // rather than risk the whole request. Failures are swallowed by the writers
     // themselves, so a cache problem costs the next search's speed and nothing else.
+    mark("persisted");
     if (cacheWrites.length > 0) {
       await Promise.race([
         Promise.allSettled(cacheWrites),

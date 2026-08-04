@@ -211,6 +211,13 @@ export type SearchResult = {
   hiddenByPlan?: number;
   /** What the search actually found, before the trial cap. */
   totalFound?: number;
+  /**
+   * Milliseconds from the start of the request to the end of each stage.
+   *
+   * Returned because tuning the time budgets by guessing which stage was slow stopped
+   * working: the remaining cost turned out to be spread across stages nobody timed.
+   */
+  timings?: Record<string, number>;
   /** ISO time this search ran, the "scanned at" clock for every lead in it. */
   scannedAt: string;
   /** The user's credit balance after this search (searching itself is free). */
