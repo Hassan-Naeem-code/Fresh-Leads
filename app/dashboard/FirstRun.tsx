@@ -14,16 +14,48 @@ import { playbookById, type PlaybookId } from "@/lib/playbooks";
 // of the output is understood before any credit is spent, and it offers one click
 // that runs a sensible first search for whatever they told us they sell.
 
-/** A real lead, from a real search, with the business anonymised. */
-const EXAMPLE = {
-  name: "A dental practice in your area",
-  grade: 68,
-  tier: "HOT",
-  signals: ["Website down / unreachable", "No online booking", "Phone number listed"],
-  pitch: "Their site has been unreachable since 30 July. Lead with that and offer to have them back online this week.",
-  owner: "Sarah B., practice owner",
-  since: "30 July",
-};
+/** How long the example business has been down. */
+const EXAMPLE_DAYS_DOWN = 5;
+
+/**
+ * The date the example site went down, counted back from today.
+ *
+ * It used to be the literal string "30 July", which was true on the day it was
+ * written and wrong every day after. The first thing a new account ever reads was a
+ * freshness claim going stale in front of them, on the one screen whose entire job is
+ * to prove the data is checked at the moment you search.
+ *
+ * Formatted in UTC with a fixed locale so the server and the browser produce the same
+ * text. Left to the machine's own timezone the two disagree either side of midnight,
+ * and React tears the whole page down and re-renders it over one word.
+ */
+function exampleSince(): string {
+  return new Date(Date.now() - EXAMPLE_DAYS_DOWN * 86_400_000).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * A real lead, from a real search, with the business anonymised.
+ *
+ * `since` is what a REAL card would print for this lead: LeadCard formats a change as
+ * "since Jul 30", so an example that says "30 July" is showing output the product does
+ * not produce. The example has to be a specimen, not an illustration of one.
+ */
+function example() {
+  const since = exampleSince();
+  return {
+    name: "A dental practice in your area",
+    grade: 68,
+    tier: "HOT",
+    signals: ["Website down / unreachable", "No online booking", "Phone number listed"],
+    pitch: `Their site has been unreachable since ${since}. Lead with that and offer to have them back online this week.`,
+    owner: "Sarah B., practice owner",
+    since,
+  };
+}
 
 export function FirstRun({
   playbook,
@@ -34,6 +66,7 @@ export function FirstRun({
   onRunExample: (niche: string, location: string) => void;
   busy: boolean;
 }) {
+  const EXAMPLE = example();
   const book = playbookById(playbook);
   // Their own playbook decides the suggestion, so the first search is one they would
   // plausibly have run themselves rather than a demo of somebody else's business.
