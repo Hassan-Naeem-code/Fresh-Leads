@@ -223,7 +223,27 @@ export function pickBestEmail(html: string, lower: string, finalUrl: string): st
   return bestScore > 0 ? best : "";
 }
 
-export async function fetchOnce(url: string, timeoutMs: number): Promise<Response | null> {
+/**
+ * Fetch a page, giving up after timeoutMs, or sooner if `deadline` says so.
+ *
+ * The deadline exists because a per-attempt timeout does not bound a caller. This
+ * function makes up to two attempts, auditWebsite makes up to four calls to it, and
+ * 2 x (4 + 3 + 12 + 8) is 54 seconds for ONE site on a 60 second platform. That is
+ * exactly what happened: the re-check pass had a 5 second budget, and the timings said
+ * it ran for 50, because the budget only decided whether a site was STARTED. Once
+ * started, one dead host owned the whole request.
+ */
+export async function fetchOnce(
+  url: string,
+  timeoutMs: number,
+  deadline?: number
+): Promise<Response | null> {
+  if (deadline !== undefined) {
+    const left = deadline - Date.now();
+    if (left <= 0) return null;
+    timeoutMs = Math.min(timeoutMs, left);
+  }
+
   const attempt = async (headers: Record<string, string>): Promise<Response | null> => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -258,13 +278,24 @@ export async function fetchOnce(url: string, timeoutMs: number): Promise<Respons
   });
   if (res) return res;
 
+  // Only if there is time. The retry is worth having, but not at the price of the
+  // request: a caller that is already out of budget wants an answer now.
+  if (deadline !== undefined && Date.now() >= deadline) return null;
+
   // Last resort: no headers of ours at all. If some future host objects to one of the
   // three above the way this one objected to Accept, a bare request still gets an
   // honest answer, and honest is the whole point of the "is it down" claim.
   return attempt({});
 }
 
-export async function auditWebsite(rawUrl: string): Promise<Audit | null> {
+/**
+ * Crawl one business site and grade it.
+ *
+ * `deadline` is a wall-clock timestamp this call must not run past. Callers that run
+ * many of these under a time budget MUST pass it: the fallbacks below are individually
+ * modest and collectively longer than a serverless invocation is allowed to live.
+ */
+export async function auditWebsite(rawUrl: string, deadline?: number): Promise<Audit | null> {
   if (!rawUrl) return null;
   const trimmed = rawUrl.trim();
   const hadScheme = /^https?:\/\//i.test(trimmed);
@@ -278,11 +309,13 @@ export async function auditWebsite(rawUrl: string): Promise<Audit | null> {
   // "no HTTPS". Only a site that answers on NEITHER scheme is really down.
   // Budgets stay tight so the pair still fits the serverless time limit.
   const startedAt = Date.now();
-  let res = await fetchOnce(httpsUrl, 4000);
+  const outOfTime = () => deadline !== undefined && Date.now() >= deadline;
+
+  let res = await fetchOnce(httpsUrl, 4000, deadline);
   let servedOverHttps = res !== null;
 
-  if (!res) {
-    res = await fetchOnce(httpUrl, 3000);
+  if (!res && !outOfTime()) {
+    res = await fetchOnce(httpUrl, 3000, deadline);
     servedOverHttps = false;
   }
 
@@ -296,11 +329,15 @@ export async function auditWebsite(rawUrl: string): Promise<Audit | null> {
   //
   // The cost is bounded because it only runs for sites that already failed twice,
   // which is a small minority of any batch.
-  if (!res) {
-    res = await fetchOnce(httpsUrl, 12000);
+  //
+  // Skipped when the budget is gone. A patient retry on a slow host is worth 12
+  // seconds when there are 12 to spend and worth nothing when the whole search is
+  // about to be cut off with no results at all.
+  if (!res && !outOfTime()) {
+    res = await fetchOnce(httpsUrl, 12000, deadline);
     servedOverHttps = res !== null;
-    if (!res) {
-      res = await fetchOnce(httpUrl, 8000);
+    if (!res && !outOfTime()) {
+      res = await fetchOnce(httpUrl, 8000, deadline);
       servedOverHttps = false;
     }
   }
@@ -324,9 +361,18 @@ export async function auditWebsite(rawUrl: string): Promise<Audit | null> {
              scriptCount: null, vendors: null };
   }
 
+  // BOUNDED SEPARATELY. The abort timer above is cleared as soon as the headers land,
+  // so a host that sends a 200 and then trickles the body forever was not covered by
+  // any timeout at all. Losing the body costs the content signals; not losing it cost
+  // the request.
   let html = "";
   try {
-    html = (await res.text()).slice(0, 200_000);
+    const body = res.text().then((t) => t.slice(0, 200_000));
+    const cap = deadline !== undefined ? Math.max(0, deadline - Date.now()) : 10_000;
+    html = await Promise.race([
+      body,
+      new Promise<string>((resolve) => setTimeout(() => resolve(""), Math.min(cap, 10_000))),
+    ]);
   } catch {
     return { reachable: true, hasSSL, mobileFriendly: null, copyrightYear: null, outdated: null,
              hasBooking: null, email: "", loadMs: null, hasSchema: null, hasAnalytics: null, wordCount: null,

@@ -456,7 +456,7 @@ export async function POST(req: NextRequest) {
         auditsSkipped++;
         return;
       }
-      const audit = await auditWebsite(lead.website);
+      const audit = await auditWebsite(lead.website, auditDeadline);
       if (audit) {
         const host = hostKey(lead.website);
         if (host) freshAudits.push({ host, audit });
@@ -532,7 +532,7 @@ export async function POST(req: NextRequest) {
         // Checked per lead, not just once at the top: the whole point is that any one
         // of these can be slow, so the budget has to be re-read as the queue drains.
         if (Date.now() >= recheckDeadline) return;
-        const second = await auditWebsite(lead.website);
+        const second = await auditWebsite(lead.website, recheckDeadline);
         // Only ACCEPT a better answer. A second failure changes nothing, so a site
         // that is genuinely down keeps its verdict and its already-correct fields.
         if (!second?.reachable) return;
