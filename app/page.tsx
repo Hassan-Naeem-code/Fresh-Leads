@@ -1,14 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  Mail, Phone, Building, Clock, Search, ArrowRight, Check, Gauge, Download, Coin,
+  Mail, Phone, Building, Clock, Search, ArrowRight, Check, Coin,
 } from "./icons";
 import { SIGNUP_BONUS_CREDITS } from "@/lib/credits";
 import { getSiteSettings } from "@/lib/site-settings.server";
 import { currentEmail } from "@/lib/current-user";
 import { MarketingNav } from "./MarketingNav";
 import { Reveal } from "./Reveal";
-import { HScrollCards } from "./HScrollCards";
 import { HeroMock } from "./HeroMock";
 import { MarketingFooter } from "./MarketingFooter";
 
@@ -85,7 +84,10 @@ export default async function Landing() {
       <section id="quality" className="pr pr-section">
         <Reveal className="pr-eyebrow"><span className="pill">Quality</span></Reveal>
         <Reveal><h2 className="pr-h2">Every lead clears four checks<br />before you see it</h2></Reveal>
-        <Reveal><p className="pr-sectionlead">A lead you can&rsquo;t reach isn&rsquo;t a lead. We don&rsquo;t deliver a name until it passes:</p></Reveal>
+        {/* The opening sentence used to be "A lead you can't reach isn't a lead", which is
+            the headline of the dark panel directly below. Saying it twice made the page
+            feel padded rather than emphatic. */}
+        <Reveal><p className="pr-sectionlead">We don&rsquo;t deliver a name until it passes:</p></Reveal>
         <Reveal className="pr-grid4">
           {CHECKS.map((c) => (
             <div className="pr-card" key={c.t}>
@@ -113,33 +115,34 @@ export default async function Landing() {
       {/* How it works */}
       <section id="how" className="pr pr-section">
         <Reveal className="pr-eyebrow"><span className="pill">How it works</span></Reveal>
-        <Reveal><h2 className="pr-h2">From your ideal customer to<br />genuine leads in three steps</h2></Reveal>
+        <Reveal><h2 className="pr-h2">Three steps.<br />That is the whole product.</h2></Reveal>
         <Reveal className="pr-steps">
+          {/* One line each, and each line says something the others do not.
+              Steps two and three both used to begin with "search", so the sequence read
+              as two things happening twice rather than as three steps. */}
           <div className="pr-step">
             <div className="pr-stepn">1</div>
-            <b>Tell us what you sell</b>
-            <p>Describe your ideal customer in a sentence, or pick the business type and the area you cover.</p>
+            <b>Say what you sell</b>
+            <p>A trade and a town, or one sentence about your ideal customer.</p>
             <div className="pr-stepproof">
               <span className="pr-schip">Plumbers</span>
               <span className="pr-schip">Austin · 10&nbsp;miles</span>
-              <span className="pr-schip">Independent</span>
             </div>
           </div>
           <div className="pr-step accent">
             <div className="pr-stepn">2</div>
-            <b>Search free, spend a credit to open</b>
-            <p>Searching costs nothing. Spend a credit only on a lead you want to open, and it is yours permanently.</p>
+            <b>Search for free</b>
+            <p>Every business is checked while you wait, then graded.</p>
             <div className="pr-stepproof">
-              <span className="pr-sprice"><b>$1</b> / credit = 1 lead</span>
+              <span className="pr-schip">0-100 grade</span>
             </div>
           </div>
           <div className="pr-step">
             <div className="pr-stepn">3</div>
-            <b>Search &amp; export verified leads</b>
-            <p>Run searches in a filterable dashboard, grade every prospect, and export only the genuine ones.</p>
+            <b>Open the ones worth calling</b>
+            <p>One credit each, yours permanently. Export any time.</p>
             <div className="pr-stepproof">
-              <span className="pr-schip"><Download size={12} /> Export CSV</span>
-              <span className="pr-schip">0-100 grade</span>
+              <span className="pr-sprice"><b>$1</b> / credit = 1 lead</span>
             </div>
           </div>
         </Reveal>
@@ -160,18 +163,12 @@ export default async function Landing() {
         </Reveal>
       </section>
 
-      {/* Our values, pinned title, cards scroll horizontally (Primer effect) */}
-      <HScrollCards
-        eyebrow="What we stand for"
-        title="Built on a simple promise"
-        desc="Our standards are the whole product. Every lead you get has cleared them, nothing else reaches you."
-        cards={[
-          { icon: <Phone size={22} />, num: "01", title: "Reachable or it doesn't count", body: "If we can't verify the email and phone, the lead never reaches you. No filler, no dead ends, just contacts you can actually work." },
-          { icon: <Clock size={22} />, num: "02", title: "Fresh, never stale", body: "Every listing is age-checked and re-confirmed active, so you're never chasing a business that closed months ago." },
-          { icon: <Gauge size={22} />, num: "03", title: "Graded, so you know who to call", body: "A 0-100 opportunity score on every prospect with a plain-English reason, so your team always works the best leads first." },
-          { icon: <Check size={22} />, num: "04", title: "You only pay for real", body: "We check the phone and the mailbox before a credit is spent. If a lead turns out to be unreachable, you keep the credit." },
-        ]}
-      />
+      {/* The horizontally scrolling values section used to sit here and has been
+          removed. Two of its four cards restated the Quality checks above almost word
+          for word, reachable and fresh, so a visitor read the same promise twice in
+          different clothes. It also hijacked vertical scrolling to move sideways, which
+          is a thing to do once on a page nobody is trying to get through, not on the
+          route to a signup button. */}
 
       {/* Testimonials, hover flips each card to dark */}
       <section className="pr pr-section">
