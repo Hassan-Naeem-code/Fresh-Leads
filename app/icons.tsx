@@ -171,6 +171,16 @@ export const User = (p: IconProps) => (
   </Svg>
 );
 
+/** Two people, for anything about a team rather than a person. */
+export const Users = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.6" />
+    <path d="M2.5 21v-1a6 6 0 0 1 6-6h1a6 6 0 0 1 6 6v1" />
+    <path d="M16 5.2a3.6 3.6 0 0 1 0 6.9" />
+    <path d="M18 14.4a6 6 0 0 1 3.5 5.4V21" />
+  </Svg>
+);
+
 export const Briefcase = (p: IconProps) => (
   <Svg {...p}>
     <rect x="2" y="7" width="20" height="14" rx="2" />

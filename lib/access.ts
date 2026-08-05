@@ -86,12 +86,24 @@ export async function getSuspension(
   };
 }
 
+/**
+ * The subscription covering this person.
+ *
+ * Resolved to the team's billing owner, so one yearly fee covers the whole team rather
+ * than every seat buying its own. That is the difference between a team being able to
+ * buy this product and a team doing the arithmetic and not bothering.
+ *
+ * Suspension deliberately does NOT resolve: it is a judgement about a person and is
+ * read from their own row a few lines above. Inheriting a colleague's suspension, or
+ * escaping your own by joining a team, would both be wrong.
+ */
 export async function getSubscription(userId: string): Promise<Subscription | null> {
   const admin = createAdminClient();
+  const { billingUser } = await import("./org");
   const { data } = await admin
     .from("subscriptions")
     .select("status, current_period_end, cancel_at_period_end")
-    .eq("user_id", userId)
+    .eq("user_id", await billingUser(userId))
     .maybeSingle();
   if (!data) return null;
 

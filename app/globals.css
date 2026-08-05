@@ -2994,3 +2994,32 @@ table { max-width: 100%; }
    a claim, but present, because a table of numbers with no stated source is exactly
    the kind of marketing this page exists not to be. */
 .cmpnote { max-width: 760px; margin: 14px auto 0; text-align: center; }
+
+/* TEAMS.
+   One column of cards rather than a dense table: the questions people actually arrive
+   with are "whose money is this", "who can see what I open" and "how do I get someone
+   in", and each deserves to be answerable at a glance rather than decoded from a grid. */
+.teamgrid { display: flex; flex-direction: column; gap: 16px; }
+.teamstat { display: flex; flex-direction: column; gap: 3px; margin: 6px 0 10px; }
+.teamstatnum {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 26px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums;
+}
+.memberlist { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.memberlist li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; padding: 11px 0; border-bottom: 1px solid var(--border);
+}
+.memberlist li:last-child { border-bottom: 0; }
+.memberlist li > div:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.memberlist b { overflow-wrap: anywhere; }
+.memberactions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.subhead { margin: 18px 0 0; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+/* The invite link is a credential shown once, so it gets room to be read and copied
+   rather than being truncated into something people mis-paste. */
+.invitelink { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.invitelink code {
+  display: block; width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--panel2); font-size: 12.5px;
+  overflow-wrap: anywhere; color: var(--text);
+}

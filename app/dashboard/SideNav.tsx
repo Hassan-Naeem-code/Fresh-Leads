@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Search, Clock, Coin, Upload, Key, Building, Mail, Lock, Sliders, Shield, LifeBuoy, Flame,
+  Search, Clock, Coin, Upload, Key, Building, Mail, Lock, Sliders, Shield, LifeBuoy, Flame, Users,
 } from "../icons";
 
 // The signed-in navigation, as a left rail rather than a top strip.
@@ -31,6 +31,10 @@ const LINKS = [
 // the work, they are the things you go and find when you need them, and none of them
 // is ever locked.
 const PERSONAL = [
+  // Not marked paid. Somebody weighing this up for a team of five has to be able to
+  // see how the seats and the shared balance work BEFORE paying for it, and a locked
+  // page saying "subscribe to find out" answers the wrong question.
+  { href: "/dashboard/team", label: "Your team", icon: Users },
   { href: "/dashboard/preferences", label: "Personalisation", icon: Sliders },
   { href: "/dashboard/account", label: "Account and security", icon: Shield },
   { href: "/dashboard/help", label: "Help", icon: LifeBuoy },

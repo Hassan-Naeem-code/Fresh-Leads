@@ -37,6 +37,21 @@ const FK_VIOLATION = "23503";
  * as `ref` for a purchase and a redelivered webhook becomes a no-op instead of a
  * second grant. Returns the resulting balance.
  */
+// WHOSE MONEY. Every function in this file takes the id of the person ACTING and
+// resolves it to the id of the account that holds the balance. For everybody outside a
+// team those are the same id, which is why nothing about the single-user path changes.
+//
+// Resolved here rather than at each call site on purpose: there are a dozen callers,
+// and one that forgot would charge a team member personally for a lead their colleagues
+// can already see, or take a purchase out of the pool everybody is spending from.
+//
+// It fails toward the person, never toward the team. A lookup that breaks charges
+// someone their own credit rather than quietly spending a colleague's.
+async function wallet(userId: string): Promise<string> {
+  const { billingUser } = await import("./org");
+  return billingUser(userId);
+}
+
 export async function grantCredits(
   userId: string,
   amount: number,
@@ -45,7 +60,7 @@ export async function grantCredits(
 ): Promise<number> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("grant_credits", {
-    p_user_id: userId,
+    p_user_id: await wallet(userId),
     p_amount: amount,
     p_reason: reason,
     p_ref: ref ?? null,
@@ -76,8 +91,9 @@ export async function unlockLead(
   opts: { leadId?: string | null; searchId?: string | null } = {}
 ): Promise<{ status: UnlockStatus; creditsLeft: number }> {
   const admin = createAdminClient();
+  const payer = await wallet(userId);
   const { data, error } = await admin.rpc("unlock_lead", {
-    p_user_id: userId,
+    p_user_id: payer,
     p_lead_key: leadKey,
     p_lead_id: opts.leadId ?? null,
     p_search_id: opts.searchId ?? null,
@@ -88,6 +104,23 @@ export async function unlockLead(
   }
   // The function returns a single-row table.
   const row = Array.isArray(data) ? data[0] : data;
+
+  // Who pressed the button, for the team's own audit trail. ATTRIBUTION ONLY: the
+  // charge above has already been taken from the billing owner, and this is a separate
+  // write precisely so a failure here can never affect it. A shared balance nobody can
+  // account for is a shared balance nobody trusts.
+  if (payer !== userId && row?.status === "unlocked") {
+    try {
+      await admin
+        .from("lead_unlocks")
+        .update({ acting_user_id: userId })
+        .eq("user_id", payer)
+        .eq("lead_key", leadKey);
+    } catch {
+      // Deliberately silent. Losing the name costs a line in a history screen.
+    }
+  }
+
   return {
     status: (row?.status ?? "insufficient") as UnlockStatus,
     creditsLeft: row?.credits_left ?? 0,
@@ -106,7 +139,7 @@ export async function unlockLeadsBulk(
 ): Promise<{ ok: boolean; charged: number; creditsLeft: number }> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("unlock_leads_bulk", {
-    p_user_id: userId,
+    p_user_id: await wallet(userId),
     p_lead_keys: leadKeys,
   });
   if (error) {
@@ -124,7 +157,11 @@ export async function unlockLeadsBulk(
 /** Current balance. Reads the materialized value on profiles. */
 export async function getCreditBalance(userId: string): Promise<number> {
   const admin = createAdminClient();
-  const { data } = await admin.from("profiles").select("credits").eq("id", userId).maybeSingle();
+  const { data } = await admin
+    .from("profiles")
+    .select("credits")
+    .eq("id", await wallet(userId))
+    .maybeSingle();
   return data?.credits ?? 0;
 }
 
@@ -134,10 +171,12 @@ export async function getCreditBalance(userId: string): Promise<number> {
  */
 export async function getUnlockedKeys(userId: string): Promise<Set<string>> {
   const admin = createAdminClient();
+  // The TEAM's unlocks, not the individual's. This is the point of a shared pool: a
+  // lead a colleague opened on Tuesday must not be sold to you again on Thursday.
   const { data } = await admin
     .from("lead_unlocks")
     .select("lead_key")
-    .eq("user_id", userId)
+    .eq("user_id", await wallet(userId))
     .limit(50_000);
   return new Set((data ?? []).map((r) => r.lead_key as string));
 }
@@ -148,7 +187,7 @@ export async function hasUnlocked(userId: string, leadKey: string): Promise<bool
   const { data } = await admin
     .from("lead_unlocks")
     .select("lead_key")
-    .eq("user_id", userId)
+    .eq("user_id", await wallet(userId))
     .eq("lead_key", leadKey)
     .maybeSingle();
   return Boolean(data);
@@ -159,8 +198,8 @@ export async function getCreditHistory(userId: string, limit = 50) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("credit_ledger")
-    .select("delta, reason, balance_after, created_at")
-    .eq("user_id", userId)
+    .select("delta, reason, balance_after, created_at, acting_user_id")
+    .eq("user_id", await wallet(userId))
     .order("created_at", { ascending: false })
     .limit(limit);
   return data ?? [];
@@ -179,7 +218,7 @@ export async function unlockOwner(
 ): Promise<{ status: UnlockStatus; creditsLeft: number }> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("unlock_owner", {
-    p_user_id: userId,
+    p_user_id: await wallet(userId),
     p_lead_key: leadKey,
     p_lead_id: leadId ?? null,
   });
@@ -200,7 +239,7 @@ export async function getOwnerUnlockedKeys(userId: string): Promise<Set<string>>
   const { data } = await admin
     .from("owner_unlocks")
     .select("lead_key")
-    .eq("user_id", userId)
+    .eq("user_id", await wallet(userId))
     .limit(50_000);
   return new Set((data ?? []).map((r) => r.lead_key as string));
 }
@@ -225,7 +264,7 @@ export async function spendCredits(
 ): Promise<{ status: SpendStatus; creditsLeft: number }> {
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("spend_credits", {
-    p_user_id: userId,
+    p_user_id: await wallet(userId),
     p_amount: amount,
     p_reason: reason,
     p_ref: ref,
