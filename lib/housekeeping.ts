@@ -19,6 +19,9 @@ import { createAdminClient } from "./supabase/admin";
 export type PurgeResult = {
   mfaChallenges: number;
   rateLimits: number;
+  /** Hiring facts past their 21 day life. A stale one is worse than none: it puts a
+   *  rep on the phone congratulating somebody on a vacancy they filled in the spring. */
+  hiringSignals: number;
   errors: string[];
 };
 
@@ -31,11 +34,16 @@ export type PurgeResult = {
  */
 export async function purgeExpired(): Promise<PurgeResult> {
   const admin = createAdminClient();
-  const result: PurgeResult = { mfaChallenges: 0, rateLimits: 0, errors: [] };
+  const result: PurgeResult = { mfaChallenges: 0, rateLimits: 0, hiringSignals: 0, errors: [] };
 
   const steps: [keyof Omit<PurgeResult, "errors">, string][] = [
     ["mfaChallenges", "purge_expired_mfa_challenges"],
     ["rateLimits", "purge_stale_rate_limits"],
+    // Migration 023 shipped this function and a comment claiming it rode along with
+    // this sweep. It did not: nothing called it, so expired hiring rows accumulated
+    // forever. A comment describing behaviour that does not exist is worse than none,
+    // because the next person reads it instead of the code.
+    ["hiringSignals", "purge_expired_hiring_signals"],
   ];
 
   for (const [field, fn] of steps) {
