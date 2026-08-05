@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { decideAccess } from "./.build/access.mjs";
 
 // The two purchases are INDEPENDENT and both are required:
@@ -182,4 +183,28 @@ test("not suspended is the default and changes nothing", () => {
   const plain = at({ credits: 3 });
   const explicit = at({ credits: 3, suspended: false });
   assert.deepEqual(plain, explicit);
+});
+
+// PAGING IS A PAID FEATURE, and the check has to live on the server.
+//
+// Found by attacking the running system, not by review. The trial cap is applied to
+// the PAGE, so honouring an offset from a trial account handed out leads 4 to 6, then
+// 7 to 9. Measured against production: 15 distinct businesses from five free searches
+// against a stated limit of three.
+//
+// Nothing paid leaked, because a locked lead carries no contact details and no signals.
+// What leaked was the thing the plan sells, the rest of every search, which made the
+// three a suggestion rather than a limit.
+test("a trial account cannot page past its preview", () => {
+  const route = readFileSync("app/api/leads/route.ts", "utf8");
+  // The offset a trial account asks for must be discarded, not merely un-offered: the
+  // Load more button was already hidden from them and that changed nothing.
+  assert.match(route, /const canPage = !access \|\| access\.subscribed/);
+  assert.match(route, /const from = canPage \? requestedFrom : 0/);
+  // And the decision must come BEFORE the slice, which is where the first version had
+  // it wrong: canPage was computed further down, after the leads were already chosen.
+  assert.ok(
+    route.indexOf("const from = canPage") < route.indexOf("matching.slice(from"),
+    "the paging decision must be made before the page is cut"
+  );
 });

@@ -238,7 +238,7 @@ export async function POST(req: NextRequest) {
     // Where to start. Bounded because it decides an array slice and because the
     // ranking below it has to have been computed anyway: asking for lead 10,000 costs
     // exactly as much as asking for lead 1 and returns nothing.
-    const from = Math.min(Math.max(parseInt(String(offset)) || 0, 0), 500);
+    const requestedFrom = Math.min(Math.max(parseInt(String(offset)) || 0, 0), 500);
     const notes: string[] = [];
 
     // ACCESS GATE. Two independent requirements, and BOTH are needed:
@@ -702,6 +702,23 @@ export async function POST(req: NextRequest) {
         // places between calls and be shown twice, or not at all.
         a.id.localeCompare(b.id)
     );
+
+    // PAGING IS FOR SUBSCRIBERS, and this is where that has to be enforced.
+    //
+    // Found by attacking the running system. The trial cap is applied to the PAGE, so
+    // honouring an offset from a trial account handed out leads 4 to 6, then 7 to 9, and
+    // a free account could walk an entire city three at a time. Measured: 15 distinct
+    // businesses from five free searches against a limit of three.
+    //
+    // Nothing paid leaked, because a locked lead carries no contact details and no
+    // signals. What leaked was the thing the plan actually sells, which is the rest of
+    // every search, so the number was a suggestion rather than a limit.
+    //
+    // The button was already hidden from them. A limit that depends on the interface
+    // not offering the button is not a limit, it is a costume, which is the same
+    // reasoning that made the trial cap a server-side slice in the first place.
+    const canPage = !access || access.subscribed;
+    const from = canPage ? requestedFrom : 0;
     const top = matching.slice(from, from + cap);
 
     const genuine = top.filter((l) => l.deliverable).length;
@@ -799,7 +816,6 @@ export async function POST(req: NextRequest) {
     //
     // Subscribers are untouched. The trial keeps enough to prove the leads are real,
     // which is what it is for.
-    const canPage = !access || access.subscribed;
     let hiddenByPlan = 0;
     let visibleLeads = resultLeads;
     if (access && !access.subscribed && resultLeads.length > FREE_PREVIEW_LEADS) {

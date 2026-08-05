@@ -89,7 +89,16 @@ test("a tampered token is refused", () => {
   const token = mint("user-1");
   const [body, sig] = token.split(".");
   assert.equal(verify(`${body}x.${sig}`, "user-1"), false, "changed payload");
-  assert.equal(verify(`${body}.${sig.slice(0, -1)}A`, "user-1"), false, "changed signature");
+  // Flip the last character to one it is NOT already.
+  //
+  // This used to hardcode "A" and failed roughly one run in four. A 32 byte HMAC is 43
+  // base64url characters and the last one carries only two bits, so it is always one of
+  // A, Q, g, w. Whenever the real signature already ended in A the "tamper" changed
+  // nothing and the assertion was checking that a VALID token verifies. A test that
+  // passes three times out of four would have hidden a broken signature check.
+  const flipped = sig.slice(0, -1) + (sig.endsWith("A") ? "Q" : "A");
+  assert.notEqual(flipped, sig, "the tampered signature must actually differ");
+  assert.equal(verify(flipped, "user-1"), false, "changed signature");
   assert.equal(verify(body, "user-1"), false, "no signature at all");
 });
 
