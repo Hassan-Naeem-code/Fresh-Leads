@@ -27,11 +27,19 @@ export function BillingActions({
   subscriptionPriceCents: number;
 }) {
   const [amount, setAmount] = useState(100);
-  const [busy, setBusy] = useState<"sub" | "credits" | null>(null);
+  // WHICH BUTTON, not which KIND of purchase.
+  //
+  // There are two buttons on this page that both start the subscription: the main one
+  // in the access card, and the one inside the credits card explaining that credits
+  // need a plan first. Keying the spinner on the KIND meant pressing either put both
+  // into "Starting checkout...", which reads as the page having lost track of what you
+  // clicked. Same action, two places, and the person needs to see which one they hit.
+  const [busy, setBusy] = useState<"sub-main" | "sub-inline" | "credits" | null>(null);
   const [error, setError] = useState("");
 
-  async function go(kind: "sub" | "credits") {
-    setBusy(kind);
+  async function go(button: "sub-main" | "sub-inline" | "credits") {
+    const kind = button === "credits" ? "credits" : "sub";
+    setBusy(button);
     setError("");
     try {
       const res = await fetch(kind === "sub" ? "/api/billing/subscribe" : "/api/billing/credits", {
@@ -75,8 +83,8 @@ export function BillingActions({
           <span className="muted sm">
             Includes no credits. Leads are bought separately.
           </span>
-          <button className="go accent" onClick={() => go("sub")} disabled={busy !== null}>
-            {busy === "sub" ? "Starting checkout…" : `Subscribe for ${dollars}/year`}
+          <button className="go accent" onClick={() => go("sub-main")} disabled={busy !== null}>
+            {busy === "sub-main" ? "Starting checkout…" : `Subscribe for ${dollars}/year`}
             <ArrowRight size={15} />
           </button>
           <span className="muted sm">Cancel any time, you keep access until the year is up.</span>
@@ -146,9 +154,9 @@ export function BillingActions({
               open; credits are what you spend on leads. Your basket is remembered, so you can
               come straight back to it.
             </p>
-            <button className="go accent" onClick={() => go("sub")} disabled={busy !== null}>
+            <button className="go accent" onClick={() => go("sub-inline")} disabled={busy !== null}>
               <Coin size={15} />
-              {busy === "sub" ? "Starting checkout…" : `Get access, ${dollars} a year`}
+              {busy === "sub-inline" ? "Starting checkout…" : `Get access, ${dollars} a year`}
             </button>
           </div>
         )}

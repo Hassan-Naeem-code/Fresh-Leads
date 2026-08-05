@@ -3042,3 +3042,8 @@ table { max-width: 100%; }
 }
 .seatbuy { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .seatbuy .tf { max-width: 160px; }
+
+/* A purchase that has not landed. Distinct from the success bar on purpose: somebody
+   who has been charged and given nothing must not be shown the same colour as somebody
+   whose credits arrived. */
+.creditbar.warn { border-color: rgba(224,138,30,.45); background: rgba(224,138,30,.08); }

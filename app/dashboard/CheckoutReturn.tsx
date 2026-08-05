@@ -20,6 +20,10 @@ type Kind = "credits" | "subscribed" | "cancelled";
 export function CheckoutReturn() {
   const [kind, setKind] = useState<Kind | null>(null);
   const [settled, setSettled] = useState(false);
+  // Settled means "we stopped waiting", which is NOT the same as "it worked". The first
+  // version conflated them and, when the webhook never landed, showed a cheerful
+  // confirmation to somebody who had been charged and given nothing.
+  const [arrived, setArrived] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -60,6 +64,7 @@ export function CheckoutReturn() {
           const arrived = which === "credits" ? data.credits > (before ?? 0) : data.subscribed;
           if (arrived) {
             setCredits(data.credits);
+            setArrived(true);
             setSettled(true);
             return;
           }
@@ -69,8 +74,31 @@ export function CheckoutReturn() {
       } catch {
         // Network hiccup: just try again until the attempt budget runs out.
       }
-      if (attempts < MAX_POLLS) setTimeout(poll, POLL_INTERVAL_MS);
-      else setSettled(true); // Stop promising; tell them to refresh.
+      if (attempts < MAX_POLLS) {
+        setTimeout(poll, POLL_INTERVAL_MS);
+        return;
+      }
+
+      // WAITING IS NOT THE ONLY OPTION.
+      //
+      // A webhook is a message somebody else has to deliver, and it can be rejected,
+      // misconfigured, or lost during a deploy. The customer has already paid by then.
+      // So rather than giving up, ask Stripe directly, which is the party that actually
+      // knows. The endpoint reuses the same idempotent handlers the webhook does, so
+      // this is a no-op if the message turns up a second later.
+      try {
+        const fixed = await fetch("/api/billing/reconcile", { method: "POST" });
+        if (fixed.ok) {
+          const data = await fixed.json();
+          setCredits(data.credits);
+          if (which === "credits" ? data.credits > (before ?? 0) : data.subscribed) {
+            setArrived(true);
+          }
+        }
+      } catch {
+        // Nothing more to try from here. The message below is honest about that.
+      }
+      setSettled(true);
     }
     void poll();
 
@@ -97,6 +125,20 @@ export function CheckoutReturn() {
         <span>
           <span className="spinner" /> Payment received, adding{" "}
           {kind === "credits" ? "your credits" : "your access"}…
+        </span>
+      </div>
+    );
+  }
+
+  // Charged, and still nothing to show for it. Say so plainly and point at a person.
+  // A false confirmation here is the single worst thing this component can do.
+  if (!arrived) {
+    return (
+      <div className="creditbar warn">
+        <span>
+          <AlertTriangle size={14} /> Your payment went through, but it has not been applied
+          to your account yet. Nothing further will be charged. Refresh in a minute, and if
+          it is still missing, contact us and we will sort it out straight away.
         </span>
       </div>
     );
