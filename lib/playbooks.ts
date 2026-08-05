@@ -91,8 +91,21 @@ export const PLAYBOOKS: Playbook[] = [
     id: "general_smb",
     label: "Anything to local businesses",
     blurb: "Insurance, supplies, staffing, finance, anything where the business type and size matter more than their tech.",
-    // No web-presence judgements at all: just is it real, is it busy, can you reach it.
-    factors: ["high_volume", "phone", "email"],
+    // No web-presence judgements: this buyer does not care whether the site is pretty.
+    //
+    // It still needs enough to TELL LEADS APART. With only a busy-business check it had
+    // exactly one need factor worth 22, under the 25 needed for Hot, so on the default
+    // playbook no lead could ever be hot: 318 leads across eight trades came back 0 hot,
+    // 295 warm, 23 cool. Removing the floor instead made 228 of the 318 hot, which is
+    // the same failure pointing the other way. A grade nobody can reach and a grade
+    // everybody reaches carry identical information.
+    //
+    // These are the judgements that survive not caring about websites: how busy they
+    // are, how they are regarded, and whether their listing is even filled in. Enough
+    // to sort a call list, and nothing that assumes what the buyer sells.
+    factors: [
+      "high_volume", "few_reviews", "no_reviews", "low_rating", "no_hours", "phone", "email",
+    ],
     problems: ["any", "volume"],
     niches: ["restaurants", "retail shops", "contractors", "medical clinics", "law firms", "auto repair"],
     meaning: "A real, active, reachable business of the type you asked for.",

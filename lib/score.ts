@@ -394,6 +394,28 @@ export function attainableFor(l: Lead, playbook?: PlaybookId | null): number {
 export const HOT_MIN_NEED_POINTS = 25;
 
 /**
+ * The floor for THIS lead, which is the flat floor capped by what could be found.
+ *
+ * The flat 25 assumed every buyer is scored on web presence, where the smallest real
+ * finding is worth more than that. One playbook is not: "anything to local businesses"
+ * deliberately makes no judgement about anyone's website, and the only need factor it
+ * can award is a busy business, worth 22. Twenty two is under twenty five, so on that
+ * playbook NO LEAD COULD EVER BE HOT. It is the default, so every account that had not
+ * chosen a playbook was using a grader whose top tier was unreachable by arithmetic.
+ * Measured across 318 leads in eight trades: 0 hot, 295 warm, 23 cool.
+ *
+ * Capping by what was attainable keeps the original guarantee and drops the false one.
+ * The guarantee is that Hot means evidence: a lead nobody could check has an
+ * attainable need of zero and is refused whatever else it scores. What it stops
+ * claiming is that every buyer measures need on the same scale. Where only a little
+ * could be checked, ALL of that little has to be bad, which is a stricter test than
+ * the flat floor applies anywhere else.
+ */
+export function hotNeedFloor(attainableNeed: number): number {
+  return Math.min(HOT_MIN_NEED_POINTS, attainableNeed);
+}
+
+/**
  * A lead's grade as a percentage of what was attainable for it. The tier bands are
  * defined on this, not on raw points, so adding a factor to the catalog neither
  * promotes nor demotes existing leads.
@@ -547,7 +569,9 @@ export function scoreLead(l: Lead, playbook?: PlaybookId | null): {
   // Hot has to be earned by evidence of a problem. Reach alone, however complete, is
   // not an opportunity: it only means we can phone someone who may need nothing.
   let tier = tierFor(score, scoreMax);
-  if (tier === "HOT" && needPoints < HOT_MIN_NEED_POINTS) {
+  // needPoints > 0 is not redundant with the floor: when nothing about a lead could be
+  // checked the floor is zero, and zero evidence must never clear it.
+  if (tier === "HOT" && (needPoints <= 0 || needPoints < hotNeedFloor(parts.need))) {
     // Some real finding, just not a big one -> Warm. Nothing found at all, or nothing
     // checkable -> Warm too, because "reachable but unqualified" is what Warm means.
     tier = needPoints > 0 || parts.need === 0 ? "WARM" : "COOL";
