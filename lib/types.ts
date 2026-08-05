@@ -121,7 +121,14 @@ export type Lead = {
    * Shown to the customer, because "their website says so" and "a database says so"
    * are different levels of certainty and they should know which they have.
    */
-  ownerSource?: "site" | "vendor" | null;
+  ownerSource?: "site" | "vendor" | "registry" | null;
+  /**
+   * Which state's filing named them, when the source is a registry.
+   *
+   * Shown verbatim, because "the Colorado Secretary of State lists this person as the
+   * registered agent" is a checkable claim and "we think this is the owner" is not.
+   */
+  ownerRegistry?: string | null;
   /** Vendor confidence 0 to 100. Null when we read it off their own site. */
   ownerConfidence?: number | null;
   socials?: Record<string, string> | null;

@@ -9,6 +9,7 @@ import { stripeConfigured } from "@/lib/stripe";
 import type { Lead, UnlockedLead } from "@/lib/types";
 import { hideOwner, hasOwnerDetail } from "@/lib/lead-view";
 import { writeHiring, hostKey } from "@/lib/search-cache";
+import { lookupRegistryOwner } from "@/lib/registry";
 
 export const runtime = "nodejs";
 
@@ -95,6 +96,13 @@ export async function POST(req: NextRequest) {
     // Bounded, because a slow site must not hold up a paid unlock. If the budget
     // expires the lead is delivered with whatever we had, which is exactly what the
     // customer got before this existed.
+    // Only businesses whose own site never named anybody, and only where a state
+    // publishes its filings properly. See lib/registry: this is deliberately biased
+    // toward returning nothing, because attaching the WRONG name to a business is far
+    // worse than attaching none. It is also a FALLBACK and never an override: when a
+    // business says on its own pages who runs it, that beats a filing, and the two
+    // genuinely disagree in the wild. Measured on real leads, one salon's site named
+    // one person while the state named another; the site is the better answer.
     if (lead.website && !lead.enrichedAt) {
       const budgetMs = 12_000;
       const enrichment = await Promise.race([
@@ -130,9 +138,39 @@ export async function POST(req: NextRequest) {
         // A business address found on a contact page beats having none at all.
         if (!lead.email && enrichment.scrapedEmail) lead.email = enrichment.scrapedEmail;
         lead.enrichedAt = new Date().toISOString();
+      }
 
-        // Persist, so the crawl is paid for once per business rather than once per
-        // person who opens it.
+      // THE STATE FILING, when their own site named nobody.
+      //
+      // Owner coverage is the last real gap against the big databases and it cannot be
+      // bought: Hunter returned zero genuine owners across 40 local businesses, because
+      // the data does not exist commercially for a pizza shop. It does exist in the
+      // filing every LLC makes with its state, which is public and names a human being.
+      //
+      // Strictly a fallback. If the crawl above found a name on their own pages, that
+      // one stands: a business saying who runs it beats a legal filing that may name an
+      // accountant, and the two do disagree on real leads.
+      if (!lead.ownerName) {
+        const filed = await lookupRegistryOwner({
+          name: lead.name,
+          city: lead.city ?? "",
+          address: lead.address ?? "",
+        });
+        if (filed) {
+          lead.ownerName = filed.name;
+          // Never "owner". A registered agent is who the state serves papers on, which
+          // for a local business is usually but not always the person who runs it, and
+          // the card says exactly that rather than the flattering version.
+          lead.ownerRole = filed.role;
+          lead.ownerSource = "registry";
+          lead.ownerRegistry = filed.source;
+          lead.enrichedAt = lead.enrichedAt ?? new Date().toISOString();
+        }
+      }
+
+      // Persist, so the work is paid for once per business rather than once per person
+      // who opens it.
+      if (lead.enrichedAt) {
         await createAdminClient()
           .from("leads")
           .update({ raw: lead })

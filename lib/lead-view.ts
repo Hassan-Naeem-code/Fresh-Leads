@@ -63,7 +63,7 @@ function currency(l: Lead): { currencyLabel: string; currencyIsOurCheck: boolean
  */
 export const OWNER_FIELDS = [
   "ownerName", "ownerRole", "ownerEmail", "ownerPhone", "ownerLinkedin",
-  "ownerSource", "ownerConfidence",
+  "ownerSource", "ownerConfidence", "ownerRegistry",
 ] as const;
 
 /** Does this business have owner detail worth offering? */

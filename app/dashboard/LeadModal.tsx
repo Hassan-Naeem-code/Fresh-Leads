@@ -183,7 +183,10 @@ export function LeadModal({
                     ? `business records${lead.ownerConfidence ? `, ${lead.ownerConfidence}% confidence` : ""}`
                     : lead.ownerSource === "site"
                       ? "their own website"
-                      : null
+                      : lead.ownerSource === "registry"
+                        // Named, because it is a checkable claim rather than a guess.
+                        ? `${lead.ownerRegistry ?? "a state business filing"}, public record`
+                        : null
                 }
               />
               <Fact label="Hiring" value={lead.hiring === null || lead.hiring === undefined ? null : lead.hiring ? "Yes, advertising roles" : "No roles advertised"} />
