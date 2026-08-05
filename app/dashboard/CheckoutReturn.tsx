@@ -38,6 +38,10 @@ export function CheckoutReturn() {
 
     setKind(which);
 
+    // Kept before the URL is cleaned: this is the exact question the server can answer
+    // about THIS purchase, rather than the balance guessing it went up.
+    const sessionId = params.get("session_id") ?? "";
+
     // Clean the URL so a refresh (or the back button) doesn't replay the banner.
     const url = new URL(window.location.href);
     for (const key of ["credits", "subscribed", "checkout", "session_id"]) url.searchParams.delete(key);
@@ -56,12 +60,22 @@ export function CheckoutReturn() {
       if (cancelled) return;
       attempts++;
       try {
-        const res = await fetch("/api/billing/status", { cache: "no-store" });
+        const res = await fetch(
+          sessionId ? `/api/billing/status?session=${encodeURIComponent(sessionId)}` : "/api/billing/status",
+          { cache: "no-store" }
+        );
         if (res.ok) {
           const data = await res.json();
           if (before === null) before = data.credits;
 
-          const arrived = which === "credits" ? data.credits > (before ?? 0) : data.subscribed;
+          // `applied` is the ledger saying this exact session was granted. The balance
+          // comparison is only the fallback for a return with no session id, and it is
+          // the one that got this wrong: the webhook now lands in about two seconds, so
+          // the "before" reading already included the new credits.
+          const arrived =
+            which === "credits"
+              ? data.applied === true || data.credits > (before ?? 0)
+              : data.subscribed;
           if (arrived) {
             setCredits(data.credits);
             setArrived(true);
@@ -93,6 +107,11 @@ export function CheckoutReturn() {
           setCredits(data.credits);
           if (which === "credits" ? data.credits > (before ?? 0) : data.subscribed) {
             setArrived(true);
+          } else if (sessionId) {
+            // Reconciling may have applied it without the balance moving in a way this
+            // component can see. Ask the definitive question one final time.
+            const check = await fetch(`/api/billing/status?session=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
+            if (check.ok && (await check.json()).applied === true) setArrived(true);
           }
         }
       } catch {

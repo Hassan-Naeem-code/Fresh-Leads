@@ -586,18 +586,26 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 .hsc { position: relative; }
 .hsc-sticky { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; overflow: hidden; }
 .hsc-inner { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 48px; align-items: center; width: 100%; }
-/* The track deliberately overflows its column so cards can bleed off the right edge,
-   which also means they travel across the heading on the left. Lifting the heading
-   above the track, with a short fade at its edge, keeps it readable while the cards
-   pass behind it. */
-.hsc-left {
-  max-width: 320px; position: relative; z-index: 2;
-  padding-right: 28px;
-  background: linear-gradient(90deg, var(--bg) 0%, var(--bg) 92%, transparent 100%);
-}
+/* CARDS STAY IN THEIR OWN COLUMN.
+   They used to overflow it and travel BEHIND the heading, with the heading lifted on
+   top and a gradient painted under it to stay readable. Two things went wrong with
+   that. The gradient was the page background while the cards behind it are panel
+   coloured, so it read as a pale rectangle sitting on top of a card rather than as the
+   heading's own space. And a card leaving to the left was sliced in half against the
+   window edge with its text cut through the middle, which looks like a broken layout
+   rather than a deliberate one.
+   Clipping the track to its column fixes both: nothing overlaps the heading, and
+   nothing is ever cut through mid-sentence. */
+.hsc-left { max-width: 320px; padding-right: 28px; }
 .hsc-left .hsc-title { text-align: left; margin: 18px 0 14px; font-size: clamp(30px, 3.6vw, 46px); }
 .hsc-left .hsc-desc { color: var(--muted); font-size: 15.5px; line-height: 1.6; font-weight: 500; }
-.hsc-viewport { overflow: visible; }
+.hsc-viewport {
+  overflow: hidden;
+  /* Fade at the trailing edge so a card on its way out reads as continuing off screen
+     rather than meeting an invisible wall. */
+  -webkit-mask-image: linear-gradient(90deg, #000 0 90%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0 90%, transparent 100%);
+}
 .hsc-track { display: flex; gap: 22px; will-change: transform; }
 .hsc-card { flex: 0 0 auto; width: min(520px, 78vw); display: flex; }
 .hsc-spine { flex: none; width: 44px; border-radius: 24px 0 0 24px; background: linear-gradient(180deg, var(--accent), #ff8a5c); }
@@ -610,7 +618,12 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
   .hsc-sticky { position: static; height: auto; padding: 20px 0; }
   .hsc-inner { grid-template-columns: 1fr; gap: 24px; }
   .hsc-left { max-width: none; }
-  .hsc-viewport { overflow-x: auto; margin: 0 -24px; padding: 4px 24px 16px; scroll-snap-type: x mandatory; }
+  /* Below the breakpoint it becomes an ordinary swipeable row, so the mask and the
+     clip both have to come off or the first and last cards are unreachable. */
+  .hsc-viewport {
+    overflow-x: auto; margin: 0 -24px; padding: 4px 24px 16px; scroll-snap-type: x mandatory;
+    -webkit-mask-image: none; mask-image: none;
+  }
   .hsc-card { scroll-snap-align: start; }
   .hsc-track { transform: none !important; }
 }

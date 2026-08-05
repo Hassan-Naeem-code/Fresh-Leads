@@ -13,14 +13,38 @@ export const metadata: Metadata = {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 
+// EVERY reason the ledger can hold, in the customer's language.
+//
+// A missing entry falls through to the raw database value, so a real customer's billing
+// page read "purchase_bonus". That is our column name leaking onto a screen somebody
+// checks when they are wondering where their money went, which is the worst possible
+// moment to look like a debug view. The list below is the complete set: grep the codebase
+// for the reasons passed to grantCredits, spendCredits and the SQL functions and they
+// are all here.
 const REASON_LABEL: Record<string, string> = {
   signup_bonus: "Welcome credits",
   purchase: "Credits purchased",
+  purchase_bonus: "Bonus credits on that top-up",
+  volume_bonus: "Bonus for buying in volume",
   unlock: "Lead unlocked",
+  owner_unlock: "Owner revealed",
   export: "Leads exported",
+  bulk_enrich: "List enriched",
   admin_grant: "Added by support",
   admin_revoke: "Adjusted by support",
+  team_transfer: "Moved with the team",
 };
+
+/**
+ * Never show a raw database value.
+ *
+ * Any reason we forgot becomes readable English rather than a snake_case identifier,
+ * so the failure mode of adding a reason and not updating the list above is a slightly
+ * generic line rather than an internal name on a billing page.
+ */
+function reasonLabel(reason: string): string {
+  return REASON_LABEL[reason] ?? reason.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
 
 // Which section sent someone here, in their words rather than a route name.
 const LOCKED_LABEL: Record<string, string> = {
@@ -164,7 +188,7 @@ export default async function BillingPage({
                       year: "numeric",
                     })}
                   </td>
-                  <td>{REASON_LABEL[row.reason as string] ?? (row.reason as string)}</td>
+                  <td>{reasonLabel(row.reason as string)}</td>
                   <td className={`lg-delta ${(row.delta as number) > 0 ? "up" : "down"}`}>
                     {(row.delta as number) > 0 ? "+" : ""}
                     {row.delta as number}
