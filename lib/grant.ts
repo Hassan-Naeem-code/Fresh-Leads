@@ -156,6 +156,15 @@ export async function syncSubscription(subscriptionId: string, userIdHint?: stri
   const periodEnd =
     loose.current_period_end ?? sub.items?.data?.[0]?.current_period_end ?? null;
 
+  // SEATS COME FROM STRIPE, NOT FROM US.
+  //
+  // The checkout request carries a seat count, but that number only decides what to
+  // charge. What a team is ENTITLED to has to be the quantity Stripe actually billed,
+  // or the entitlement would be whatever the last browser claimed. This is the same
+  // lesson as the forged webhook: a valid signature over a fabricated payload is still
+  // a fabricated payload, so read the authoritative copy.
+  const seats = Math.max(1, Number(sub.items?.data?.[0]?.quantity ?? 1) || 1);
+
   const admin = createAdminClient();
   const { error } = await admin.rpc("upsert_subscription", {
     p_user_id: userId,
@@ -172,7 +181,17 @@ export async function syncSubscription(subscriptionId: string, userIdHint?: stri
     );
     return;
   }
-  console.log(`[grant] subscription ${sub.id} for ${userId}: ${sub.status} until ${periodEnd}`);
+  // Written separately from the RPC so the seat column can be added without changing a
+  // function that every renewal already depends on.
+  const { error: seatError } = await admin
+    .from("subscriptions")
+    .update({ seats })
+    .eq("user_id", userId);
+  if (seatError) {
+    console.error("[grant] seat count not stored (apply supabase/028_seats.sql):", seatError.message);
+  }
+
+  console.log(`[grant] subscription ${sub.id} for ${userId}: ${sub.status}, ${seats} seat(s) until ${periodEnd}`);
 }
 
 /** A paid invoice: the yearly renewal. Re-syncs the period from Stripe. */

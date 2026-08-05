@@ -7,7 +7,7 @@ import { siteUrl } from "@/lib/site-url";
 import {
   membershipOf, membersOf, createOrg, inviteToOrg, acceptInvite,
   removeMember, setRole, canManageMembers, canManageBilling,
-  transferOwnership, closeOrg,
+  transferOwnership, closeOrg, seatsAvailable,
 } from "@/lib/org";
 import { notifyTeamInvite } from "@/lib/email/notify";
 
@@ -67,11 +67,17 @@ export async function GET() {
     }));
   }
 
+  // Seats paid for and seats in use, shown to EVERYBODY rather than only the owner: a
+  // member who cannot invite anyone should be able to see why without having to ask.
+  const seats = await seatsAvailable(membership.orgId);
+
   return NextResponse.json({
     team: {
       id: membership.orgId,
       name: membership.orgName,
       role: membership.role,
+      seats: seats.seats,
+      seatsUsed: seats.used,
       // The one fact that explains the whole billing model on screen: whose balance
       // everybody is spending.
       youAreTheOwner: membership.ownerUserId === user.id,

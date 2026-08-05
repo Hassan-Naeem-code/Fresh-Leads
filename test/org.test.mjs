@@ -173,3 +173,65 @@ test("the refusal no longer points at a feature that does not exist", () => {
   assert.doesNotMatch(org, /Transfer the team first/);
   assert.match(org, /Hand the team over first, or close it/);
 });
+
+// PER SEAT PRICING.
+//
+// Teams were built to grow revenue and, as first shipped, shrank it: five people shared
+// one $30 plan, so working together was strictly cheaper than working alone. That was
+// an oversight rather than a strategy. A seat is one person and costs exactly what one
+// account costs, so nothing got more expensive for the person working by themselves.
+const seatsSql = readFileSync("supabase/028_seats.sql", "utf8");
+const grant = readFileSync("lib/grant.ts", "utf8");
+const subscribe = readFileSync("app/api/billing/subscribe/route.ts", "utf8");
+const seatsRoute = readFileSync("app/api/billing/seats/route.ts", "utf8");
+
+test("a seat costs the same as a single account", () => {
+  const pricing = readFileSync("lib/pricing.ts", "utf8");
+  assert.match(pricing, /SEAT_PRICE_CENTS = SUBSCRIPTION_PRICE_CENTS/);
+});
+
+test("the entitlement comes from Stripe, never from the browser", () => {
+  // The checkout request carries a seat count, but that only decides what to CHARGE.
+  // What a team is entitled to has to be the quantity Stripe actually billed, or the
+  // entitlement is whatever the last request claimed. Same lesson as the forged
+  // webhook: read the authoritative copy.
+  assert.match(grant, /const seats = Math\.max\(1, Number\(sub\.items\?\.data\?\.\[0\]\?\.quantity/);
+  assert.match(subscribe, /clampSeats/, "the requested count must at least be bounded");
+});
+
+test("seats in use are counted, not stored", () => {
+  // A stored counter needs updating on every join, leave, removal and handover. The
+  // first one missed either sells a seat twice or refuses one that was paid for.
+  assert.match(seatsSql, /create or replace function public\.seats_in_use/);
+  assert.match(org, /select\("user_id", \{ count: "exact", head: true \}\)/);
+});
+
+test("joining is refused when every seat is taken", () => {
+  // Checked at JOIN, not at invite: an invite is a piece of paper, joining is the thing
+  // that consumes a seat.
+  assert.match(org, /const room = await seatsAvailable\(invite\.org_id as string\)/);
+  assert.match(org, /all of them are/);
+});
+
+test("a team can never have fewer seats than people", () => {
+  // Selling somebody the right to lock their own colleagues out is a refund request
+  // wearing a feature's clothes.
+  assert.match(seatsRoute, /seats < membership\.memberCount/);
+  assert.match(subscribe, /Math\.max\(seats, membership\.memberCount/);
+});
+
+test("changing seats never sends a paying team back through checkout", () => {
+  // That would create a SECOND subscription and bill them twice for the same year.
+  assert.match(seatsRoute, /stripe\.subscriptions\.update/);
+  assert.doesNotMatch(seatsRoute, /checkout\.sessions\.create/);
+  assert.match(seatsRoute, /syncSubscription/, "our copy must be read back from Stripe");
+});
+
+test("only the owner buys seats, not an admin", () => {
+  for (const src of [seatsRoute, subscribe]) assert.match(src, /canManageBilling/);
+});
+
+test("existing single accounts are untouched", () => {
+  // Everybody who has never seen a team defaults to one seat, priced exactly as before.
+  assert.match(seatsSql, /seats integer not null default 1/);
+});

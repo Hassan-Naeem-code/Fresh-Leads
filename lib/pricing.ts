@@ -32,6 +32,27 @@ export const SUBSCRIPTION_PRICE_CENTS = 3000;
 export const SUBSCRIPTION_INTERVAL = "year" as const;
 
 /**
+ * A seat is one person on a team, and costs exactly what one account costs.
+ *
+ * Teams shipped sharing a single plan, which made five people working together cheaper
+ * than five people working alone: the feature meant to grow revenue shrank it. Pricing
+ * a seat identically to a solo account fixes that without making anything more
+ * expensive for the person working by themselves, which is most people.
+ */
+export const SEAT_PRICE_CENTS = SUBSCRIPTION_PRICE_CENTS;
+
+/** The most seats one team may buy in a single go. A guard, not a business limit. */
+export const MAX_SEATS = 100;
+
+export const seatCostCents = (seats: number) => clampSeats(seats) * SEAT_PRICE_CENTS;
+
+/** Keep a seat count sane wherever it arrives from. */
+export function clampSeats(seats: number): number {
+  const n = Math.floor(Number(seats) || 1);
+  return Math.min(Math.max(n, 1), MAX_SEATS);
+}
+
+/**
  * Bounds on a single credit top-up.
  *
  * The minimum is 5 credits rather than 1 because of Stripe's 30-cent fixed fee: a $1

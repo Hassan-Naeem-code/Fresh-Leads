@@ -47,6 +47,11 @@ export default async function TeamPage() {
                 youAreTheOwner: membership.ownerUserId === user.id,
                 members,
                 invites: [],
+                // Filled properly by the client's first fetch, which is also where the
+                // role check for invites lives. Seeded from the member count so the
+                // first paint is not misleading.
+                seats: undefined,
+                seatsUsed: members.length,
               }
             : null
         }

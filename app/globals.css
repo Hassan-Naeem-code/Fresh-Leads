@@ -3032,3 +3032,13 @@ table { max-width: 100%; }
   font: inherit; font-size: 14px;
 }
 .teamclose { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* Seats. The one number that explains team billing, so it is stated plainly rather
+   than buried in the billing page where nobody comparing tools would look. */
+.seatrow {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 12px 0 0; margin-top: 12px; border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+.seatbuy { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.seatbuy .tf { max-width: 160px; }

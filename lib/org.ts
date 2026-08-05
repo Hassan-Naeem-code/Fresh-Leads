@@ -20,6 +20,8 @@ export type Membership = {
   orgName: string;
   ownerUserId: string;
   role: OrgRole;
+  /** How many people are in the team, which is how many seats are in use. */
+  memberCount: number;
 };
 
 export type Member = {
@@ -46,11 +48,20 @@ export async function membershipOf(userId: string): Promise<Membership | null> {
     const org = data.organisations as unknown as {
       id: string; name: string; owner_user_id: string;
     };
+    // Counted rather than stored. A stored figure would need updating on every join,
+    // leave, removal and handover, and the first miss would either sell a seat twice or
+    // refuse one that had been paid for.
+    const { count } = await createAdminClient()
+      .from("org_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("org_id", org.id);
+
     return {
       orgId: org.id,
       orgName: org.name,
       ownerUserId: org.owner_user_id,
       role: data.role as OrgRole,
+      memberCount: count ?? 1,
     };
   } catch {
     return null;
@@ -195,6 +206,19 @@ export async function acceptInvite(
     return { ok: false, error: "You are already in a team. Leave it before joining another." };
   }
 
+  // SEATS. Checked here rather than at invite time, because an invite is a piece of
+  // paper and joining is the thing that consumes a seat. Checked against the number
+  // STRIPE has, never a number a browser sent.
+  const room = await seatsAvailable(invite.org_id as string);
+  if (!room.ok) {
+    return {
+      ok: false,
+      error:
+        `${room.teamName} has ${room.seats} ${room.seats === 1 ? "seat" : "seats"} and all of them are ` +
+        `taken. Ask the owner to add one, then use this link again.`,
+    };
+  }
+
   const { error } = await admin
     .from("org_members")
     .insert({ org_id: invite.org_id, user_id: userId, role: invite.role });
@@ -316,6 +340,38 @@ export async function closeOrg(
   if (error) return { ok: false, error: "Could not close the team." };
   if (data === "not_owner") return { ok: false, error: "Only the owner can close the team." };
   return data === "ok" ? { ok: true } : { ok: false, error: "Could not close the team." };
+}
+
+/**
+ * Is there a paid seat free in this team?
+ *
+ * The seat count is read from the subscription, which is our copy of what Stripe is
+ * billing, so it can only be raised by paying. The number in use is counted from
+ * membership, so it cannot drift from reality.
+ *
+ * Fails OPEN, deliberately: if the subscription cannot be read, somebody with a valid
+ * invite gets in. The alternative is a database wobble locking a paying team out of
+ * growing, and the worst case here is one unpaid seat that the next check catches.
+ */
+export async function seatsAvailable(
+  orgId: string
+): Promise<{ ok: boolean; seats: number; used: number; teamName: string }> {
+  const admin = createAdminClient();
+  const { data: org } = await admin
+    .from("organisations")
+    .select("name, owner_user_id")
+    .eq("id", orgId)
+    .maybeSingle();
+  if (!org) return { ok: true, seats: 1, used: 0, teamName: "That team" };
+
+  const [{ count }, { data: sub }] = await Promise.all([
+    admin.from("org_members").select("user_id", { count: "exact", head: true }).eq("org_id", orgId),
+    admin.from("subscriptions").select("seats, status").eq("user_id", org.owner_user_id).maybeSingle(),
+  ]);
+
+  const used = count ?? 0;
+  const seats = Math.max(1, Number(sub?.seats ?? 1) || 1);
+  return { ok: used < seats, seats, used, teamName: org.name as string };
 }
 
 /** May this role manage people? Money stays with the owner alone. */

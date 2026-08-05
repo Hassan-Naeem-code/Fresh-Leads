@@ -8,6 +8,8 @@ type Member = { userId: string; email: string; role: Role; joinedAt: string };
 type Invite = { id: string; email: string; role: string; expiresAt: string };
 type Team = {
   id: string; name: string; role: Role; youAreTheOwner: boolean;
+  /** Seats paid for, and seats filled. A seat is one person, priced as one account. */
+  seats?: number; seatsUsed?: number;
   members: Member[]; invites: Invite[];
 };
 
@@ -31,6 +33,7 @@ export function TeamPanel({
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [emailed, setEmailed] = useState(false);
+  const [seatWanted, setSeatWanted] = useState(initial?.seats ?? 1);
   const [handOverTo, setHandOverTo] = useState("");
   const [closing, setClosing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -43,11 +46,36 @@ export function TeamPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Seats are changed on the subscription, not through checkout: a team that already
+   *  pays must never be sent back through a flow that would create a SECOND
+   *  subscription and bill them twice for the same year. */
+  async function changeSeats() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/billing/seats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seats: seatWanted }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not change the seats");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not change the seats");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function refresh() {
     try {
       const res = await fetch("/api/org");
       const data = await res.json();
-      if (res.ok) setTeam(data.team);
+      if (res.ok) {
+        setTeam(data.team);
+        if (data.team?.seats) setSeatWanted(data.team.seats);
+      }
     } catch {
       // Leaves the server-rendered list on screen, which is still correct.
     }
@@ -128,6 +156,47 @@ export function TeamPanel({
             ? "The yearly plan covers everyone here. Nobody else needs to buy one."
             : "Nobody on this team has the yearly plan yet, so the paid sections stay locked for everybody."}
         </p>
+
+        {/* SEATS. A seat is one person and costs the same as one account, so working
+            alone never got more expensive. Shown to everybody: a member who cannot
+            invite anybody should be able to see the reason rather than ask. */}
+        <div className="seatrow">
+          <span>
+            <b>{team.seatsUsed ?? team.members.length}</b> of <b>{team.seats ?? 1}</b>{" "}
+            {(team.seats ?? 1) === 1 ? "seat" : "seats"} used
+          </span>
+          {(team.seatsUsed ?? 0) >= (team.seats ?? 1) && (
+            <span className="muted sm">
+              Every seat is taken. {team.youAreTheOwner ? "Add one to invite somebody else." : "Ask the owner to add one."}
+            </span>
+          )}
+        </div>
+
+        {team.youAreTheOwner && subscribed && (
+          <div className="seatbuy">
+            <label className="tf">
+              Seats
+              <input
+                type="number"
+                min={team.members.length}
+                max={100}
+                value={seatWanted}
+                onChange={(e) => setSeatWanted(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </label>
+            <button
+              className="ghost"
+              disabled={busy || seatWanted === (team.seats ?? 1)}
+              onClick={changeSeats}
+            >
+              {busy ? "Updating..." : `Change to ${seatWanted} ${seatWanted === 1 ? "seat" : "seats"}`}
+            </button>
+            <span className="muted sm">
+              ${seatWanted * 30} a year in total. The difference is charged or credited to
+              the card already on file, straight away.
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="card">
