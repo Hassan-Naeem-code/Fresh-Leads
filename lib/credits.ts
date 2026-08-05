@@ -111,11 +111,22 @@ export async function unlockLead(
   // account for is a shared balance nobody trusts.
   if (payer !== userId && row?.status === "unlocked") {
     try {
-      await admin
-        .from("lead_unlocks")
-        .update({ acting_user_id: userId })
-        .eq("user_id", payer)
-        .eq("lead_key", leadKey);
+      // Both rows, because they answer different questions. The unlock row says who
+      // opened this business; the ledger says who spent this credit. A team looking at
+      // a balance that dropped wants the second one, and it was the one missing.
+      await Promise.all([
+        admin
+          .from("lead_unlocks")
+          .update({ acting_user_id: userId })
+          .eq("user_id", payer)
+          .eq("lead_key", leadKey),
+        admin
+          .from("credit_ledger")
+          .update({ acting_user_id: userId })
+          .eq("user_id", payer)
+          .eq("reason", "unlock")
+          .eq("ref", leadKey),
+      ]);
     } catch {
       // Deliberately silent. Losing the name costs a line in a history screen.
     }
@@ -263,8 +274,9 @@ export async function spendCredits(
   ref: string
 ): Promise<{ status: SpendStatus; creditsLeft: number }> {
   const admin = createAdminClient();
+  const payer = await wallet(userId);
   const { data, error } = await admin.rpc("spend_credits", {
-    p_user_id: await wallet(userId),
+    p_user_id: payer,
     p_amount: amount,
     p_reason: reason,
     p_ref: ref,
@@ -274,6 +286,22 @@ export async function spendCredits(
     throw new Error("Could not charge for that work");
   }
   const row = Array.isArray(data) ? data[0] : data;
+
+  // Same attribution as an unlock: on a shared balance, "40 credits went somewhere" is
+  // not an answer anybody can act on.
+  if (payer !== userId && row?.status === "ok") {
+    try {
+      await admin
+        .from("credit_ledger")
+        .update({ acting_user_id: userId })
+        .eq("user_id", payer)
+        .eq("reason", reason)
+        .eq("ref", ref);
+    } catch {
+      // Attribution only. Never the charge.
+    }
+  }
+
   return {
     status: (row?.status ?? "insufficient") as SpendStatus,
     creditsLeft: row?.credits_left ?? 0,
