@@ -196,3 +196,102 @@ export async function notifyTeamInvite(input: {
   if (!result.ok) console.error("[notify] team invite mail failed:", result.error);
   return result.ok;
 }
+
+/**
+ * Confirm a newsletter address before ever sending to it.
+ *
+ * Anyone can type anyone's address into a public form. A list built from unconfirmed
+ * addresses produces spam complaints against the same domain that sends every two
+ * factor code and receipt in this product, and losing that reputation would break the
+ * parts people have paid for.
+ */
+export async function notifyNewsletterConfirm(input: { to: string; token: string }): Promise<boolean> {
+  if (!configured()) return false;
+
+  const url = `${SITE()}/newsletter/confirm?token=${encodeURIComponent(input.token)}`;
+  const html = shell({
+    preheader: "Confirm your email to start receiving Fresh Leads updates",
+    body: [
+      heading("One click and you are on the list"),
+      paragraph(
+        "We send occasional notes about what we have found in local business data, and " +
+          "what has changed in the product. No more than monthly."
+      ),
+      button("Confirm my email", url),
+      divider(),
+      paragraph(
+        "If you did not ask for this, ignore it. We will not send you anything else, " +
+          "because nothing is sent to an address that has not confirmed.",
+        true
+      ),
+    ].join(""),
+    footnote: `Sent to ${escapeHtml(input.to)} because it was entered on fresh-leads.io.`,
+  });
+
+  const result = await sendEmail({
+    fromEmail: FROM_EMAIL(),
+    fromName: FROM_NAME(),
+    to: input.to,
+    subject: "Confirm your email",
+    html,
+    text: [
+      "Confirm your email to start receiving Fresh Leads updates.",
+      "",
+      url,
+      "",
+      "If you did not ask for this, ignore it. Nothing is sent to an unconfirmed address.",
+    ].join("\n"),
+  });
+  if (!result.ok) console.error("[notify] newsletter confirm failed:", result.error);
+  return result.ok;
+}
+
+/**
+ * Tell the operator somebody used the contact form.
+ *
+ * The page promises a real person replies within one business day. Until now the
+ * message landed in a table and waited to be noticed, which is a promise kept only by
+ * remembering to look.
+ */
+export async function notifyOperatorOfMessage(input: {
+  name: string;
+  email: string;
+  company: string;
+  message: string;
+}): Promise<boolean> {
+  if (!configured()) return false;
+
+  const html = shell({
+    preheader: `${input.name}: ${excerpt(input.message, 90)}`,
+    body: [
+      heading("Somebody used the contact form"),
+      paragraph(
+        `<b>${escapeHtml(input.name)}</b><br>${escapeHtml(input.email)}` +
+          (input.company ? `<br>${escapeHtml(input.company)}` : "")
+      ),
+      paragraph(escapeHtml(excerpt(input.message)), true),
+      button("Open the admin panel", `${SITE()}/admin/messages`),
+      divider(),
+      paragraph("Replying to this email goes straight to them.", true),
+    ].join(""),
+    footnote: "You are getting this because you operate this deployment.",
+  });
+
+  const result = await sendEmail({
+    fromEmail: FROM_EMAIL(),
+    fromName: FROM_NAME(),
+    to: OPERATOR_EMAIL(),
+    subject: `Contact form: ${input.name}`,
+    html,
+    text: [
+      "Somebody used the contact form.",
+      "",
+      `${input.name} <${input.email}>${input.company ? `, ${input.company}` : ""}`,
+      "",
+      excerpt(input.message),
+    ].join("\n"),
+    replyTo: input.email,
+  });
+  if (!result.ok) console.error("[notify] contact form mail failed:", result.error);
+  return result.ok;
+}

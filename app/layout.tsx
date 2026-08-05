@@ -3,6 +3,7 @@ import "./globals.css";
 import { themeCss } from "@/lib/site-settings";
 import { getSiteSettings } from "@/lib/site-settings.server";
 import { OrganizationSchema, ProductSchema } from "./StructuredData";
+import { CookieNotice } from "./CookieNotice";
 import { siteUrl } from "@/lib/site-url";
 
 // Title/description follow the live brand so a rename in /admin/branding shows in
@@ -51,6 +52,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <OrganizationSchema brand={settings.brand_name} />
         <ProductSchema brand={settings.brand_name} />
         {children}
+        {/* Sitewide, and after the content so it never takes focus before the page has
+            said what it is. Renders nothing at all once a choice is stored. */}
+        <CookieNotice />
       </body>
     </html>
   );

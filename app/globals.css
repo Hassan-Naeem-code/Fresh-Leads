@@ -3060,3 +3060,38 @@ table { max-width: 100%; }
    who has been charged and given nothing must not be shown the same colour as somebody
    whose credits arrived. */
 .creditbar.warn { border-color: rgba(224,138,30,.45); background: rgba(224,138,30,.08); }
+
+/* ---------- Cookie notice ---------- */
+/* Bottom of the viewport, above everything, but never a full-screen blocker: this site
+   sets only strictly necessary cookies, so demanding a decision before the page can be
+   read would be theatre for a choice that changes nothing today. */
+.cookiebar {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 90;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  max-width: 900px; margin: 0 auto; padding: 16px 18px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: 0 24px 60px -20px rgba(35,8,0,.30);
+}
+.cookietext { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 380px; }
+.cookietext span { color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+.cookiebtns { display: flex; gap: 8px; flex: 0 0 auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .cookiebar { animation: cookiein .28s ease-out; }
+  @keyframes cookiein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+}
+
+/* ---------- Newsletter ---------- */
+.nlform { margin-top: 18px; display: flex; flex-direction: column; gap: 7px; max-width: 340px; }
+.nllabel { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.nlrow { display: flex; gap: 8px; }
+.nlrow input {
+  flex: 1; min-width: 0; padding: 9px 12px; font: inherit; font-size: 14px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--panel); color: var(--text);
+}
+.nlrow button { flex: 0 0 auto; }
+/* Off screen AND out of the accessibility tree, so a screen reader never announces a
+   field that exists only to catch bots. */
+.nlhp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.nlsent { margin-top: 18px; display: flex; align-items: flex-start; gap: 7px; font-size: 13.5px; color: var(--muted); max-width: 340px; line-height: 1.55; }
+.nlerr { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--hot); }

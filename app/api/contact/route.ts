@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { guard, clientIp } from "@/lib/rate-limit";
+import { notifyOperatorOfMessage } from "@/lib/email/notify";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,14 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+
+  // Told, not just stored. The page promises a real person replies within one business
+  // day, and until now that promise was kept only by remembering to check a table.
+  // Awaited rather than fired and forgotten, because work left running after the
+  // response returns is killed on serverless. Its failure is swallowed: the message is
+  // already saved, and refusing a form somebody filled in because our mail server is
+  // having a bad minute would lose the enquiry entirely.
+  await notifyOperatorOfMessage({ name, email, company: company || "", message });
 
   return NextResponse.json({ ok: true });
 }

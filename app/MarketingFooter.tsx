@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NewsletterForm } from "./NewsletterForm";
 import type { SiteSettings } from "@/lib/site-settings";
 import { BrandMark, BrandName } from "./brand";
 
@@ -15,6 +16,10 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
             <BrandName settings={settings} />
           </Link>
           <p className="mkt-foottag">{settings.tagline || "Verified local business leads, on demand."}</p>
+          {/* Double opt in: nothing is sent until the address is confirmed. A list built
+              from unconfirmed addresses generates complaints against the same domain
+              that carries every two factor code in the product. */}
+          <NewsletterForm source="footer" />
         </div>
         <div className="mkt-footcols">
           <div className="mkt-footcol">
