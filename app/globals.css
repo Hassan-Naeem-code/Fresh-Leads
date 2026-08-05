@@ -836,7 +836,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .authwrap { display: grid; grid-template-columns: 1.05fr .95fr; place-items: stretch; padding: 0; }
 @media (max-width: 900px) { .authwrap { grid-template-columns: 1fr; } }
 .authmain { display: grid; place-items: center; padding: 40px 24px; }
-.authcard { max-width: 400px; background: none; border: 0; box-shadow: none; padding: 0; }
+/* SPECIFICITY, not source order.
+   The split screen signup wants a bare form on the sand background, so this strips the
+   card chrome. It used to be written as .authcard, which ties with .card at the same
+   specificity and therefore depends entirely on which rule comes last. Two later rules
+   re-declare .card, and one of them re-applies the shadow, so a faint edge reappeared
+   around the form and stopped abruptly under the sign in link. Scoping it to the wrap
+   wins on specificity and cannot be undone by anything added below. */
+.authwrap .authcard {
+  max-width: 400px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
 .authcard .brand { justify-content: flex-start; margin-bottom: 34px; }
 .authcard h1 { font-size: 19px; }
 .authcard h2 { font-size: 30px; text-align: left; letter-spacing: -.032em; line-height: 1.12; }

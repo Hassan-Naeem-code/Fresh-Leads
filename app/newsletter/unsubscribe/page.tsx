@@ -20,11 +20,19 @@ export default async function UnsubscribePage({
   let ok = false;
 
   if (token.length >= 16) {
-    const { error } = await createAdminClient()
+    // The UPDATED ROWS decide, not the absence of an error.
+    //
+    // An update that matches nothing is a perfectly successful statement, so a made-up
+    // token used to be answered with "you are off the list". Somebody whose link had
+    // been mangled by their mail client was told they had unsubscribed and then kept
+    // receiving newsletters, which is how a person stops using an unsubscribe link and
+    // presses the spam button instead.
+    const { data } = await createAdminClient()
       .from("newsletter_subscribers")
       .update({ unsubscribed_at: new Date().toISOString() })
-      .eq("token", token);
-    ok = !error;
+      .eq("token", token)
+      .select("id");
+    ok = (data?.length ?? 0) > 0;
   }
 
   return (

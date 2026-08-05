@@ -12,7 +12,12 @@ const Body = z.object({
   company: z.string().max(160).optional().default(""),
   message: z.string().min(10, "Tell us a little more").max(4000),
   // Honeypot, a hidden field real users never fill. Bots do.
-  website: z.string().max(0).optional().default(""),
+  //
+  // NOT max(0). That rejected the trap at validation with "Enter a valid email", so the
+  // pretend-success below was unreachable and a bot learned which field caught it. It
+  // would also have shown a nonsense error to any real person whose password manager
+  // decided to fill a field called "website".
+  website: z.string().max(200).optional().default(""),
 });
 
 // Public contact form. Stores the message via the service-role client (the table

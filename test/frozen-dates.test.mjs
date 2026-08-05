@@ -62,3 +62,19 @@ test("the example lead dates itself from today", () => {
   assert.match(src, /timeZone:\s*"UTC"/, "the date is formatted in the machine's own timezone");
   assert.match(src, /toLocaleDateString\("en-US"/, "the date is formatted in the machine's own locale");
 });
+
+// THE CARD CHROME ON THE SPLIT SIGN UP SCREEN.
+//
+// .authcard and .card have identical specificity, so which one wins is decided purely
+// by source order. globals.css declares .card three times, and the last one re-applies
+// the shadow, which put a faint edge back around the sign up form that stopped abruptly
+// under the "Already have an account?" line.
+//
+// Scoping the override to the wrapper wins on specificity instead, so a fourth .card
+// rule added below cannot bring it back.
+test("the auth card override does not depend on source order", () => {
+  const css = readFileSync("app/globals.css", "utf8");
+  assert.match(css, /\.authwrap \.authcard \{[\s\S]{0,200}box-shadow: none/);
+  // The tie-prone version must not come back.
+  assert.doesNotMatch(css, /^\.authcard \{ max-width: 400px; background: none/m);
+});

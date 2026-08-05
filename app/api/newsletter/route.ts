@@ -22,8 +22,10 @@ export const dynamic = "force-dynamic";
 const Body = z.object({
   email: z.string().email().max(200),
   source: z.string().max(40).optional(),
-  // Honeypot, same as the contact form. Real people never fill a hidden field.
-  website: z.string().max(0).optional().default(""),
+  // Honeypot. Deliberately NOT max(0): a schema that rejects the trap answers 400 and
+  // tells the bot exactly which field caught it. Accepting anything here lets the
+  // explicit check below return a cheerful success instead, which teaches it nothing.
+  website: z.string().max(200).optional().default(""),
 });
 
 export async function POST(req: NextRequest) {
