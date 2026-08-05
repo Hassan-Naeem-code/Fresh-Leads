@@ -129,3 +129,70 @@ export async function notifyCustomerOfReply(input: {
   if (!result.ok) console.error("[notify] customer reply mail failed:", result.error);
   return result.ok;
 }
+
+/**
+ * Tell somebody they have been invited to a team.
+ *
+ * The link was previously handed to the inviter to send themselves, which worked and
+ * looked exactly as unfinished as it was. It is still returned to them as well: this
+ * mail is best effort, and a team that cannot be built because a mail server is having
+ * a bad afternoon would be a worse product than one that asks you to paste a link.
+ *
+ * The token is IN the link, which makes this email a credential. That is why it says
+ * plainly what accepting does, and why the address it was sent to is the only address
+ * the invite will work for.
+ */
+export async function notifyTeamInvite(input: {
+  to: string;
+  teamName: string;
+  invitedBy: string;
+  link: string;
+}): Promise<boolean> {
+  if (!configured()) return false;
+
+  const html = shell({
+    preheader: `${input.invitedBy} has invited you to ${input.teamName}`,
+    body: [
+      heading("You have been invited to a team"),
+      paragraph(
+        `<b>${escapeHtml(input.invitedBy)}</b> has invited you to join ` +
+          `<b>${escapeHtml(input.teamName)}</b> on Fresh Leads.`
+      ),
+      paragraph(
+        "Joining means you search from the team's credits rather than your own, and " +
+          "every lead anyone on the team has already opened is open for you too. Any " +
+          "credits already on your own account stay yours.",
+        true
+      ),
+      button("Join the team", input.link),
+      divider(),
+      paragraph(
+        `This invite only works for ${escapeHtml(input.to)} and expires in a fortnight. ` +
+          "If you were not expecting it, ignore it and nothing happens.",
+        true
+      ),
+    ].join(""),
+    footnote: `Sent to ${escapeHtml(input.to)} because somebody invited you to their team.`,
+  });
+
+  const result = await sendEmail({
+    fromEmail: FROM_EMAIL(),
+    fromName: FROM_NAME(),
+    to: input.to,
+    subject: `${input.invitedBy} invited you to ${input.teamName}`,
+    html,
+    text: [
+      `${input.invitedBy} has invited you to join ${input.teamName} on Fresh Leads.`,
+      "",
+      "You would search from the team's credits rather than your own, and every lead",
+      "anyone on the team has opened would be open for you too.",
+      "",
+      input.link,
+      "",
+      `This invite only works for ${input.to} and expires in a fortnight.`,
+    ].join("\n"),
+  });
+
+  if (!result.ok) console.error("[notify] team invite mail failed:", result.error);
+  return result.ok;
+}

@@ -105,3 +105,71 @@ test("suspension is not shared, unlike money", () => {
   const suspension = access.slice(access.indexOf("suspended_at, suspended_reason"));
   assert.doesNotMatch(suspension.slice(0, 200), /billingUser/);
 });
+
+// HANDING A TEAM OVER.
+//
+// The product already promised this: removing the billing owner answered "transfer the
+// team first" and there was no transfer, so an owner could not leave, hand over, or
+// wind their team up. An error message pointing at a feature that does not exist is
+// worse than a plain refusal.
+const handover = readFileSync("supabase/027_team_handover.sql", "utf8");
+
+test("the handover moves the balance and the leads, not just the label", () => {
+  // The billing owner is not a label, it IS the wallet: their profile holds the balance
+  // and their user id keys every lead the team ever paid to open. Repointing the team
+  // without moving those drops the shared balance to whatever the new owner happens to
+  // have and re-locks everything the team bought. That is billing twice, by the back
+  // door, which is the one thing this product exists not to do.
+  assert.match(handover, /update public\.profiles set credits = 0 where id = p_from/);
+  assert.match(handover, /update public\.lead_unlocks set user_id = p_to/);
+  assert.match(handover, /update public\.owner_unlocks set user_id = p_to/);
+});
+
+test("the handover is one function, so it cannot half happen", () => {
+  // Four app-level calls could leave the credits moved and the unlocks stranded.
+  assert.match(handover, /create or replace function public\.transfer_org_ownership/);
+  assert.match(handover, /language plpgsql/);
+});
+
+test("moving the balance is written down on both sides", () => {
+  // A balance that changes with no ledger entry is how a customer stops trusting the
+  // number, and a shared balance is the one people check hardest.
+  const entries = handover.match(/insert into public\.credit_ledger[\s\S]{0,200}?'team_transfer'/g) ?? [];
+  assert.equal(entries.length, 2, "expected a ledger entry leaving and arriving");
+});
+
+test("the unique index that stops double charging is never fought", () => {
+  // The new owner may already have opened some of the same businesses. Moving a row
+  // onto a key they already hold would collide with the no-double-charge index.
+  assert.match(handover, /lead_key not in \(select lead_key from public\.lead_unlocks where user_id = p_to\)/);
+});
+
+test("the subscription deliberately does not move", () => {
+  // Stripe is still billing the old owner's card. Rewriting whose row it is would leave
+  // the renewal webhook updating somebody who is not paying.
+  assert.match(handover, /SUBSCRIPTION IS DELIBERATELY NOT MOVED/);
+  assert.doesNotMatch(handover, /update public\.subscriptions set user_id/);
+});
+
+test("closing a team destroys the team and nothing anyone paid for", () => {
+  assert.match(handover, /delete from public\.organisations where id = p_org_id/);
+  for (const table of ["profiles", "lead_unlocks", "credit_ledger", "leads"]) {
+    assert.doesNotMatch(
+      handover.slice(handover.indexOf("function public.close_org")),
+      new RegExp(`delete from public\\.${table}`),
+      `closing a team must not delete ${table}`
+    );
+  }
+});
+
+test("both are the owner's alone, and neither is reachable from a browser", () => {
+  const route = readFileSync("app/api/org/route.ts", "utf8");
+  assert.match(route, /if \(input\.action === "transfer" \|\| input\.action === "close"\)[\s\S]{0,200}canManageBilling/);
+  assert.match(handover, /revoke all on function public\.transfer_org_ownership\(uuid, uuid, uuid\) from public, anon, authenticated/);
+  assert.match(handover, /revoke all on function public\.close_org\(uuid, uuid\) from public, anon, authenticated/);
+});
+
+test("the refusal no longer points at a feature that does not exist", () => {
+  assert.doesNotMatch(org, /Transfer the team first/);
+  assert.match(org, /Hand the team over first, or close it/);
+});

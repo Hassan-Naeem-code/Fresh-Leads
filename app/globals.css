@@ -3023,3 +3023,12 @@ table { max-width: 100%; }
   border-radius: var(--r-md); background: var(--panel2); font-size: 12.5px;
   overflow-wrap: anywhere; color: var(--text);
 }
+
+/* Handing a team over. The select needs to look like the text inputs beside it, not
+   like a raw browser control dropped into a card. */
+.tf select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--panel); color: var(--text);
+  font: inherit; font-size: 14px;
+}
+.teamclose { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }

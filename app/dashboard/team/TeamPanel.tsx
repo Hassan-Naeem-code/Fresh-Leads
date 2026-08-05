@@ -30,6 +30,9 @@ export function TeamPanel({
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
+  const [emailed, setEmailed] = useState(false);
+  const [handOverTo, setHandOverTo] = useState("");
+  const [closing, setClosing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,6 +64,9 @@ export function TeamPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "That did not work");
+      // refresh() re-reads from the server rather than patching state locally, so
+      // closing a team, leaving one, or handing it over all land on the truth rather
+      // than on whatever this component believed a moment ago.
       await refresh();
       return data;
     } catch (err) {
@@ -201,6 +207,7 @@ export function TeamPanel({
               const data = await act({ action: "invite", email: inviteEmail, role: inviteRole });
               if (data?.link) {
                 setLink(String(data.link));
+                setEmailed(data.emailed === true);
                 setInviteEmail("");
                 setCopied(false);
               }
@@ -212,8 +219,10 @@ export function TeamPanel({
           {link && (
             <div className="invitelink">
               <p className="muted sm">
-                Send this to them yourself. We show it once and never store it in a form
-                anyone can read back, including us.
+                {emailed
+                  ? "Sent to them by email. Here is the same link if you would rather send it yourself."
+                  : "Send this to them yourself. Email is not configured on this deployment, so the link is the invite."}
+                {" "}We show it once and never store it anywhere it can be read back, including by us.
               </p>
               <code>{link}</code>
               <button
@@ -246,6 +255,78 @@ export function TeamPanel({
               </ul>
             </>
           )}
+        </div>
+      )}
+
+      {/* HANDING OVER AND CLOSING.
+          The owner's alone, because both move money. Until now the product refused to
+          remove an owner with the words "transfer the team first" and there was no
+          transfer, so an owner could not leave, hand over, or wind the team up. */}
+      {team.youAreTheOwner && (
+        <div className="card danger">
+          <h3 className="cardtitle"><AlertTriangle size={16} /> Hand over or close</h3>
+
+          {team.members.length > 1 ? (
+            <>
+              <p className="muted sm">
+                The team&rsquo;s credits and every lead it has opened move with the
+                ownership, so nobody has to buy any of it again. You stay on as an admin.
+              </p>
+              <p className="muted sm">
+                <b>Your yearly plan does not move.</b> It is billed to your card, so the
+                team&rsquo;s access will follow whoever takes over and they will need a plan
+                on their own account.
+              </p>
+              <label className="tf">
+                Hand the team to
+                <select value={handOverTo} onChange={(e) => setHandOverTo(e.target.value)}>
+                  <option value="">Choose somebody</option>
+                  {team.members
+                    .filter((m) => m.role !== "owner")
+                    .map((m) => (
+                      <option key={m.userId} value={m.userId}>{m.email || m.userId}</option>
+                    ))}
+                </select>
+              </label>
+              <button
+                className="ghost"
+                disabled={busy || !handOverTo}
+                onClick={() => act({ action: "transfer", userId: handOverTo })}
+              >
+                Hand over the team
+              </button>
+            </>
+          ) : (
+            <p className="muted sm">
+              There is nobody to hand the team to yet. Invite somebody first, or close it.
+            </p>
+          )}
+
+          <div className="teamclose">
+            {!closing ? (
+              <button className="ghost sm danger" onClick={() => setClosing(true)}>
+                <Trash size={13} /> Close this team
+              </button>
+            ) : (
+              <>
+                <p className="muted sm">
+                  Everyone goes back to their own account. <b>Nothing you have paid for is
+                  lost:</b> the credits and every lead the team opened stay on your account,
+                  because that is where they have been all along.
+                </p>
+                <div className="tkactions">
+                  <button
+                    className="go danger"
+                    disabled={busy}
+                    onClick={() => act({ action: "close" })}
+                  >
+                    Yes, close the team
+                  </button>
+                  <button className="ghost" onClick={() => setClosing(false)}>Keep it</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 

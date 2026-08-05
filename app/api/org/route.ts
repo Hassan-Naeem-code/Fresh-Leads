@@ -6,8 +6,10 @@ import { guard } from "@/lib/rate-limit";
 import { siteUrl } from "@/lib/site-url";
 import {
   membershipOf, membersOf, createOrg, inviteToOrg, acceptInvite,
-  removeMember, setRole, canManageMembers,
+  removeMember, setRole, canManageMembers, canManageBilling,
+  transferOwnership, closeOrg,
 } from "@/lib/org";
+import { notifyTeamInvite } from "@/lib/email/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +32,8 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("remove"), userId: z.string().uuid() }),
   z.object({ action: z.literal("role"), userId: z.string().uuid(), role: z.enum(["admin", "member"]) }),
   z.object({ action: z.literal("leave") }),
+  z.object({ action: z.literal("transfer"), userId: z.string().uuid() }),
+  z.object({ action: z.literal("close") }),
 ]);
 
 async function me() {
@@ -120,17 +124,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Only an owner or admin can do that." }, { status: 403 });
   }
 
+  // Handing over and closing move the money, so they are the owner's alone. An admin
+  // manages people; only the person whose balance it is decides where it goes.
+  if (input.action === "transfer" || input.action === "close") {
+    if (!canManageBilling(membership.role)) {
+      return NextResponse.json({ error: "Only the owner can do that." }, { status: 403 });
+    }
+    const result =
+      input.action === "transfer"
+        ? await transferOwnership(membership.orgId, user.id, input.userId)
+        : await closeOrg(membership.orgId, user.id);
+    return result.ok
+      ? NextResponse.json({ ok: true })
+      : NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
   switch (input.action) {
     case "invite": {
       const result = await inviteToOrg(membership.orgId, input.email, input.role, user.id);
       if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
-      // The raw token is returned exactly once, here, and never stored anywhere it
-      // could be read back. Sending the link is the inviter's job for now, which is
-      // also the honest thing to show: they can see what they are handing over.
-      return NextResponse.json({
-        ok: true,
-        link: `${siteUrl()}/join?token=${encodeURIComponent(result.token)}`,
+
+      const link = `${siteUrl()}/join?token=${encodeURIComponent(result.token)}`;
+      // Emailed AND returned. The mail is best effort, and a team that could not be
+      // built because a mail server was having a bad afternoon would be a worse product
+      // than one that also lets you paste the link yourself.
+      const emailed = await notifyTeamInvite({
+        to: input.email,
+        teamName: membership.orgName,
+        invitedBy: user.email ?? "A colleague",
+        link,
       });
+      // The raw token exists in this response and nowhere else it can be read back.
+      return NextResponse.json({ ok: true, link, emailed });
     }
     case "remove": {
       const result = await removeMember(membership.orgId, input.userId);

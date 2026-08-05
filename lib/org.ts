@@ -228,7 +228,10 @@ export async function removeMember(
     .maybeSingle();
   if (!org) return { ok: false, error: "That team no longer exists." };
   if (org.owner_user_id === userId) {
-    return { ok: false, error: "The owner holds the credits and cannot be removed. Transfer the team first." };
+    return {
+      ok: false,
+      error: "The owner holds the team's credits and everything it has opened. Hand the team over first, or close it.",
+    };
   }
 
   const { error } = await admin.from("org_members").delete().eq("org_id", orgId).eq("user_id", userId);
@@ -257,6 +260,62 @@ export async function setRole(
     .eq("org_id", orgId)
     .eq("user_id", userId);
   return error ? { ok: false, error: "Could not change that role." } : { ok: true };
+}
+
+/**
+ * Hand the team to somebody else who is already in it.
+ *
+ * The whole move is one SQL function, which is one transaction, because the billing
+ * owner is not a label: their profile IS the balance and their user id IS the key on
+ * every lead the team has ever paid to open. Pointing the team at a new owner without
+ * moving those would drop the shared balance to whatever the new person happens to have
+ * and re-lock every business the team already bought.
+ *
+ * The subscription does not move, and the interface says so before anyone presses the
+ * button. Stripe is still billing the old owner's card, and rewriting whose row it is
+ * would leave the renewal webhook updating somebody who is not paying.
+ */
+export async function transferOwnership(
+  orgId: string,
+  from: string,
+  to: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { data, error } = await createAdminClient().rpc("transfer_org_ownership", {
+    p_org_id: orgId,
+    p_from: from,
+    p_to: to,
+  });
+  if (error) return { ok: false, error: "Could not hand the team over." };
+
+  switch (data as string) {
+    case "ok":
+      return { ok: true };
+    case "not_owner":
+      return { ok: false, error: "Only the current owner can hand the team over." };
+    case "not_a_member":
+      return { ok: false, error: "That person is not in this team." };
+    case "same_person":
+      return { ok: false, error: "They already own it." };
+    default:
+      return { ok: false, error: "Could not hand the team over." };
+  }
+}
+
+/**
+ * Close a team.
+ *
+ * Deletes the team and nothing else. The credits and the unlocked leads stay on the
+ * owner's account, where they have been the whole time: closing a team is everyone
+ * going back to their own account, not anybody losing what they paid for.
+ */
+export async function closeOrg(
+  orgId: string,
+  by: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { data, error } = await createAdminClient().rpc("close_org", { p_org_id: orgId, p_by: by });
+  if (error) return { ok: false, error: "Could not close the team." };
+  if (data === "not_owner") return { ok: false, error: "Only the owner can close the team." };
+  return data === "ok" ? { ok: true } : { ok: false, error: "Could not close the team." };
 }
 
 /** May this role manage people? Money stays with the owner alone. */
