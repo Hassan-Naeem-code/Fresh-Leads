@@ -47,6 +47,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showScale, setShowScale] = useState(false);
 
   // Unlock flow. `open` is the lead shown in the dialog, `unlocking` is the id of
@@ -239,9 +240,15 @@ export default function Home() {
       watchlistId?: string | null;
       minRating?: number; minReviews?: number;
       webPresence?: "any" | "none" | "social_only" | "has_site";
+      /** Where in the ranking to start. Set only by Load more. */
+      offset?: number;
     }
   ) {
     e?.preventDefault();
+    // Paging APPENDS. Everything else replaces, including clearing the old results
+    // first, so a slow search cannot leave the previous answer on screen looking like
+    // the new one.
+    const paging = (overrides?.offset ?? 0) > 0;
     const activeProblem = overrides?.problem ?? problem;
     const activePlaybook = overrides?.playbook ?? playbook;
     const activeNiche = overrides?.niche ?? niche;
@@ -249,9 +256,10 @@ export default function Home() {
     // Explicitly passed on a watchlist click, because React state is not applied yet
     // at the moment the handler runs.
     const activeWatch = overrides?.watchlistId !== undefined ? overrides.watchlistId : activeWatchlist;
-    setLoading(true);
+    if (paging) setLoadingMore(true);
+    else setLoading(true);
     setError("");
-    setResult(null);
+    if (!paging) setResult(null);
     try {
       const res = await fetch("/api/leads", {
         method: "POST",
@@ -270,6 +278,7 @@ export default function Home() {
           minRating: overrides?.minRating ?? minRating,
           minReviews: overrides?.minReviews ?? minReviews,
           webPresence: overrides?.webPresence ?? webPresence,
+          offset: overrides?.offset ?? 0,
         }),
       });
       // Read as TEXT first, then parse.
@@ -292,6 +301,7 @@ export default function Home() {
             : "Something went wrong on our side and the search did not finish. Nothing was charged. Try again in a moment."
         );
         setLoading(false);
+        setLoadingMore(false);
         return;
       }
 
@@ -309,16 +319,36 @@ export default function Home() {
         throw new Error(data.error || "Search failed");
       }
       setNeedsPurchase(null);
-      setResult(data);
+      if (paging) {
+        // Page two is a separate request that re-ranks from scratch, so identical ties
+        // could in principle come back twice. De-duplicated on the way in rather than
+        // trusted, because a lead shown twice reads as a billing bug.
+        setResult((prev) => {
+          if (!prev) return data;
+          const seen = new Set(prev.leads.map((l) => l.id));
+          const fresh = (data.leads ?? []).filter((l: { id: string }) => !seen.has(l.id));
+          return {
+            ...data,
+            leads: [...prev.leads, ...fresh],
+            count: prev.leads.length + fresh.length,
+            // Keep the notes from the FIRST page: they describe the search, not the
+            // slice, and appending them again would repeat the same sentences.
+            notes: prev.notes,
+          };
+        });
+      } else {
+        setResult(data);
+      }
       if (typeof data.credits === "number") setCredits(data.credits);
       // Client-side filters reset, but NOT the problem/factor choice: those were
       // part of the query the server just answered, so clearing them would
       // misdescribe the results on screen.
-      resetClientFilters();
+      if (!paging) resetClientFilters();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }
 
@@ -937,6 +967,29 @@ export default function Home() {
                   <LeadCard lead={l} />
                 </div>
               )
+            )}
+
+            {/* MORE THAN ONE PAGE.
+                Discovery routinely finds two to four times what fits in a response;
+                the 40 was never what we could find, it was what we could audit inside
+                a 60 second function. So the rest is another page rather than a bigger
+                one, and the caches make the second page cheap. */}
+            {(result.remaining ?? 0) > 0 && visible.length > 0 && (
+              <div className="loadmore">
+                <button
+                  className="ghost"
+                  onClick={() => run(undefined, { offset: result.leads.length })}
+                  disabled={loadingMore || loading}
+                >
+                  {loadingMore
+                    ? "Checking the next ones..."
+                    : `Load ${Math.min(result.remaining ?? 0, limit)} more`}
+                </button>
+                <span className="muted sm">
+                  {result.remaining} more {result.remaining === 1 ? "business" : "businesses"} ranked
+                  below these, already found and waiting to be checked.
+                </span>
+              </div>
             )}
 
             {/* WHAT THE TRIAL IS NOT SHOWING.

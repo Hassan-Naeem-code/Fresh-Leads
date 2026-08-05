@@ -2970,3 +2970,16 @@ table { max-width: 100%; }
   .planwallcard { position: static; max-width: none; margin-top: -140px; }
   .planwallcard .go { width: 100%; justify-content: center; }
 }
+
+/* Load more. Deliberately quiet: it is a continuation, not a call to action, and it
+   sits between the leads and the upgrade wall where a loud button would compete with
+   the one thing on this screen we actually want read. */
+.loadmore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px 6px;
+  text-align: center;
+}
+.loadmore button { min-width: min(260px, 100%); }

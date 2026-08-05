@@ -223,6 +223,16 @@ export type SearchResult = {
   hiddenByPlan?: number;
   /** What the search actually found, before the trial cap. */
   totalFound?: number;
+  /** Where in the ranking this page started. */
+  offset?: number;
+  /**
+   * How many ranked leads sit below this page.
+   *
+   * The 40 lead cap was never discovery running out; a city search routinely finds two
+   * to four times that and threw the rest away. The cap is the audit budget inside a 60
+   * second function, so the answer is more pages rather than a bigger page.
+   */
+  remaining?: number;
   /**
    * Milliseconds from the start of the request to the end of each stage.
    *

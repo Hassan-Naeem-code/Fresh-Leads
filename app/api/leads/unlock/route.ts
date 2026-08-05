@@ -8,6 +8,7 @@ import { verifyAndPersist } from "@/lib/verify/persist";
 import { stripeConfigured } from "@/lib/stripe";
 import type { Lead, UnlockedLead } from "@/lib/types";
 import { hideOwner, hasOwnerDetail } from "@/lib/lead-view";
+import { writeHiring, hostKey } from "@/lib/search-cache";
 
 export const runtime = "nodejs";
 
@@ -114,6 +115,17 @@ export async function POST(req: NextRequest) {
         if (enrichment.hiring !== null) {
           lead.hiring = enrichment.hiring;
           lead.hiringUrl = enrichment.hiringUrl;
+          // Remembered for everyone, so this crawl is paid for once rather than once
+          // per person who meets the business. Awaited, not fired and forgotten: work
+          // left running after the response returns is killed on serverless, which is
+          // how the first version of the search cache silently wrote nothing.
+          const host = hostKey(lead.website);
+          if (host) {
+            await writeHiring(host, {
+              hiring: enrichment.hiring,
+              hiringUrl: enrichment.hiringUrl,
+            });
+          }
         }
         // A business address found on a contact page beats having none at all.
         if (!lead.email && enrichment.scrapedEmail) lead.email = enrichment.scrapedEmail;

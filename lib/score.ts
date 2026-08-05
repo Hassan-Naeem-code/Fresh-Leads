@@ -100,6 +100,24 @@ export const FACTOR_CATALOG: FactorSpec[] = [
     label: "No website at all",
     why: "Nothing to defend and nothing to rebuild around, the biggest, cleanest sale.",
   },
+  // ACTIVELY HIRING.
+  //
+  // A third of local businesses are, measured across 318 leads, and it is the strongest
+  // evidence we collect that a business has money and is growing. It was discovered at
+  // unlock, printed once, and never scored, so it moved nothing.
+  //
+  // It counts for every buyer, which almost nothing else here does. Somebody taking on
+  // staff needs more of whatever you sell: more insurance, more supplies, more seats,
+  // more capacity, a site that can take applications. That breadth is why it is worth
+  // carrying between searches rather than rediscovering per customer.
+  {
+    key: "hiring",
+    group: "need",
+    points: 24,
+    slot: "hiring",
+    label: "Actively hiring",
+    why: "They are spending and growing. Budget exists and somebody is already signing things off.",
+  },
   // WHAT CHANGED SINCE WE LAST LOOKED.
   //
   // Collected since migration 008 and, until now, never scored. Every search wrote a
@@ -408,6 +426,11 @@ export function attainableParts(l: Lead, playbook?: PlaybookId | null): { need: 
   const changeKey = changeFactorKey(l, allowed);
   if (changeKey) max += specPoints(changeKey);
 
+  // Only counts when somebody actually looked. Hiring is unknown for most leads on
+  // most searches, and an unknown must never read as a no: that is the same mistake as
+  // grading a business down for a website we failed to fetch.
+  if (l.hiring !== null && l.hiring !== undefined) max += slotMaxScoped("hiring");
+
   if (l.reviewCount !== null) max += slotMaxScoped("reputation");
   if (l.hasBooking !== null) max += slotMaxScoped("booking");
   if (l.hasHours !== null) max += slotMaxScoped("hours");
@@ -552,6 +575,9 @@ export function scoreLead(l: Lead, playbook?: PlaybookId | null): {
     }
     if (l.hasSSL && l.mobileFriendly && !l.outdated) noteAboutSite("Solid site, lower urgency");
   }
+
+  // --- Hiring, when a paid crawl has told us either way ---
+  if (l.hiring === true) fire("hiring");
 
   // --- What changed since last time, if we have been here before ---
   const changes = l.changes ?? [];

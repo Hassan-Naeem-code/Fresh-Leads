@@ -4,7 +4,7 @@ import { resolveNiche } from "@/lib/niche";
 import { auditWebsite, type Audit } from "@/lib/audit";
 import { observeAndDiff, recentTriggers, type Trigger } from "@/lib/snapshots";
 import { guard } from "@/lib/rate-limit";
-import { readDiscovery, writeDiscovery, readAudits, writeAudits, hostKey } from "@/lib/search-cache";
+import { readDiscovery, writeDiscovery, readAudits, writeAudits, readHiring, hostKey } from "@/lib/search-cache";
 import { seenKeys, markSeen } from "@/lib/watchlists";
 import { userIdForApiKey } from "@/lib/api-keys";
 import { scoreLead, gradePct, TIER_RANK } from "@/lib/score";
@@ -206,6 +206,7 @@ export async function POST(req: NextRequest) {
       niche,
       location,
       limit,
+      offset,
       problem = "any",
       requiredFactors = [],
       playbook = DEFAULT_PLAYBOOK,
@@ -217,6 +218,8 @@ export async function POST(req: NextRequest) {
       niche?: string;
       location?: string;
       limit?: number;
+      /** Where in the ranking to start, so a customer can go past the first page. */
+      offset?: number;
       problem?: string;
       requiredFactors?: string[];
       /** What the caller sells; decides which signals are scored and shown. */
@@ -232,6 +235,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "niche and location are required" }, { status: 400 });
     }
     let cap = Math.min(Math.max(parseInt(String(limit)) || 40, 1), 80);
+    // Where to start. Bounded because it decides an array slice and because the
+    // ranking below it has to have been computed anyway: asking for lead 10,000 costs
+    // exactly as much as asking for lead 1 and returns nothing.
+    const from = Math.min(Math.max(parseInt(String(offset)) || 0, 0), 500);
     const notes: string[] = [];
 
     // ACCESS GATE. Two independent requirements, and BOTH are needed:
@@ -557,6 +564,26 @@ export async function POST(req: NextRequest) {
     }
 
     mark("recheck");
+    // HIRING, from whoever paid to discover it.
+    //
+    // Not crawled here: finding it means fetching a careers page per business and this
+    // request already runs 40 audits inside a 60 second function. It is learned at
+    // unlock and remembered, so coverage compounds as the product is used rather than
+    // being rediscovered for every customer who meets the same business.
+    if (Date.now() < requestDeadline) {
+      const hiring = await readHiring(withSite.map((l) => hostKey(l.website) ?? "").filter(Boolean));
+      if (hiring.size > 0) {
+        for (const lead of withSite) {
+          const fact = hiring.get(hostKey(lead.website) ?? "");
+          if (!fact) continue;
+          lead.hiring = fact.hiring;
+          lead.hiringUrl = fact.hiringUrl;
+        }
+        console.log(`[cache] hiring known for ${hiring.size} of ${withSite.length} businesses`);
+      }
+    }
+    mark("hiring");
+
     // File everything crawled this run, so the next search skips it.
     if (freshAudits.length > 0) cacheWrites.push(writeAudits(freshAudits));
     mark("audits");
@@ -669,9 +696,13 @@ export async function POST(req: NextRequest) {
       (a, b) =>
         Number(b.deliverable) - Number(a.deliverable) ||
         TIER_RANK[b.tier] - TIER_RANK[a.tier] ||
-        gradePct(b.score, b.scoreMax) - gradePct(a.score, a.scoreMax)
+        gradePct(b.score, b.scoreMax) - gradePct(a.score, a.scoreMax) ||
+        // Ties broken deterministically, because page two is a SEPARATE request that
+        // re-ranks from scratch. Two leads with identical grades could otherwise swap
+        // places between calls and be shown twice, or not at all.
+        a.id.localeCompare(b.id)
     );
-    const top = matching.slice(0, cap);
+    const top = matching.slice(from, from + cap);
 
     const genuine = top.filter((l) => l.deliverable).length;
     // "Contact found", not "verified": only the free checks have run at this point. The
@@ -768,6 +799,7 @@ export async function POST(req: NextRequest) {
     //
     // Subscribers are untouched. The trial keeps enough to prove the leads are real,
     // which is what it is for.
+    const canPage = !access || access.subscribed;
     let hiddenByPlan = 0;
     let visibleLeads = resultLeads;
     if (access && !access.subscribed && resultLeads.length > FREE_PREVIEW_LEADS) {
@@ -795,6 +827,12 @@ export async function POST(req: NextRequest) {
       // rather than pretending the search returned three businesses.
       hiddenByPlan,
       totalFound: resultLeads.length,
+      offset: from,
+      // What is left BELOW this page, which is the only honest basis for offering more.
+      // Nothing here is offered to a trial account: they are capped at the preview and
+      // a Load more that returned the same three leads would be a worse answer than no
+      // button at all.
+      remaining: canPage ? Math.max(0, matching.length - (from + top.length)) : 0,
       notes,
       scannedAt,
       credits: access?.credits ?? 0,

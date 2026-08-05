@@ -191,3 +191,71 @@ export function hostKey(website: string): string | null {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// HIRING, carried forward from whoever paid to discover it
+//
+// Learned by the enrichment crawl at unlock, because finding it means fetching a
+// careers page and the search already runs 40 audits inside a 60 second function.
+// Remembered here so the next search that meets the same business gets it for free,
+// which is why coverage compounds with use rather than being rediscovered each time.
+// ---------------------------------------------------------------------------
+
+/** Shorter than the audit TTL: a role filled two months ago is not a reason to call. */
+const HIRING_TTL_MS = 21 * 24 * 60 * 60 * 1000;
+
+export type HiringFact = { hiring: boolean; hiringUrl: string | null };
+
+/** What we already know about hiring at these hosts. Unknown hosts are simply absent. */
+export async function readHiring(hosts: string[]): Promise<Map<string, HiringFact>> {
+  const out = new Map<string, HiringFact>();
+  const unique = [...new Set(hosts.filter(Boolean))];
+  if (unique.length === 0) return out;
+
+  try {
+    const admin = createAdminClient();
+    const now = Date.now();
+    for (let i = 0; i < unique.length; i += 100) {
+      const { data } = await admin
+        .from("hiring_signals")
+        .select("host, hiring, hiring_url, expires_at")
+        .in("host", unique.slice(i, i + 100));
+      for (const row of data ?? []) {
+        // Expired rows are ignored rather than served. A stale hiring claim is worse
+        // than none: it puts a rep on the phone congratulating someone on a vacancy
+        // they filled in the spring.
+        if (new Date(row.expires_at as string).getTime() < now) continue;
+        out.set(row.host as string, {
+          hiring: row.hiring as boolean,
+          hiringUrl: (row.hiring_url as string | null) ?? null,
+        });
+      }
+    }
+  } catch (e) {
+    // Same rule as every other cache read: a signal we cannot fetch costs a grade,
+    // never the search.
+    console.error("[cache] hiring read failed:", e instanceof Error ? e.message : e);
+  }
+  return out;
+}
+
+/** File what an unlock discovered, so nobody pays to learn it twice. */
+export async function writeHiring(host: string, fact: HiringFact): Promise<void> {
+  if (!host) return;
+  try {
+    await createAdminClient()
+      .from("hiring_signals")
+      .upsert(
+        {
+          host,
+          hiring: fact.hiring,
+          hiring_url: fact.hiringUrl,
+          checked_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + HIRING_TTL_MS).toISOString(),
+        },
+        { onConflict: "host" }
+      );
+  } catch (e) {
+    console.error("[cache] hiring write failed:", e instanceof Error ? e.message : e);
+  }
+}

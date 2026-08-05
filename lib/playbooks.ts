@@ -46,7 +46,7 @@ export const PLAYBOOKS: Playbook[] = [
     blurb: "You build or redesign websites for local businesses.",
     factors: [
       "no_website", "social_only", "site_down", "no_ssl", "not_mobile", "outdated",
-      "slow_site", "thin_content", "just_broke", "recently_changed", "phone", "email",
+      "slow_site", "thin_content", "just_broke", "recently_changed", "hiring", "phone", "email",
     ],
     problems: ["any", "website", "social_only", "site_fix", "speed"],
     niches: ["restaurants", "dentists", "law firms", "salons", "auto repair", "gyms", "contractors"],
@@ -60,7 +60,7 @@ export const PLAYBOOKS: Playbook[] = [
     // who they take them through today, and how much volume they push.
     factors: [
       "uses_switchable_vendor", "high_volume", "no_online_ordering",
-      "just_broke", "recently_changed", "phone", "email",
+      "just_broke", "recently_changed", "hiring", "phone", "email",
     ],
     problems: ["any", "vendor_switch", "volume", "ordering"],
     niches: [
@@ -76,7 +76,7 @@ export const PLAYBOOKS: Playbook[] = [
     factors: [
       "no_schema", "no_analytics", "thin_content", "slow_site",
       "no_reviews", "few_reviews", "low_rating", "no_hours",
-      "just_broke", "recently_changed", "phone", "email",
+      "just_broke", "recently_changed", "hiring", "phone", "email",
     ],
     problems: ["any", "seo", "reviews", "gbp", "speed"],
     niches: ["dentists", "law firms", "contractors", "real estate", "medical clinics", "gyms"],
@@ -88,7 +88,7 @@ export const PLAYBOOKS: Playbook[] = [
     blurb: "You sell scheduling, ordering or business software.",
     factors: [
       "no_online_ordering", "no_booking", "uses_switchable_vendor", "high_volume",
-      "just_broke", "recently_changed", "phone", "email",
+      "just_broke", "recently_changed", "hiring", "phone", "email",
     ],
     problems: ["any", "booking", "vendor_switch", "volume"],
     niches: ["salons", "barbers", "dentists", "medical clinics", "restaurants", "gyms", "spas"],
@@ -114,7 +114,7 @@ export const PLAYBOOKS: Playbook[] = [
       "high_volume", "few_reviews", "no_reviews", "low_rating", "no_hours",
       // Not just_broke: this buyer does not sell websites, so a broken one is not their
       // opening. That a business is CHANGING still matters to anyone selling anything.
-      "recently_changed", "phone", "email",
+      "recently_changed", "hiring", "phone", "email",
     ],
     problems: ["any", "volume"],
     niches: ["restaurants", "retail shops", "contractors", "medical clinics", "law firms", "auto repair"],
