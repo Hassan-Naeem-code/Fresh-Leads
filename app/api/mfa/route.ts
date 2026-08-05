@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
       const codes = confirmed.length === 1 ? await issueRecoveryCodes(me.owner) : null;
 
       const res = NextResponse.json({ ok: true, recoveryCodes: codes });
-      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false);
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false, me.epoch);
       return res;
     }
 
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
       }
 
       const res = NextResponse.json({ ok: true });
-      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, input.trust === true);
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, input.trust === true, me.epoch);
       return res;
     }
 
@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
 
       const left = await countRecoveryCodes(me.owner);
       const res = NextResponse.json({ ok: true, recoveryCodesLeft: left });
-      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false);
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false, me.epoch);
       return res;
     }
 
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
       const codes = confirmed.length === 1 ? await issueRecoveryCodes(me.owner) : null;
 
       const res = NextResponse.json({ ok: true, recoveryCodes: codes });
-      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false);
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, false, me.epoch);
       return res;
     }
 
@@ -315,7 +315,7 @@ export async function POST(req: NextRequest) {
 
       await bumpSignCount(matched.id, check.signCount);
       const res = NextResponse.json({ ok: true });
-      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, input.trust === true);
+      applyPass(res, me.kind, me.kind === "admin" ? me.email : me.userId!, input.trust === true, me.epoch);
       return res;
     }
 
@@ -329,13 +329,19 @@ export async function POST(req: NextRequest) {
 }
 
 /** Attach the "second factor passed" cookie for whichever audience this is. */
-function applyPass(res: NextResponse, kind: "admin" | "user", subject: string, trust: boolean) {
+function applyPass(
+  res: NextResponse,
+  kind: "admin" | "user",
+  subject: string,
+  trust: boolean,
+  epoch: number
+) {
   const ttl = trust ? TRUSTED_TTL_MS : SESSION_TTL_MS;
   // The trusted flag travels IN the token, so sign out can keep this pass and drop an
   // ordinary one. The lifetime alone could never carry that: both are just cookies.
   res.cookies.set(
     kind === "admin" ? MFA_ADMIN_COOKIE : MFA_COOKIE,
-    mint(subject, ttl, trust),
+    mint(subject, ttl, trust, epoch),
     cookieOptions(ttl)
   );
 }

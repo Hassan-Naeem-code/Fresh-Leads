@@ -83,7 +83,10 @@ export async function middleware(request: NextRequest) {
   // has no `user` here, so machine to machine calls are untouched: their credential is
   // a secret the holder either has or does not, and a code cannot be typed by a cron.
   if (user && !isExempt(pathname) && !mfaOff()) {
-    const passed = await verifyMfaToken(request.cookies.get("fl_mfa")?.value, user.id);
+    // The epoch rides along in app_metadata, which getUser() has already fetched, so
+    // "sign out everywhere" costs no extra round trip on any request.
+    const epoch = Number(user.app_metadata?.mfa_epoch ?? 0) || 0;
+    const passed = await verifyMfaToken(request.cookies.get("fl_mfa")?.value, user.id, epoch);
     if (!passed) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json(

@@ -25,7 +25,7 @@ export const TRUSTED_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 // out left the cookie behind whatever the customer had chosen, so declining to trust
 // the machine still skipped the second factor for twelve hours, across sign outs. The
 // checkbox decided how LONG, when what it says is WHETHER.
-type Payload = { sub: string; exp: number; trusted?: boolean };
+type Payload = { sub: string; exp: number; trusted?: boolean; ep?: number };
 
 function secret(): string {
   return (
@@ -40,9 +40,26 @@ function secret(): string {
 const sign = (data: string): string =>
   createHmac("sha256", secret()).update(data).digest("base64url");
 
-export function mint(subject: string, ttlMs = SESSION_TTL_MS, trusted = false): string {
+/**
+ * `epoch` is what makes "sign out everywhere" possible.
+ *
+ * A signed token cannot be recalled: it is valid because the signature says so, and we
+ * keep no list of the ones we have handed out. So each one records the epoch it was
+ * minted under, and revoking is a matter of incrementing the number it is checked
+ * against. Every token issued before stops matching at once, with nothing to enumerate
+ * and no chance of one surviving by being missed.
+ *
+ * Thirty days of trust is a promise, and a promise you cannot take back is a liability
+ * the moment a trusted laptop goes missing.
+ */
+export function mint(
+  subject: string,
+  ttlMs = SESSION_TTL_MS,
+  trusted = false,
+  epoch = 0
+): string {
   const body = Buffer.from(
-    JSON.stringify({ sub: subject, exp: Date.now() + ttlMs, trusted })
+    JSON.stringify({ sub: subject, exp: Date.now() + ttlMs, trusted, ep: epoch })
   ).toString("base64url");
   return `${body}.${sign(body)}`;
 }
@@ -80,7 +97,11 @@ export function isTrusted(token: string | undefined | null): boolean {
  * Returns false rather than throwing on anything malformed. A tampered cookie is not
  * an error condition, it is simply not proof.
  */
-export function verify(token: string | undefined | null, subject: string): boolean {
+export function verify(
+  token: string | undefined | null,
+  subject: string,
+  epoch = 0
+): boolean {
   if (!token || !subject) return false;
   const [body, sig] = token.split(".");
   if (!body || !sig) return false;
@@ -94,7 +115,10 @@ export function verify(token: string | undefined | null, subject: string): boole
     const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as Payload;
     if (typeof payload.exp !== "number" || payload.exp < Date.now()) return false;
     // The binding. A valid signature over somebody else's id is still a no.
-    return payload.sub === subject;
+    if (payload.sub !== subject) return false;
+    // Tokens minted before this field existed read as epoch 0, which is where every
+    // account starts, so nobody is signed out by the deploy that added it.
+    return (payload.ep ?? 0) === epoch;
   } catch {
     return false;
   }

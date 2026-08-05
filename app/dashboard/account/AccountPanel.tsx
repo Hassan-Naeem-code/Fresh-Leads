@@ -36,6 +36,7 @@ export function AccountPanel({
   const [delReason, setDelReason] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  const [revoking, setRevoking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -58,6 +59,25 @@ export function AccountPanel({
       return null;
     } finally {
       setBusy(false);
+    }
+  }
+
+  // Sign out everywhere. Retires every second factor pass ever issued to this account,
+  // including any thirty day "trust this device" ones, and the password sessions with
+  // them. This browser goes too: "everywhere except here" is how somebody comes away
+  // believing a lost laptop was dealt with when it was not.
+  async function revokeSessions() {
+    setRevoking(true);
+    setError("");
+    try {
+      const res = await fetch("/api/account/sessions", { method: "POST" });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Could not sign out");
+      // Full navigation, not a router push: the cookies were cleared on this response
+      // and every subsequent request has to be made without them.
+      window.location.href = "/login?signedout=everywhere";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sign out everywhere");
+      setRevoking(false);
     }
   }
 
@@ -190,6 +210,23 @@ export function AccountPanel({
             </button>
           </>
         )}
+      </div>
+
+      <div className="card">
+        <h3 className="cardtitle"><Shield size={16} /> Devices you have trusted</h3>
+        <p className="muted sm">
+          Anyone who ticked <b>Trust this device for 30 days</b> when signing in can get
+          back into this account for a month without a code. If one of those machines is
+          lost, borrowed or no longer yours, end them all here.
+        </p>
+        <p className="muted sm">
+          This signs out every browser, phone and tablet, <b>including this one</b>, and
+          the next sign in on each will ask for your second factor again. Nothing in your
+          account is deleted and nothing is charged.
+        </p>
+        <button className="ghost" onClick={revokeSessions} disabled={revoking || busy}>
+          {revoking ? "Signing out everywhere..." : "Sign out everywhere"}
+        </button>
       </div>
 
       <div className="card danger">

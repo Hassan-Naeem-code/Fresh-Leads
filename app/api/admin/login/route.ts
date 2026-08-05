@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyAdminLogin } from "@/lib/admin/accounts";
 import { createAdminToken, cookieOptions } from "@/lib/admin/session";
+import { adminEpoch } from "@/lib/mfa/epoch";
 import { ADMIN_COOKIE } from "@/lib/admin/constants";
 import { checkRateLimit, recordFailure, recordSuccess } from "@/lib/admin/rate-limit";
 
@@ -36,6 +37,6 @@ export async function POST(req: NextRequest) {
 
   recordSuccess(rlKey);
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, createAdminToken(email), cookieOptions);
+  res.cookies.set(ADMIN_COOKIE, createAdminToken(email, await adminEpoch(email)), cookieOptions);
   return res;
 }

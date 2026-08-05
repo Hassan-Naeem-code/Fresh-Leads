@@ -12,6 +12,9 @@ function Form({ settings }: { settings: SiteSettings }) {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/dashboard";
+  // Landing here straight after "sign out everywhere" with no explanation reads like
+  // something went wrong, when in fact it is the feature working on this device too.
+  const signedOutEverywhere = params.get("signedout") === "everywhere";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,7 +74,14 @@ function Form({ settings }: { settings: SiteSettings }) {
           <h1><BrandName settings={settings} /></h1>
         </Link>
         <h2>Welcome back</h2>
-        <p className="sub">Sign in to run verified lead searches.</p>
+        {signedOutEverywhere ? (
+          <p className="sub">
+            Every device is signed out, including this one. Signing in will ask for your
+            second factor again, and no device stays trusted until you tick the box once more.
+          </p>
+        ) : (
+          <p className="sub">Sign in to run verified lead searches.</p>
+        )}
 
         <form className="authform" onSubmit={onSubmit}>
           <div>

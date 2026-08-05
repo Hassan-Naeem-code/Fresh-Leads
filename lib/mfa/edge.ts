@@ -33,7 +33,8 @@ function sameBytes(a: string, b: string): boolean {
 
 export async function verifyMfaToken(
   token: string | undefined | null,
-  subject: string
+  subject: string,
+  epoch = 0
 ): Promise<boolean> {
   if (!token || !subject) return false;
   const [body, sig] = token.split(".");
@@ -51,9 +52,11 @@ export async function verifyMfaToken(
 
   try {
     const json = atob(body.replace(/-/g, "+").replace(/_/g, "/"));
-    const payload = JSON.parse(json) as { sub?: string; exp?: number };
+    const payload = JSON.parse(json) as { sub?: string; exp?: number; ep?: number };
     if (typeof payload.exp !== "number" || payload.exp < Date.now()) return false;
-    return payload.sub === subject;
+    if (payload.sub !== subject) return false;
+    // See mint(): revoking is incrementing the number, not hunting down tokens.
+    return (payload.ep ?? 0) === epoch;
   } catch {
     return false;
   }
