@@ -1,6 +1,6 @@
 import type { Lead } from "@/lib/types";
 import { LEGACY_ATTAINABLE, bandFor, gradePct } from "@/lib/score";
-import { bandFor as freshnessBandFor } from "@/lib/freshness";
+import { bandFor as freshnessBandFor, describeCurrency } from "@/lib/freshness";
 import { estimateSize } from "@/lib/size";
 import { Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Building, ChevronRight, Dot, Check, User, Briefcase, Flame } from "./icons";
 
@@ -10,6 +10,11 @@ import { Phone, Mail, Globe, GlobeOff, MapPin, Lightbulb, Building, ChevronRight
 export function LeadCard({ lead: l }: { lead: Lead }) {
   const band = bandFor(l.tier);
   const fband = freshnessBandFor(l.freshness);
+  // Google Places carries no listing date, so 76% of leads had nothing to say here and
+  // said "unknown" out loud. When the listing cannot answer, our own crawl can, and
+  // that is the stronger claim anyway: a cached database cannot tell you when it last
+  // looked, because it did not.
+  const currency = describeCurrency(l.lastUpdated, l.checkedAt);
   // Grade against what was attainable FOR THIS LEAD. Leads saved to history before
   // scoreMax existed keep the scale they were originally graded on.
   const attainable = l.scoreMax || LEGACY_ATTAINABLE;
@@ -25,8 +30,11 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
         <h3>{l.name}</h3>
         <div className="cat">
           {l.category.replace(/_/g, " ")}{l.city ? ` · ${l.city}` : ""}
-          <span className={`fresh ${l.freshness}`} title={fband.meaning}>
-            <Dot /> {fband.label} · listing updated {l.freshnessLabel}
+          <span
+            className={`fresh ${currency.fromOurCheck ? "CHECKED" : l.freshness}`}
+            title={currency.fromOurCheck ? "We fetched this business ourselves and re-derived every signal." : fband.meaning}
+          >
+            <Dot /> {currency.fromOurCheck ? "Checked by us" : fband.label} &middot; {currency.label}
           </span>
         </div>
         {/* The named decision maker, when their own site says who runs it. This is the

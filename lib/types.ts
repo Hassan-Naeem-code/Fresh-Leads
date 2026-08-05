@@ -81,6 +81,14 @@ export type Lead = {
   freshness: FreshnessLevel;
   freshnessAgeDays: number | null;
   freshnessLabel: string;
+  /**
+   * When WE last fetched this business and re-derived its signals.
+   *
+   * The second clock. Google Places supplies no listing date, so 76% of leads had
+   * nothing to show for currency at all. This is the one we can always answer, and it
+   * is the one a cached database cannot answer at any price.
+   */
+  checkedAt: string | null;
   // --- verification (Phase 5: "genuine leads") ---
   source: string; // "osm" | "google_places"
   phoneValid: boolean | null;
@@ -159,6 +167,10 @@ export type LockedLead = {
   freshness: Lead["freshness"];
   freshnessLabel: string;
   freshnessAgeDays: number | null;
+  /** Ready to print: either the listing date or, failing that, when we last looked. */
+  currencyLabel: string;
+  /** True when the label above is our own check rather than the listing's date. */
+  currencyIsOurCheck: boolean;
   /** Verified, reachable contact exists. NOT which channel, and not its value. */
   deliverable: boolean;
   /** How many graded findings are waiting behind the unlock. */

@@ -1,4 +1,5 @@
 import type { Lead, LockedLead, ResultLead } from "./types";
+import { describeCurrency } from "./freshness";
 
 // The single definition of what a user who has NOT paid for a lead is allowed to
 // see. Every surface that renders leads goes through here, so there is one place to
@@ -26,6 +27,10 @@ export function toLockedLead(l: Lead, dbId: string | null): LockedLead {
     freshness: l.freshness,
     freshnessLabel: l.freshnessLabel,
     freshnessAgeDays: l.freshnessAgeDays,
+    // Derived here rather than in the card, so a locked lead and an open one cannot
+    // end up saying different things about the same business. Safe to show without
+    // payment: when we last looked is a fact about US, not about them.
+    ...currency(l),
     deliverable: l.deliverable,
     // A count, not the findings themselves: enough to show there is something worth
     // paying for without giving away what it is.
@@ -34,6 +39,12 @@ export function toLockedLead(l: Lead, dbId: string | null): LockedLead {
     // strong reason to open a lead; WHICH thing it changed is what the credit buys.
     changeCount: l.changes?.length ?? 0,
   };
+}
+
+/** The currency line, the same for a locked lead and an open one. */
+function currency(l: Lead): { currencyLabel: string; currencyIsOurCheck: boolean } {
+  const d = describeCurrency(l.lastUpdated, l.checkedAt);
+  return { currencyLabel: d.label, currencyIsOurCheck: d.fromOurCheck };
 }
 
 /**

@@ -100,6 +100,32 @@ export const FACTOR_CATALOG: FactorSpec[] = [
     label: "No website at all",
     why: "Nothing to defend and nothing to rebuild around, the biggest, cleanest sale.",
   },
+  // WHAT CHANGED SINCE WE LAST LOOKED.
+  //
+  // Collected since migration 008 and, until now, never scored. Every search wrote a
+  // snapshot and computed a diff, the card showed it, and the grade ignored it, so a
+  // business whose site went down last week ranked level with one that had always been
+  // fine. The single thing no competitor can sell was worth nothing to the ranking.
+  //
+  // Deliberately separate from the state factors below. "Their site is down" is a
+  // condition; "their site went down since we last looked" is a date, and the date is
+  // what makes the call land. A lead can legitimately carry both.
+  {
+    key: "just_broke",
+    group: "need",
+    points: 30,
+    slot: "change",
+    label: "Something broke since we last looked",
+    why: "The timing is the pitch. You are calling the week it happened, not months after.",
+  },
+  {
+    key: "recently_changed",
+    group: "need",
+    points: 16,
+    slot: "change",
+    label: "Changed something since we last looked",
+    why: "A business in motion is making decisions. Reach them while it is still on the desk.",
+  },
   {
     key: "site_down",
     group: "need",
@@ -325,6 +351,24 @@ const slotMax = (slot: string) => Math.max(0, ...inSlot(slot).map((f) => f.point
  * different questions: reach is almost always knowable, need often is not, and
  * conflating them let a lead with no findings at all look perfect.
  */
+/**
+ * Which change factor a lead's history earns, if any.
+ *
+ * Shared by the ceiling and the scoring on purpose. They were written separately and
+ * immediately disagreed: the ceiling took the change slot's maximum, 30, while an
+ * ordinary change fires the 16 point factor, so on a payments playbook a business that
+ * merely switched vendor dropped from 74% to 68% for the crime of having been seen
+ * before. A ceiling computed from a different rule than the score is not a ceiling.
+ */
+export function changeFactorKey(l: Lead, allowed: Set<string> | null): string | null {
+  const changes = l.changes ?? [];
+  if (changes.length === 0) return null;
+  const broke = changes.some((c) => c.kind === "site_went_down" || c.kind === "lost_own_site");
+  const can = (key: string) => !allowed || allowed.has(key);
+  if (broke && can("just_broke")) return "just_broke";
+  return can("recently_changed") ? "recently_changed" : null;
+}
+
 export function attainableParts(l: Lead, playbook?: PlaybookId | null): { need: number; reach: number } {
   // Only the active playbook's factors count. A payments reseller's ceiling must not
   // include "no HTTPS", or their leads would be marked down for a gap they cannot sell
@@ -353,6 +397,16 @@ export function attainableParts(l: Lead, playbook?: PlaybookId | null): { need: 
     if (l.mobileFriendly !== null) max += slotMaxScoped("mobile");
     if (l.outdated !== null) max += slotMaxScoped("outdated");
   }
+
+  // A change counts toward the ceiling ONLY when we saw one.
+  //
+  // Not having seen a business before is not evidence about that business, so it must
+  // never lower its grade. Nothing here can distinguish "we have watched them and
+  // nothing moved" from "we have never watched them", and guessing wrong in the
+  // punishing direction would mark every business we met today as worse than one we
+  // happen to have history on. So the change slot can only ever raise a lead.
+  const changeKey = changeFactorKey(l, allowed);
+  if (changeKey) max += specPoints(changeKey);
 
   if (l.reviewCount !== null) max += slotMaxScoped("reputation");
   if (l.hasBooking !== null) max += slotMaxScoped("booking");
@@ -451,8 +505,10 @@ export function scoreLead(l: Lead, playbook?: PlaybookId | null): {
     return true;
   };
   /** Fire, and if it fired, replace the label with a more specific one. */
-  const fireWith = (key: string, label: string) => {
-    if (fire(key)) signals[signals.length - 1] = label;
+  const fireWith = (key: string, label: string): boolean => {
+    if (!fire(key)) return false;
+    signals[signals.length - 1] = label;
+    return true;
   };
 
   // Commentary about their website ("solid site", "we could not check it") is pushed
@@ -495,6 +551,19 @@ export function scoreLead(l: Lead, playbook?: PlaybookId | null): {
       fireWith("outdated", `Outdated site (©${l.copyrightYear})`);
     }
     if (l.hasSSL && l.mobileFriendly && !l.outdated) noteAboutSite("Solid site, lower urgency");
+  }
+
+  // --- What changed since last time, if we have been here before ---
+  const changes = l.changes ?? [];
+  if (changes.length > 0) {
+    // Something they had and lost outranks anything else they did: it is the only kind
+    // that is costing them money while the phone rings.
+    // Same rule the ceiling used, so the two cannot disagree about what this lead earns.
+    const key = changeFactorKey(l, allowed);
+    if (key) {
+      const broke = changes.find((c) => c.kind === "site_went_down" || c.kind === "lost_own_site");
+      fireWith(key, (broke ?? changes[0]).label);
+    }
   }
 
   // --- Reputation, only when a source actually gave us the numbers ---

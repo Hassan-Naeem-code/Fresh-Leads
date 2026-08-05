@@ -119,14 +119,24 @@ export type CachedAudits = {
   byHost: Map<string, Audit>;
   /** Hosts whose entry is past its expiry, so the caller can refresh them in place. */
   staleHosts: string[];
+  /**
+   * When each cached audit was actually crawled.
+   *
+   * The lead card tells the customer when we last looked at a business, and serving a
+   * cached audit is not looking. Without this the answer would be "just now" for work
+   * done up to a day ago, which is precisely the claim the product exists to make
+   * honestly.
+   */
+  crawledAt: Map<string, string>;
 };
 
 /** Website audits we already have, for the hosts in this batch. */
 export async function readAudits(hosts: string[]): Promise<CachedAudits> {
   const byHost = new Map<string, Audit>();
   const staleHosts: string[] = [];
+  const crawledAt = new Map<string, string>();
   const unique = [...new Set(hosts.filter(Boolean))];
-  if (unique.length === 0) return { byHost, staleHosts };
+  if (unique.length === 0) return { byHost, staleHosts, crawledAt };
 
   try {
     const admin = createAdminClient();
@@ -136,10 +146,11 @@ export async function readAudits(hosts: string[]): Promise<CachedAudits> {
       const slice = unique.slice(i, i + 100);
       const { data } = await admin
         .from("audit_cache")
-        .select("host, audit, expires_at")
+        .select("host, audit, expires_at, refreshed_at")
         .in("host", slice);
       for (const row of data ?? []) {
         byHost.set(row.host as string, row.audit as Audit);
+        if (row.refreshed_at) crawledAt.set(row.host as string, row.refreshed_at as string);
         if (new Date(row.expires_at as string).getTime() < now) staleHosts.push(row.host as string);
       }
       await admin.rpc("touch_audit_cache", { p_hosts: slice });
@@ -147,7 +158,7 @@ export async function readAudits(hosts: string[]): Promise<CachedAudits> {
   } catch (e) {
     console.error("[cache] audit read failed:", e instanceof Error ? e.message : e);
   }
-  return { byHost, staleHosts };
+  return { byHost, staleHosts, crawledAt };
 }
 
 export async function writeAudits(entries: { host: string; audit: Audit }[]): Promise<void> {

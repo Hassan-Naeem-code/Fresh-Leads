@@ -69,8 +69,11 @@ const RECHECK_BUDGET_MS = 5_000;
  * fifteen assignments, which is how one of them ends up missing a field that the
  * others set.
  */
-function applyAudit(lead: Lead, audit: Audit): void {
+function applyAudit(lead: Lead, audit: Audit, crawledAt?: string | null): void {
   lead.siteAudited = true;
+  // When we looked, not when we answered. A cached audit carries the time it was
+  // actually crawled, because serving one is not looking at anything.
+  lead.checkedAt = crawledAt ?? new Date().toISOString();
   lead.siteReachable = audit.reachable;
   lead.hasSSL = audit.hasSSL;
   lead.mobileFriendly = audit.mobileFriendly;
@@ -126,6 +129,10 @@ function rawToLead(r: RawLead): Lead {
     freshness: fresh.level,
     freshnessAgeDays: fresh.ageDays,
     freshnessLabel: fresh.ageLabel,
+    // Filled in when the site is actually fetched, or from the cache entry's own crawl
+    // time. Stays null for a business with no website, where we have looked at nothing
+    // and should not imply otherwise.
+    checkedAt: null,
     source: r.source,
     phoneValid: null,
     phoneType: null,
@@ -441,7 +448,7 @@ export async function POST(req: NextRequest) {
       // particular fact is what the product is selling.
       if (hit && host && !auditCache.staleHosts.includes(host)) {
         auditByKey.set(lead.id, hit);
-        applyAudit(lead, hit);
+        applyAudit(lead, hit, auditCache.crawledAt.get(host) ?? null);
       } else {
         toCrawl.push(lead);
       }

@@ -91,6 +91,44 @@ export function relativeAge(days: number | null): string {
   return months === 0 ? `${y} ago` : `${y}, ${months} mo ago`;
 }
 
+/**
+ * What we can honestly say about how current a lead is.
+ *
+ * Two clocks, and for most leads only the second one exists. OpenStreetMap records
+ * carry an edit timestamp; Google Places returns none at all, so a business found only
+ * by Places has no listing date and never will. Measured across 435 rows, that is 76%
+ * of them, and every one printed "listing updated unknown" on the card. On a product
+ * whose whole pitch is freshness, three quarters of the results were admitting they
+ * did not know how fresh they were.
+ *
+ * The answer was never to go looking for a listing date. We fetch the site, read it,
+ * and re-derive every signal at the moment of the search, so for those leads the true
+ * and stronger statement is when WE last looked. A cached database cannot say that,
+ * which makes it the wrong thing to have been hiding.
+ *
+ * The listing date still wins when we have it: it speaks to whether the phone number
+ * has drifted, which our own crawl cannot see.
+ */
+export function describeCurrency(
+  listingIso: string | null | undefined,
+  checkedIso: string | null | undefined,
+  now: number = Date.now()
+): { label: string; fromOurCheck: boolean } {
+  const listing = assessFreshness(listingIso, now);
+  if (listing.level !== "UNKNOWN") {
+    return { label: `listing updated ${listing.ageLabel}`, fromOurCheck: false };
+  }
+
+  const checkedDays = ageInDays(checkedIso, now);
+  if (checkedDays == null) return { label: "listing updated unknown", fromOurCheck: false };
+
+  // "we checked today" reads as a boast; "checked today" reads as a fact.
+  return {
+    label: checkedDays < 1 ? "checked today" : `checked ${relativeAge(checkedDays)}`,
+    fromOurCheck: true,
+  };
+}
+
 export function assessFreshness(iso: string | null | undefined, now: number = Date.now()): Freshness {
   const ageDays = ageInDays(iso, now);
   if (ageDays == null) return { level: "UNKNOWN", ageDays: null, ageLabel: "unknown" };

@@ -38,8 +38,13 @@ export function LockedLeadCard({
         <div className="cat">
           {l.category.replace(/_/g, " ")}
           {l.city ? ` · ${l.city}` : ""}
-          <span className={`fresh ${l.freshness}`} title={fband.meaning}>
-            <Dot /> {fband.label} · listing updated {l.freshnessLabel}
+          {/* Computed server side in lib/lead-view so a locked lead and an open one
+              can never disagree about the same business. */}
+          <span
+            className={`fresh ${l.currencyIsOurCheck ? "CHECKED" : l.freshness}`}
+            title={l.currencyIsOurCheck ? "We fetched this business ourselves and re-derived every signal." : fband.meaning}
+          >
+            <Dot /> {l.currencyIsOurCheck ? "Checked by us" : fband.label} &middot; {l.currencyLabel}
           </span>
         </div>
 

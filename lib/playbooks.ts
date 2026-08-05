@@ -46,7 +46,7 @@ export const PLAYBOOKS: Playbook[] = [
     blurb: "You build or redesign websites for local businesses.",
     factors: [
       "no_website", "social_only", "site_down", "no_ssl", "not_mobile", "outdated",
-      "slow_site", "thin_content", "phone", "email",
+      "slow_site", "thin_content", "just_broke", "recently_changed", "phone", "email",
     ],
     problems: ["any", "website", "social_only", "site_fix", "speed"],
     niches: ["restaurants", "dentists", "law firms", "salons", "auto repair", "gyms", "contractors"],
@@ -58,7 +58,10 @@ export const PLAYBOOKS: Playbook[] = [
     blurb: "You sell card processing, terminals or point-of-sale systems.",
     // Website quality is irrelevant here. What matters is that they take payments,
     // who they take them through today, and how much volume they push.
-    factors: ["uses_switchable_vendor", "high_volume", "no_online_ordering", "phone", "email"],
+    factors: [
+      "uses_switchable_vendor", "high_volume", "no_online_ordering",
+      "just_broke", "recently_changed", "phone", "email",
+    ],
     problems: ["any", "vendor_switch", "volume", "ordering"],
     niches: [
       "restaurants", "cafes", "bars", "retail shops", "salons", "barbers",
@@ -72,7 +75,8 @@ export const PLAYBOOKS: Playbook[] = [
     blurb: "You sell search, ads, content or reputation work.",
     factors: [
       "no_schema", "no_analytics", "thin_content", "slow_site",
-      "no_reviews", "few_reviews", "low_rating", "no_hours", "phone", "email",
+      "no_reviews", "few_reviews", "low_rating", "no_hours",
+      "just_broke", "recently_changed", "phone", "email",
     ],
     problems: ["any", "seo", "reviews", "gbp", "speed"],
     niches: ["dentists", "law firms", "contractors", "real estate", "medical clinics", "gyms"],
@@ -82,7 +86,10 @@ export const PLAYBOOKS: Playbook[] = [
     id: "booking_software",
     label: "Booking & software",
     blurb: "You sell scheduling, ordering or business software.",
-    factors: ["no_online_ordering", "no_booking", "uses_switchable_vendor", "high_volume", "phone", "email"],
+    factors: [
+      "no_online_ordering", "no_booking", "uses_switchable_vendor", "high_volume",
+      "just_broke", "recently_changed", "phone", "email",
+    ],
     problems: ["any", "booking", "vendor_switch", "volume"],
     niches: ["salons", "barbers", "dentists", "medical clinics", "restaurants", "gyms", "spas"],
     meaning: "Taking bookings by phone only, or paying a platform you can replace.",
@@ -104,7 +111,10 @@ export const PLAYBOOKS: Playbook[] = [
     // are, how they are regarded, and whether their listing is even filled in. Enough
     // to sort a call list, and nothing that assumes what the buyer sells.
     factors: [
-      "high_volume", "few_reviews", "no_reviews", "low_rating", "no_hours", "phone", "email",
+      "high_volume", "few_reviews", "no_reviews", "low_rating", "no_hours",
+      // Not just_broke: this buyer does not sell websites, so a broken one is not their
+      // opening. That a business is CHANGING still matters to anyone selling anything.
+      "recently_changed", "phone", "email",
     ],
     problems: ["any", "volume"],
     niches: ["restaurants", "retail shops", "contractors", "medical clinics", "law firms", "auto repair"],

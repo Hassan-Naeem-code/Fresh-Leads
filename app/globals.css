@@ -175,6 +175,9 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
   font-size: 11px; text-transform: none; border: 1px solid var(--border);
   background: var(--panel2); color: var(--muted);
 }
+/* Our own check, which outranks any listing date: it is the newest fact we have and
+   the only one a cached database cannot produce. Reads as confident, not as a warning. */
+.fresh.CHECKED { color: var(--cool); border-color: rgba(31,158,122,.45); }
 .fresh.FRESH { color: var(--cool); border-color: rgba(31,158,122,.4); }
 .fresh.RECENT { color: var(--warm); border-color: rgba(224,138,30,.35); }
 .fresh.AGING { color: #e0721e; border-color: rgba(255,154,82,.35); }
