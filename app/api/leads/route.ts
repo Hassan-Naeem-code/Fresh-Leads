@@ -234,7 +234,17 @@ export async function POST(req: NextRequest) {
     if (!niche || !location) {
       return NextResponse.json({ error: "niche and location are required" }, { status: 400 });
     }
-    let cap = Math.min(Math.max(parseInt(String(limit)) || 40, 1), 80);
+    // VOLUME. The ceiling used to be 80, which was never what discovery could find: a
+    // city search routinely turns up several hundred. It was what could be AUDITED
+    // inside a sixty second function, and the two were conflated.
+    //
+    // They are separated now. Discovery fetches as many as asked for, the audit spends
+    // its budget on the leads most likely to reach the top of the list, and anything it
+    // could not reach is still returned and graded on contact details, with the response
+    // saying plainly how many. A hundred businesses of which thirty are fully checked
+    // beats forty and a hard stop, as long as nobody is told the other seventy were
+    // checked.
+    let cap = Math.min(Math.max(parseInt(String(limit)) || 40, 1), 250);
     // Where to start. Bounded because it decides an array slice and because the
     // ranking below it has to have been computed anyway: asking for lead 10,000 costs
     // exactly as much as asking for lead 1 and returns nothing.
@@ -433,7 +443,20 @@ export async function POST(req: NextRequest) {
     // not knowing instead of implying a clean site.
     // Social/marketplace pages are excluded: auditing facebook.com would measure
     // Facebook's HTTPS and mobile support, not the business's.
-    const withSite = leads.filter((l) => l.hasWebsite && l.website);
+    // AUDIT THE MOST PROMISING FIRST.
+    //
+    // The budget buys a fixed number of crawls, so which ones it buys decides whether
+    // the TOP of the list is properly graded or whether the checks land on businesses
+    // nobody will scroll to. Review count is the best proxy available before any
+    // crawling has happened: a busy business is both more likely to rank well and more
+    // likely to be worth calling.
+    //
+    // Everything still gets audited when the batch is small, which is every search that
+    // fitted inside the old ceiling. This only decides the ORDER in which the budget is
+    // spent, never who is eligible.
+    const withSite = leads
+      .filter((l) => l.hasWebsite && l.website)
+      .sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0));
     const auditDeadline = Math.min(Date.now() + AUDIT_BUDGET_MS, requestDeadline);
     let auditsSkipped = 0;
     // Kept so the crawl can be filed as a dated observation once the batch is done.
@@ -482,7 +505,7 @@ export async function POST(req: NextRequest) {
     if (auditsSkipped > 0) {
       notes.push(
         `${auditsSkipped} website${auditsSkipped === 1 ? "" : "s"} could not be checked in time, ` +
-          `those leads are graded on contact details only.`
+          `those leads are graded on contact details only. Ask for fewer to have every one checked.`
       );
     }
 

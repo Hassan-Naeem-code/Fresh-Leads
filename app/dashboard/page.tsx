@@ -609,6 +609,11 @@ export default function Home() {
             <option value={60}>60</option>
             <option value={80}>80</option>
             <option value={100}>100</option>
+            {/* Above a hundred the audit budget stops covering everything, so the
+                response says how many were graded on contact details alone. Offered
+                anyway: a wide list you can filter beats a short one you cannot. */}
+            <option value={150}>150</option>
+            <option value={250}>250</option>
           </select>
         </div>
         <button className="go" disabled={loading || !niche.trim() || !location.trim()}>
