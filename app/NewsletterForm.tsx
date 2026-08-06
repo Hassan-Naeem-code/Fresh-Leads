@@ -37,18 +37,27 @@ export function NewsletterForm({ source = "footer" }: { source?: string }) {
 
   if (done) {
     return (
-      <p className="nlsent">
-        <Check size={14} /> Check your inbox and click the link to confirm. Nothing is sent
-        until you do.
-      </p>
+      <div className="nlform">
+        <span className="nlhead">Newsletter</span>
+        <p className="nlsent">
+          <Check size={14} /> Check your inbox and click the link to confirm. Nothing is sent
+          until you do.
+        </p>
+      </div>
     );
   }
 
   return (
     <form className="nlform" onSubmit={submit}>
+      {/* An eyebrow, matching the other footer columns, so this reads as a section of the
+          footer rather than a stray form dropped into it. */}
+      <span className="nlhead">Newsletter</span>
       <label className="nllabel" htmlFor="nl-email">
-        What we find in local business data, monthly at most.
+        What we find in local business data. Monthly at most.
       </label>
+      {/* Input and button are ONE control rather than two of different shapes. The
+          button used to be a dashboard style button in a marketing footer, which is
+          where the mismatched height and the muddy colour came from. */}
       <div className="nlrow">
         <input
           id="nl-email"
@@ -59,8 +68,8 @@ export function NewsletterForm({ source = "footer" }: { source?: string }) {
           placeholder="you@company.com"
           autoComplete="email"
         />
-        <button className="go" type="submit" disabled={busy || !email.includes("@")}>
-          {busy ? "Signing up..." : "Subscribe"} <ArrowRight size={14} />
+        <button className="pr-btn accent sm" type="submit" disabled={busy || !email.includes("@")}>
+          {busy ? "Sending..." : "Subscribe"} <ArrowRight size={14} />
         </button>
       </div>
       {/* Hidden from people, irresistible to bots. Kept out of the tab order and out of
