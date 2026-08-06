@@ -85,23 +85,68 @@ export async function runWeeklyDigest(force = false): Promise<DigestSummary> {
     labelByKey.set(t.lead_key as string, list);
   }
 
-  // Who has opened any of them. This is the join that turns a business fact into
-  // something worth one person's attention.
+  // WHO SHOULD HEAR ABOUT THEM, which is two different groups.
+  //
+  // Businesses somebody has OPENED are the obvious ones: they paid for the lead and the
+  // change is theirs to act on, with the words in the email.
+  //
+  // But this used to be the only join, and that made the weekly email the same shape as
+  // the changes page before it was fixed: a subscriber who had saved territories and not
+  // yet opened much got "nobody owns the changed leads" and no email at all. The one
+  // thing meant to bring people back weekly did not reach the people who most needed a
+  // reason to come back.
+  //
+  // So a change in a territory somebody WATCHES counts too, and is reported as a count
+  // rather than in words. Same line as everywhere else: what moved is the sellable part.
   const { data: unlocks } = await admin
     .from("lead_unlocks")
     .select("user_id, lead_key")
     .in("lead_key", changedKeys);
 
-  if (!unlocks || unlocks.length === 0) {
-    note("nobody_owns_the_changed_leads");
-    return summary;
+  const owned = new Map<string, Set<string>>();
+  for (const u of unlocks ?? []) {
+    const set = owned.get(u.user_id as string) ?? new Set<string>();
+    set.add(u.lead_key as string);
+    owned.set(u.user_id as string, set);
+  }
+
+  // Territories: a saved search, the businesses it has surfaced, and its owner.
+  const watchedByUser = new Map<string, Set<string>>();
+  try {
+    const { data: seen } = await admin
+      .from("watchlist_seen")
+      .select("lead_key, watchlist_id")
+      .in("lead_key", changedKeys);
+    const listIds = [...new Set((seen ?? []).map((r) => r.watchlist_id as string))];
+    if (listIds.length > 0) {
+      const { data: lists } = await admin
+        .from("saved_searches")
+        .select("id, user_id")
+        .in("id", listIds);
+      const ownerOfList = new Map((lists ?? []).map((l) => [l.id as string, l.user_id as string]));
+      for (const row of seen ?? []) {
+        const userId = ownerOfList.get(row.watchlist_id as string);
+        if (!userId) continue;
+        const set = watchedByUser.get(userId) ?? new Set<string>();
+        set.add(row.lead_key as string);
+        watchedByUser.set(userId, set);
+      }
+    }
+  } catch (e) {
+    // A territory lookup that fails costs the wider half of the email, never the email.
+    console.error("[digest] territory lookup failed:", e instanceof Error ? e.message : e);
   }
 
   const byUser = new Map<string, string[]>();
-  for (const u of unlocks) {
-    const list = byUser.get(u.user_id as string) ?? [];
-    list.push(u.lead_key as string);
-    byUser.set(u.user_id as string, list);
+  for (const [userId, keys] of owned) byUser.set(userId, [...keys]);
+  for (const [userId, keys] of watchedByUser) {
+    const list = byUser.get(userId) ?? [];
+    byUser.set(userId, [...new Set([...list, ...keys])]);
+  }
+
+  if (byUser.size === 0) {
+    note("nobody_owns_or_watches_the_changed_leads");
+    return summary;
   }
 
   // Business names, so the email says "Rosa's Pizzeria" rather than a key.
@@ -132,15 +177,28 @@ export async function runWeeklyDigest(force = false): Promise<DigestSummary> {
     if (profile.suspended_at) { summary.skipped++; note("suspended"); continue; }
     if (!force && profile.digest_sent_on === today) { summary.skipped++; note("already_sent"); continue; }
 
+    const mine = owned.get(userId) ?? new Set<string>();
     const changes: Change[] = [];
+    let watchedCount = 0;
     for (const key of [...new Set(keys)]) {
-      for (const t of labelByKey.get(key) ?? []) {
-        changes.push({ leadKey: key, label: t.label, kind: t.kind, business: nameByKey.get(key) ?? null });
+      if (mine.has(key)) {
+        for (const t of labelByKey.get(key) ?? []) {
+          changes.push({ leadKey: key, label: t.label, kind: t.kind, business: nameByKey.get(key) ?? null });
+        }
+      } else {
+        // Watched but not opened: counted, never described. The words are what a credit
+        // buys, and giving them away in an email would be selling the product to nobody.
+        watchedCount++;
       }
     }
-    if (changes.length === 0) { summary.skipped++; note("nothing_for_them"); continue; }
+    if (changes.length === 0 && watchedCount === 0) { summary.skipped++; note("nothing_for_them"); continue; }
 
-    const ok = await sendDigest(profile.email as string, (profile.display_name as string) ?? null, changes);
+    const ok = await sendDigest(
+      profile.email as string,
+      (profile.display_name as string) ?? null,
+      changes,
+      watchedCount
+    );
     if (ok) {
       await admin.from("profiles").update({ digest_sent_on: today }).eq("id", userId);
       summary.sent++;
@@ -153,9 +211,27 @@ export async function runWeeklyDigest(force = false): Promise<DigestSummary> {
   return summary;
 }
 
-async function sendDigest(to: string, name: string | null, changes: Change[]): Promise<boolean> {
+/**
+ * The weekly email.
+ *
+ * `watched` is how many businesses moved in territories this person follows but has NOT
+ * opened. Counted rather than described, because what changed is what a credit buys.
+ * It is also the half that gives somebody a reason to come back: an email saying nine
+ * businesses in your area moved and you have opened two of them is a prompt, where a
+ * list of two is just a list of two.
+ */
+async function sendDigest(
+  to: string,
+  name: string | null,
+  changes: Change[],
+  watched = 0
+): Promise<boolean> {
   const shown = changes.slice(0, MAX_ROWS_IN_EMAIL);
   const more = changes.length - shown.length;
+  const watchedLine =
+    watched > 0
+      ? `${watched} more ${watched === 1 ? "business" : "businesses"} moved in the areas you watch. Open ${watched === 1 ? "it" : "them"} to see what changed.`
+      : "";
 
   const rows = shown
     .map(
@@ -172,11 +248,14 @@ async function sendDigest(to: string, name: string | null, changes: Change[]): P
     body: [
       heading(name ? `${escapeHtml(name)}, here is what changed` : "Here is what changed"),
       paragraph(
-        `${changes.length} thing${changes.length === 1 ? "" : "s"} happened this week at businesses you have already paid to open. These are worth a call while they are fresh.`
+        changes.length > 0
+          ? `${changes.length} thing${changes.length === 1 ? "" : "s"} happened this week at businesses you have already paid to open. These are worth a call while they are fresh.`
+          : `Nothing moved at the businesses you have opened, but your territories were busy.`
       ),
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px;">${rows}</table>`,
       more > 0 ? paragraph(`And ${more} more in your history.`, true) : "",
-      button("Open your leads", `${SITE()}/dashboard/history`),
+      watchedLine ? paragraph(watchedLine, true) : "",
+      button("See what changed", `${SITE()}/dashboard/changes`),
       divider(),
       paragraph(
         "You are getting this because you asked for the weekly summary. Turn it off under Personalisation at any time.",
@@ -191,8 +270,9 @@ async function sendDigest(to: string, name: string | null, changes: Change[]): P
     "",
     ...shown.map((c) => `- ${c.business ?? "A business"}: ${c.label}`),
     more > 0 ? `\nAnd ${more} more in your history.` : "",
+    watchedLine ? `\n${watchedLine}` : "",
     "",
-    `${SITE()}/dashboard/history`,
+    `${SITE()}/dashboard/changes`,
   ].join("\n");
 
   const result = await sendEmail({
@@ -200,9 +280,11 @@ async function sendDigest(to: string, name: string | null, changes: Change[]): P
     fromName: FROM_NAME(),
     to,
     subject:
-      changes.length === 1
-        ? `1 change at a business you are working`
-        : `${changes.length} changes at businesses you are working`,
+      changes.length === 0
+        ? `${watched} ${watched === 1 ? "business" : "businesses"} moved in your territory`
+        : changes.length === 1
+          ? `1 change at a business you are working`
+          : `${changes.length} changes at businesses you are working`,
     html,
     text,
   });
