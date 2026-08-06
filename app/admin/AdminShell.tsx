@@ -4,7 +4,8 @@ import { BrandMark } from "../brand";
 import { AdminNav } from "./AdminNav";
 
 // Sidebar + main shell for the guarded admin pages. Rendered per-page (not in the
-// admin layout) so the /admin/login page can sit outside it, unshelled and unguarded.
+// admin layout) so /admin/verify can sit outside it, unshelled, and still be reachable
+// by somebody who has signed in at /login but not yet passed their second factor.
 export function AdminShell({
   email,
   settings,

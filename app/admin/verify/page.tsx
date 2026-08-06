@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // by the admin address rather than a user id.
 export default async function AdminVerifyPage() {
   const session = await getAdminSession();
-  if (!session) redirect("/admin/login");
+  if (!session) redirect("/login");
 
   const factors = await listFactors({ adminEmail: session.email }, true);
 

@@ -18,9 +18,10 @@ const MFA_EXEMPT = [
   "/api/mfa",
   "/api/auth",
   "/auth/signout",
-  "/admin/login",
+  // There is no separate admin sign in any more: /login handles both, and the admin
+  // credential is checked there before the ordinary one. What remains admin-specific is
+  // the second factor challenge and signing out.
   "/admin/verify",
-  "/api/admin/login",
   "/api/admin/logout",
 ];
 const isExempt = (p: string) => MFA_EXEMPT.some((x) => p === x || p.startsWith(`${x}/`));
@@ -104,17 +105,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Admin pages use their own session cookie (separate from user auth). Missing
-  // cookie -> send to the admin login. The signature is fully verified server-side
-  // in app/admin/* and /api/admin/*, this is just the coarse edge guard. The login
-  // page itself must stay reachable.
-  if (
-    pathname.startsWith("/admin") &&
-    pathname !== "/admin/login" &&
-    !request.cookies.get(ADMIN_COOKIE)
-  ) {
+  // Admin pages use their own session cookie (separate from user auth). Missing cookie
+  // means sign in, and there is ONE place to do that: /login checks the admin
+  // credential first and falls through to the ordinary one for everybody else. The
+  // signature is fully verified server side in app/admin/* and /api/admin/*; this is
+  // just the coarse edge guard.
+  //
+  // No exception for /admin/login any more, which is what makes an old bookmark to it
+  // land on /login rather than a page that no longer exists.
+  if (pathname.startsWith("/admin") && !request.cookies.get(ADMIN_COOKIE)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
+    url.pathname = "/login";
     url.search = "";
     return NextResponse.redirect(url);
   }

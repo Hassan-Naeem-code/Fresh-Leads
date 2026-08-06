@@ -7,7 +7,8 @@ import { getAdminSession } from "./session";
 // Page/server-component guard: returns the admin { email } or redirects to login.
 export async function requireAdmin(): Promise<{ email: string }> {
   const session = await getAdminSession();
-  if (!session) redirect("/admin/login");
+  // One sign in screen for everybody: /login checks the admin credential first.
+  if (!session) redirect("/login");
   return session;
 }
 
