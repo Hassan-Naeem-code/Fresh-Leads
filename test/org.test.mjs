@@ -235,3 +235,50 @@ test("existing single accounts are untouched", () => {
   // Everybody who has never seen a team defaults to one seat, priced exactly as before.
   assert.match(seatsSql, /seats integer not null default 1/);
 });
+
+// CANCELLING AN INVITE.
+//
+// An invite link is a credential: it joins whoever holds it to a team whose shared
+// balance they can then spend, and it stays usable for a fortnight. There was no way to
+// take one back, so a link sent to a mistyped address left two options, wait two weeks
+// or close the team. That is the same argument that produced sign out everywhere for
+// sessions, applied in only one place.
+const orgRoute = readFileSync("app/api/org/route.ts", "utf8");
+
+test("a pending invite can be cancelled", () => {
+  assert.match(org, /export async function revokeInvite/);
+  assert.match(orgRoute, /case "revoke_invite"/);
+});
+
+test("cancelling deletes the row rather than flagging it", () => {
+  // A revoked-but-present row is one forgotten where clause away from working again,
+  // and there is nothing worth keeping: who is in the team lives in org_members.
+  const fn = org.slice(org.indexOf("export async function revokeInvite"));
+  assert.match(fn.slice(0, 600), /\.delete\(\)/);
+  assert.doesNotMatch(fn.slice(0, 600), /update\(\{ *revoked/);
+});
+
+test("an invite can only be cancelled by its own team", () => {
+  // Otherwise a valid id from anywhere would cancel a stranger's invite.
+  const fn = org.slice(org.indexOf("export async function revokeInvite"));
+  assert.match(fn.slice(0, 600), /\.eq\("org_id", orgId\)/);
+});
+
+test("an already accepted invite is not cancellable", () => {
+  // Deleting it would not un-join anybody, and would quietly suggest it had.
+  const fn = org.slice(org.indexOf("export async function revokeInvite"));
+  assert.match(fn.slice(0, 600), /\.is\("accepted_at", null\)/);
+});
+
+test("cancelling something that is not yours reveals nothing", () => {
+  // Used, already cancelled and belongs-to-another-team all answer the same way, or the
+  // endpoint becomes a way to confirm an invite exists in a team you are not in.
+  const fn = org.slice(org.indexOf("export async function revokeInvite"));
+  assert.match(fn.slice(0, 900), /no longer pending/);
+});
+
+test("cancelling needs the same right as sending", () => {
+  // It sits below the canManageMembers gate, with the other member actions.
+  const gate = orgRoute.indexOf("Only an owner or admin can do that");
+  assert.ok(gate > 0 && orgRoute.indexOf('case "revoke_invite"') > gate);
+});

@@ -309,6 +309,10 @@ export function TeamPanel({
           {team.invites.length > 0 && (
             <>
               <h4 className="subhead">Waiting to be accepted</h4>
+              {/* Cancellable, because an invite link is a credential: it joins whoever
+                  holds it to this team and lets them spend the shared balance. Sent to
+                  a mistyped address, the only options used to be waiting a fortnight or
+                  closing the team. */}
               <ul className="memberlist">
                 {team.invites.map((i) => (
                   <li key={i.id}>
@@ -318,6 +322,15 @@ export function TeamPanel({
                         invited as {i.role}, expires{" "}
                         {new Date(i.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
+                    </div>
+                    <div className="memberactions">
+                      <button
+                        className="ghost sm danger"
+                        disabled={busy}
+                        onClick={() => act({ action: "revoke_invite", inviteId: i.id })}
+                      >
+                        <Trash size={13} /> Cancel
+                      </button>
                     </div>
                   </li>
                 ))}

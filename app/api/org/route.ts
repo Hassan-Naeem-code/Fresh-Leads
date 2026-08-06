@@ -7,7 +7,7 @@ import { siteUrl } from "@/lib/site-url";
 import {
   membershipOf, membersOf, createOrg, inviteToOrg, acceptInvite,
   removeMember, setRole, canManageMembers, canManageBilling,
-  transferOwnership, closeOrg, seatsAvailable,
+  transferOwnership, closeOrg, seatsAvailable, revokeInvite,
 } from "@/lib/org";
 import { notifyTeamInvite } from "@/lib/email/notify";
 
@@ -32,6 +32,7 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("remove"), userId: z.string().uuid() }),
   z.object({ action: z.literal("role"), userId: z.string().uuid(), role: z.enum(["admin", "member"]) }),
   z.object({ action: z.literal("leave") }),
+  z.object({ action: z.literal("revoke_invite"), inviteId: z.string().uuid() }),
   z.object({ action: z.literal("transfer"), userId: z.string().uuid() }),
   z.object({ action: z.literal("close") }),
 ]);
@@ -162,6 +163,13 @@ export async function POST(request: NextRequest) {
       });
       // The raw token exists in this response and nowhere else it can be read back.
       return NextResponse.json({ ok: true, link, emailed });
+    }
+    case "revoke_invite": {
+      // Same right as sending one: anybody who can invite can un-invite.
+      const result = await revokeInvite(membership.orgId, input.inviteId);
+      return result.ok
+        ? NextResponse.json({ ok: true })
+        : NextResponse.json({ error: result.error }, { status: 400 });
     }
     case "remove": {
       const result = await removeMember(membership.orgId, input.userId);

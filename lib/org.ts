@@ -343,6 +343,46 @@ export async function closeOrg(
 }
 
 /**
+ * Cancel a pending invite.
+ *
+ * An invite link is a credential. It joins whoever holds it to a team whose shared
+ * balance they can then spend, and it stays usable for a fortnight. Until now there was
+ * no way to take one back: send it to a mistyped address, or have a colleague's inbox
+ * compromised, and the only options were to wait two weeks or close the team.
+ *
+ * That is the same argument that produced sign out everywhere for sessions, and it was
+ * only applied in one place.
+ *
+ * DELETED rather than marked cancelled. A revoked-but-present row is one forgotten
+ * `where` clause away from working again, and there is nothing here worth keeping: the
+ * audit trail that matters is who is in the team, which lives in org_members.
+ *
+ * Scoped to the org, so a request cannot name an invite belonging to somebody else's
+ * team even with a valid id.
+ */
+export async function revokeInvite(
+  orgId: string,
+  inviteId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { data, error } = await createAdminClient()
+    .from("org_invites")
+    .delete()
+    .eq("id", inviteId)
+    .eq("org_id", orgId)
+    .is("accepted_at", null)
+    .select("id");
+
+  if (error) return { ok: false, error: "Could not cancel that invite." };
+  // Nothing deleted means it was already used, already cancelled, or never this team's.
+  // All three get the same answer: telling one apart from the others would confirm the
+  // existence of an invite in a team the caller does not belong to.
+  if ((data?.length ?? 0) === 0) {
+    return { ok: false, error: "That invite is no longer pending." };
+  }
+  return { ok: true };
+}
+
+/**
  * Is there a paid seat free in this team?
  *
  * The seat count is read from the subscription, which is our copy of what Stripe is
