@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireSubscription } from "@/lib/require-subscription";
-import { changesForUser, partition } from "@/lib/changes";
+import { changesForUser, partition, territoryChanges } from "@/lib/changes";
 import { Empty } from "../../admin/Empty";
-import { Flame, Phone, Globe, ArrowRight, Clock } from "../../icons";
+import { Flame, Phone, Globe, ArrowRight, Clock, Lock, MapPin } from "../../icons";
 
 export const metadata: Metadata = { title: "What changed", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -21,8 +21,12 @@ export default async function ChangesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/changes");
 
-  const changes = await changesForUser(user.id);
+  const [changes, territories] = await Promise.all([
+    changesForUser(user.id),
+    territoryChanges(user.id),
+  ]);
   const { act, watch } = partition(changes);
+  const territoryTotal = territories.reduce((n, t) => n + t.changed, 0);
 
   const row = (c: (typeof changes)[number], urgent: boolean) => (
     <li key={`${c.leadKey}-${c.kind}-${c.detectedOn}`} className={urgent ? "chgrow act" : "chgrow"}>
@@ -59,11 +63,57 @@ export default async function ChangesPage() {
         </p>
       </div>
 
-      {changes.length === 0 ? (
+      {/* WHAT MOVED IN THE WHOLE TERRITORY, not only where money has been spent.
+          Scoped to leads they had opened, this page was empty for anybody who had not
+          bought anything yet, so the one signal no standing database can sell was
+          invisible until you had already bought enough of the product to see it.
+          A business they own shows what changed. One they do not shows only THAT it
+          changed, exactly as a locked lead shows a grade without the signals: the words
+          are the sellable part. */}
+      {territories.length > 0 && (
+        <div className="card">
+          <h3 className="cardtitle"><MapPin size={16} /> Across your saved searches</h3>
+          <p className="muted sm">
+            {territoryTotal} {territoryTotal === 1 ? "business has" : "businesses have"} moved
+            in the areas you watch. We photograph them nightly whether you search or not, so
+            this fills in on its own.
+          </p>
+          {territories.map((t) => (
+            <div className="terr" key={t.watchlistId}>
+              <div className="terrhead">
+                <b>{t.watchlistName}</b>
+                <span className="muted sm">
+                  {t.changed} changed, {t.opened} of them yours
+                </span>
+              </div>
+              <ul className="chglist">
+                {t.businesses.slice(0, 8).map((b) => (
+                  <li className="chgrow" key={b.leadKey}>
+                    <span className="chgicon">{b.labels ? <Flame size={15} /> : <Lock size={14} />}</span>
+                    <div className="chgmain">
+                      <b>{b.name}</b>
+                      {b.labels ? (
+                        <span className="chglabel">{b.labels[0]}</span>
+                      ) : (
+                        <span className="muted sm">
+                          {b.changeCount} {b.changeCount === 1 ? "change" : "changes"}, open the lead to see what
+                        </span>
+                      )}
+                      {b.city && <span className="muted sm">{b.city}</span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {changes.length === 0 && territories.length === 0 ? (
         <Empty
           icon={<Flame size={22} />}
           title="Nothing has changed yet"
-          hint="Open some leads and we start watching them. A change usually takes a week or two to appear, because most small business websites do not change overnight."
+          hint="Save a search and we watch that whole area nightly, not just the leads you open. A change usually takes a week or two to appear, because most small business websites do not change overnight."
           action={<Link className="go accent" href="/dashboard">Run a search <ArrowRight size={15} /></Link>}
         />
       ) : (

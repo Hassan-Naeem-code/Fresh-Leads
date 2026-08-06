@@ -3069,3 +3069,12 @@ table { max-width: 100%; }
 .nlhp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .nlsent { margin-top: 18px; display: flex; align-items: flex-start; gap: 7px; font-size: 13.5px; color: var(--muted); max-width: 340px; line-height: 1.55; }
 .nlerr { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--hot); }
+
+/* A watched territory on the changes page. Grouped, because "12 businesses moved in
+   Austin dentists" is a different statement from twelve unrelated rows. */
+.terr { margin-top: 18px; }
+.terr:first-of-type { margin-top: 10px; }
+.terrhead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
