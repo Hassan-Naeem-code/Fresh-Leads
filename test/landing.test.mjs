@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { LANDINGS, landingBySlug, landingsAreValid } from "./.build/landing.mjs";
 
 // These pages exist to be found by a search engine, so the failure mode is silent:
@@ -63,4 +64,34 @@ test("no em or en dashes anywhere in the copy", () => {
     // Escapes, not the characters. See the same note in api-docs.test.mjs.
     assert.ok(!/[\u2014\u2013]/.test(all), `dash found in ${l.slug}`);
   }
+});
+
+// THE HERO MOCKUP HAS TO ANSWER ITS OWN QUERY.
+//
+// It showed a search for "coffee shops · Austin, TX · 10 miles" returning a dentist in
+// Round Rock and a landscaper in Cedar Park. That is the exact failure this product
+// exists to prevent, demonstrated on the page that sells it, and both towns are fifteen
+// to twenty miles out of a ten mile radius besides.
+test("every row in the hero mockup matches the search above it", () => {
+  const src = readFileSync("app/HeroMock.tsx", "utf8");
+
+  const query = src.match(/<span>([^<]*·[^<]*)<\/span>/)?.[1] ?? "";
+  assert.match(query, /coffee shops/i, "the mock query changed, so this test needs to as well");
+  const city = query.split("·")[1]?.trim().split(",")[0]?.trim();
+
+  const rows = [...src.matchAll(/\{ tier: "[A-Z]+", score: \d+, name: "[^"]+", cat: "([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(rows.length >= 3, "expected the mock to still have leads in it");
+
+  for (const cat of rows) {
+    assert.match(cat, /Coffee shop/i, `"${cat}" is not what was searched for`);
+    assert.ok(cat.includes(city), `"${cat}" is not in ${city}, which the search asked for`);
+  }
+});
+
+test("the mockup still shows a range of grades", () => {
+  // The point of it is that leads are ranked and the reason is stated. Making every row
+  // match the query must not turn it into three identical rows.
+  const src = readFileSync("app/HeroMock.tsx", "utf8");
+  const tiers = new Set([...src.matchAll(/\{ tier: "([A-Z]+)"/g)].map((m) => m[1]));
+  assert.ok(tiers.size >= 2, "the mock no longer shows leads being ranked");
 });

@@ -73,7 +73,7 @@ export default async function Landing() {
               it is different from every other lead tool they have tried. */}
           <Reveal immediate delay={380}>
             <p className="pr-mockcap">
-              We score digital footprints so you can predict lead quality before you pitch.
+              We score digital footprints so you can know the lead quality before you pitch.
             </p>
           </Reveal>
           <Reveal immediate delay={420}><HeroMock /></Reveal>
