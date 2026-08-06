@@ -7,6 +7,7 @@ import { salesforceConfigured } from "@/lib/crm/salesforce";
 import { requireSubscription } from "@/lib/require-subscription";
 import { Building } from "../../icons";
 import { CrmPanel } from "./CrmPanel";
+import { WebhookPanel } from "./WebhookPanel";
 
 export const metadata: Metadata = { title: "CRM", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -33,8 +34,9 @@ export default async function CrmPage({
         <span className="app-eyebrow"><Building size={13} /> CRM</span>
         <h1>Send leads where you work.</h1>
         <p>
-          Push the leads you have opened straight into HubSpot as companies. Pushing costs
-          nothing: you already paid to open them.
+          Push the leads you have opened into HubSpot or Salesforce, or to any webhook,
+          which covers Zapier, Make and n8n. Pushing costs nothing: you already paid to
+          open them.
         </p>
       </div>
       <CrmPanel
@@ -50,6 +52,10 @@ export default async function CrmPage({
         }}
         notice={params.connected ? "connected" : (params.error ?? null)}
       />
+      {/* One destination that speaks plain HTTP reaches Zapier, Make, n8n and anybody's
+          own endpoint, which is wider than a Zapier app would reach and does not depend
+          on their review process. */}
+      <WebhookPanel />
     </div>
   );
 }

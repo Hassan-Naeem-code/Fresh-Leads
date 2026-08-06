@@ -3078,3 +3078,14 @@ table { max-width: 100%; }
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--border);
 }
+
+/* The webhook signing secret. Shown rather than hidden: it verifies our signature, it
+   does not authorise anything, so masking it would cost a customer their configuration
+   for no security gain. */
+.whsec { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.whsec code {
+  display: block; width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--panel2); font-size: 12.5px;
+  overflow-wrap: anywhere; color: var(--text);
+}
+.whsec .muted code { display: inline; width: auto; padding: 1px 5px; font-size: 12px; }

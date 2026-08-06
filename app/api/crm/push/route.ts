@@ -7,6 +7,7 @@ import { getUnlockedKeys } from "@/lib/credits";
 import { stripeConfigured } from "@/lib/stripe";
 import { pushLeads as pushHubspot } from "@/lib/crm/hubspot";
 import { pushLeads as pushSalesforce } from "@/lib/crm/salesforce";
+import { pushLeads as pushWebhook } from "@/lib/crm/webhook";
 import type { Lead } from "@/lib/types";
 import { toolsGate } from "@/lib/tools-gate";
 
@@ -15,7 +16,9 @@ export const maxDuration = 60;
 
 const Body = z.object({
   leadIds: z.array(z.string().uuid()).min(1).max(500),
-  provider: z.enum(["hubspot", "salesforce"]).default("hubspot"),
+  // "webhook" is one destination that speaks plain HTTP, which covers Zapier, Make,
+  // n8n and a customer's own endpoint without any of them needing a bespoke integration.
+  provider: z.enum(["hubspot", "salesforce", "webhook"]).default("hubspot"),
 });
 
 // Push leads into the connected CRM.
@@ -58,13 +61,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = parsed.data.provider === "salesforce"
-      ? await pushSalesforce(userId, leads)
-      : await pushHubspot(userId, leads);
+    const result =
+      parsed.data.provider === "salesforce"
+        ? await pushSalesforce(userId, leads)
+        : parsed.data.provider === "webhook"
+          ? await pushWebhook(userId, leads)
+          : await pushHubspot(userId, leads);
 
     if (result.error === "not_connected") {
       return NextResponse.json(
-        { error: `Connect ${parsed.data.provider === "salesforce" ? "Salesforce" : "HubSpot"} first, or reconnect it.`, code: "not_connected" },
+        {
+          error:
+            parsed.data.provider === "webhook"
+              ? "Add a webhook destination first."
+              : `Connect ${parsed.data.provider === "salesforce" ? "Salesforce" : "HubSpot"} first, or reconnect it.`,
+          code: "not_connected",
+        },
         { status: 409 }
       );
     }
