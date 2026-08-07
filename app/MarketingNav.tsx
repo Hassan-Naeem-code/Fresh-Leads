@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/site-settings";
 import { BrandMark, BrandName } from "./brand";
+import { SocialLinks } from "./SocialLinks";
 
 // Shared, session-aware top nav for every page. Presentational so each page
 // fetches settings + the current email once and passes them down. When signed
@@ -29,6 +30,10 @@ export function MarketingNav({
           <Link href="/compare" className="hideable">Compare</Link>
           <Link href="/about" className="hideable">About</Link>
           <Link href="/contact" className="hideable">Contact</Link>
+          {/* Hidden below 900px: the nav already drops its text links at 720px, and
+              four more targets would crowd the sign-in buttons. The footer carries
+              them on every page, so nothing is lost on mobile. */}
+          <SocialLinks size={16} className="nav-social" />
           {email ? (
             <>
               <Link href="/dashboard">Dashboard</Link>

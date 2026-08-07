@@ -1048,6 +1048,31 @@ input:-webkit-autofill:focus {
 .mkt-footmade { font-weight: 500; }
 @media (max-width: 560px) { .mkt-footmade { display: none; } }
 
+/* ---------- Social profile links ---------- */
+.social-links { display: flex; align-items: center; gap: 10px; list-style: none; margin: 18px 0 0; padding: 0; }
+.social-link {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  background: var(--panel); border: 1px solid var(--border); color: var(--muted);
+  transition: color .15s ease, border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.social-link:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
+.social-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Nav variant: bare glyphs, no chip. The circular buttons that suit the footer
+   read as four extra CTAs beside "Get started". */
+.social-links.nav-social { margin: 0; gap: 4px; padding-left: 14px; border-left: 1px solid var(--border); }
+.nav-social .social-link {
+  width: 28px; height: 28px; border: 0; background: none;
+}
+/* Outspecifies `.pr-navlinks a:hover`, which would otherwise win and flatten the
+   accent to plain text colour. */
+.nav-social .social-link:hover { color: var(--accent); background: var(--panel2); transform: none; }
+@media (max-width: 900px) { .social-links.nav-social { display: none; } }
+.contact-social { display: grid; gap: 4px; padding-left: 54px; }
+.contact-social b { font-size: 15px; }
+.contact-social .social-links { margin-top: 8px; }
+@media (max-width: 760px) { .contact-social { padding-left: 0; } }
+
 /* ---------- Admin: contact messages inbox ---------- */
 .adm-msgs { display: grid; gap: 12px; }
 .adm-msg-card {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NewsletterForm } from "./NewsletterForm";
 import type { SiteSettings } from "@/lib/site-settings";
 import { BrandMark, BrandName } from "./brand";
+import { SocialLinks } from "./SocialLinks";
 
 // Shared site footer with grouped links. Used across landing, pricing, about,
 // contact, and legal pages so navigation is consistent everywhere.
@@ -20,6 +21,7 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
               from unconfirmed addresses generates complaints against the same domain
               that carries every two factor code in the product. */}
           <NewsletterForm source="footer" />
+          <SocialLinks />
         </div>
         <div className="mkt-footcols">
           <div className="mkt-footcol">

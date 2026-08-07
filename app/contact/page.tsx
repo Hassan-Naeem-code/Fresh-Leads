@@ -4,6 +4,7 @@ import { currentEmail } from "@/lib/current-user";
 import { MarketingNav } from "../MarketingNav";
 import { MarketingFooter } from "../MarketingFooter";
 import { ContactForm } from "./ContactForm";
+import { SocialLinks } from "../SocialLinks";
 import { Mail, Clock, Gauge } from "../icons";
 
 export const metadata: Metadata = {
@@ -58,6 +59,10 @@ export default async function ContactPage() {
                 <b>Want to just try it?</b>
                 <p>Skip the back-and-forth, <a href="/signup">start with 3 free credits</a> and no card.</p>
               </div>
+            </div>
+            <div className="contact-social">
+              <b>Follow along</b>
+              <SocialLinks size={19} />
             </div>
           </div>
 
