@@ -3106,3 +3106,10 @@ table { max-width: 100%; }
   overflow-wrap: anywhere; color: var(--text);
 }
 .whsec .muted code { display: inline; width: auto; padding: 1px 5px; font-size: 12px; }
+
+/* Adding credits to the plan purchase. Set apart from the feature list above it, so it
+   reads as a choice being offered rather than as another thing the plan includes. */
+.prefcheck.withplan {
+  margin: 6px 0 2px; padding: 12px 14px;
+  background: var(--panel2); border: 1px solid var(--border); border-radius: var(--r-md);
+}

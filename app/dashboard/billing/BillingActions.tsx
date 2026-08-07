@@ -27,6 +27,17 @@ export function BillingActions({
   subscriptionPriceCents: number;
 }) {
   const [amount, setAmount] = useState(100);
+  // WHAT IS IN THE BOX, kept apart from what will be charged.
+  //
+  // The field used to be driven by `amount` and clamped to the minimum on every
+  // keystroke. Typing 30 meant typing 3, which clamped instantly to 5, so the box then
+  // held 5 and the next key made it 50. Every value that did not start with a digit at
+  // or above the minimum was unreachable, which is exactly "it will not let me type
+  // anything except the numbers on the pills".
+  //
+  // Clamping belongs at the moment the number is USED, not while somebody is still
+  // saying it.
+  const [typed, setTyped] = useState("100");
   // WHICH BUTTON, not which KIND of purchase.
   //
   // There are two buttons on this page that both start the subscription: the main one
@@ -34,6 +45,10 @@ export function BillingActions({
   // need a plan first. Keying the spinner on the KIND meant pressing either put both
   // into "Starting checkout...", which reads as the page having lost track of what you
   // clicked. Same action, two places, and the person needs to see which one they hit.
+  // Off by default. The plan is the decision being made on this screen; credits are an
+  // offer beside it, and a box that quietly adds a hundred dollars to a thirty dollar
+  // purchase would be the kind of thing people notice on their statement.
+  const [withPlan, setWithPlan] = useState(false);
   const [busy, setBusy] = useState<"sub-main" | "sub-inline" | "credits" | null>(null);
   const [error, setError] = useState("");
 
@@ -45,7 +60,12 @@ export function BillingActions({
       const res = await fetch(kind === "sub" ? "/api/billing/subscribe" : "/api/billing/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: kind === "sub" ? "{}" : JSON.stringify({ credits: amount }),
+        // Subscribing can carry credits with it, so somebody joining pays once rather
+        // than paying, coming back, and paying again before they can open a lead.
+        body:
+          kind === "sub"
+            ? JSON.stringify({ credits: withPlan ? amount : 0 })
+            : JSON.stringify({ credits: amount }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
@@ -81,10 +101,34 @@ export function BillingActions({
             </li>
           </ul>
           <span className="muted sm">
-            Includes no credits. Leads are bought separately.
+            Includes no credits. Leads are bought separately, or added below.
           </span>
+
+          {/* CREDITS IN THE SAME TRANSACTION.
+              Without this, joining means paying, returning, and paying again before you
+              can open a single lead. Two card entries to start using a product is where
+              people give up. */}
+          <label className="prefcheck withplan">
+            <input
+              type="checkbox"
+              checked={withPlan}
+              onChange={(e) => setWithPlan(e.target.checked)}
+            />
+            <span>
+              <b>Add {amount} credits now, {formatMoney(creditCostCents(amount))}</b>
+              <span className="muted sm">
+                One charge instead of two. Change the number under Top up credits.
+                {bonusForPurchase(amount) > 0 && ` This basket adds ${bonusForPurchase(amount)} free.`}
+              </span>
+            </span>
+          </label>
+
           <button className="go accent" onClick={() => go("sub-main")} disabled={busy !== null}>
-            {busy === "sub-main" ? "Starting checkout…" : `Subscribe for ${dollars}/year`}
+            {busy === "sub-main"
+              ? "Starting checkout…"
+              : withPlan
+                ? `Subscribe and buy ${amount} credits, ${formatMoney(subscriptionPriceCents + creditCostCents(amount))}`
+                : `Subscribe for ${dollars}/year`}
             <ArrowRight size={15} />
           </button>
           <span className="muted sm">Cancel any time, you keep access until the year is up.</span>
@@ -104,7 +148,10 @@ export function BillingActions({
               key={n}
               type="button"
               className={`chip toggle ${amount === n ? "on" : ""}`}
-              onClick={() => setAmount(n)}
+              onClick={() => {
+                setAmount(n);
+                setTyped(String(n));
+              }}
             >
               {n} <span className="muted">· {formatMoney(creditCostCents(n))}</span>
               {bonusForPurchase(n) > 0 && (
@@ -120,13 +167,31 @@ export function BillingActions({
             type="number"
             min={MIN_CREDIT_PURCHASE}
             max={MAX_CREDIT_PURCHASE}
-            step={MIN_CREDIT_PURCHASE}
-            value={amount}
-            onChange={(e) =>
-              setAmount(
-                Math.max(MIN_CREDIT_PURCHASE, Math.min(MAX_CREDIT_PURCHASE, Number(e.target.value) || 0))
-              )
-            }
+            /* step 1, not the minimum. A step of 5 made the browser mark 30 as invalid
+               and fight the arrow keys, for a rule that was never the real one: the
+               minimum is a floor, not a multiple. */
+            step={1}
+            value={typed}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setTyped(raw);
+              const n = Number(raw);
+              // Only what is spendable moves `amount`. A half typed number leaves the
+              // basket showing the last complete one rather than jumping about.
+              if (Number.isFinite(n) && n > 0) {
+                setAmount(Math.min(MAX_CREDIT_PURCHASE, Math.floor(n)));
+              }
+            }}
+            onBlur={() => {
+              // Now it is a finished number, so it can be corrected: an empty box or
+              // anything under the minimum settles at the minimum.
+              const n = Math.floor(Number(typed));
+              const settled = !Number.isFinite(n) || n < MIN_CREDIT_PURCHASE
+                ? MIN_CREDIT_PURCHASE
+                : Math.min(MAX_CREDIT_PURCHASE, n);
+              setAmount(settled);
+              setTyped(String(settled));
+            }}
           />
         </label>
 

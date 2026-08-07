@@ -127,6 +127,34 @@ export async function handleCheckoutCompleted(input: Stripe.Checkout.Session): P
     // invoice.paid event that follows will confirm the same thing; both are
     // idempotent.
     await syncSubscription(subscriptionId, userId);
+
+    // CREDITS BOUGHT IN THE SAME CHECKOUT.
+    //
+    // A subscription session can carry a one-off line item for credits, so somebody
+    // joining pays once instead of twice. Granting them is not optional plumbing: the
+    // money is already taken by the time this runs, and a subscription that arrives
+    // without the credits beside it is a customer who paid for both and got one.
+    //
+    // Read from the session metadata we set server side, never from the line items,
+    // which is the same rule the credits-only path follows: the count is decided where
+    // the price was decided.
+    const withPlan = Number(session.metadata?.credits ?? 0);
+    if (Number.isInteger(withPlan) && withPlan > 0) {
+      // Keyed on the session id under the ordinary purchase reason, so a redelivered
+      // webhook grants nothing a second time.
+      const balance = await grantCredits(userId, withPlan, "purchase", session.id);
+      console.log(`[grant] +${withPlan} credits bought with the plan for ${userId}, balance ${balance}`);
+
+      const extra = bonusForPurchase(withPlan);
+      if (extra > 0) {
+        await grantCredits(userId, extra, "purchase_bonus", session.id);
+        console.log(`[grant] +${extra} bonus credits on a ${withPlan} credit basket bought with the plan`);
+      }
+      // Same reasoning as the credits-only path: the purchase just granted counts
+      // toward the month, and anything thrown here is left to propagate so Stripe
+      // retries rather than quietly owing somebody their volume bonus.
+      await maybeGrantVolumeBonus(userId);
+    }
     return;
   }
 

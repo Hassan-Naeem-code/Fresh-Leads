@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getStripe, stripeConfigured } from "@/lib/stripe";
 import { getOrCreateCustomer, checkoutUrls } from "@/lib/billing";
 import { getSubscription } from "@/lib/access";
-import { SEAT_PRICE_CENTS, SUBSCRIPTION_INTERVAL, clampSeats } from "@/lib/pricing";
+import {
+  SEAT_PRICE_CENTS, SUBSCRIPTION_INTERVAL, clampSeats,
+  CREDIT_PRICE_CENTS, MIN_CREDIT_PURCHASE, MAX_CREDIT_PURCHASE, creditCostCents,
+} from "@/lib/pricing";
 import { membershipOf, canManageBilling } from "@/lib/org";
 
 export const runtime = "nodejs";
@@ -38,6 +41,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const membership = await membershipOf(user.id);
     let seats = clampSeats((body as { seats?: number }).seats ?? 1);
+
+    // CREDITS IN THE SAME TRANSACTION.
+    //
+    // The plan and the credits were two separate checkouts, so somebody joining had to
+    // pay, come back, and pay again before they could open a single lead. Two card
+    // entries to start using a product is where people stop.
+    //
+    // Stripe will not take a one-off price as a line item in subscription mode, so this
+    // rides on the first invoice as an added item. The customer sees one total, one
+    // charge, and one receipt.
+    const askedCredits = Math.floor(Number((body as { credits?: number }).credits ?? 0));
+    const credits =
+      Number.isFinite(askedCredits) && askedCredits >= MIN_CREDIT_PURCHASE
+        ? Math.min(askedCredits, MAX_CREDIT_PURCHASE)
+        : 0;
 
     if (membership) {
       if (!canManageBilling(membership.role)) {
@@ -75,11 +93,46 @@ export async function POST(req: NextRequest) {
             },
           },
         },
+        // THE CREDITS, IN THE SAME TRANSACTION.
+        //
+        // The plan and the credits used to be two separate checkouts, so somebody
+        // joining paid, came back, and paid again before they could open a single lead.
+        // Two card entries to start using a product is where people give up.
+        //
+        // A one-off price sits alongside the recurring one in subscription mode, which
+        // was verified against the live API rather than assumed: the first attempt used
+        // subscription_data.add_invoice_items, which this API version rejects outright.
+        // The tax code is required on BOTH lines or the session is refused.
+        ...(credits > 0
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: "usd",
+                  unit_amount: creditCostCents(credits),
+                  product_data: {
+                    name: `${credits} credits`,
+                    description: `Opens ${credits} leads. One credit each, and every lead stays yours.`,
+                    tax_code: "txcd_10000000",
+                  },
+                },
+              },
+            ]
+          : []),
       ],
       success_url: success,
       cancel_url: cancel,
       // The webhook needs to know WHO this is for and WHAT it was.
-      metadata: { user_id: user.id, kind: "subscription", seats: String(seats) },
+      // `credits` is read back here by the webhook, so what gets granted is decided by
+      // what the server put on the session rather than by anything a browser sent.
+      // `credits` is read back by the webhook, so what is granted is decided by what the
+      // server put on the session rather than by anything a browser sent.
+      metadata: {
+        user_id: user.id,
+        kind: "subscription",
+        seats: String(seats),
+        credits: String(credits),
+      },
       subscription_data: { metadata: { user_id: user.id } },
     });
 
