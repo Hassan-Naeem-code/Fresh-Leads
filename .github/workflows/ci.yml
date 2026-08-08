@@ -3,9 +3,15 @@ name: CI
 # Runs on every push and every pull request to main. The point is narrow: nothing
 # reaches production that fails typecheck, lint, the unit suite, or the build.
 #
-# The SQL suite is not run here. It needs a real PostgreSQL to exercise the credit
-# functions, and those are the assertions that protect money, so they are worth the
-# extra job rather than being skipped.
+# The SQL job applies EVERY migration and runs every SQL assertion against a real
+# PostgreSQL. That is broader than it used to be, and deliberately: it applied two
+# migrations and ran two test files, so 013 through 036 were never executed here at
+# all. A migration Postgres rejects then reaches the Supabase SQL editor before anyone
+# finds out, which is how 032 shipped with an index on `checked_at::date` (STABLE, not
+# IMMUTABLE, refused outright).
+#
+# The list lives in test/sql/suite.sh, which the local runner also uses. Two lists that
+# are supposed to agree will not.
 
 on:
   push:
@@ -44,7 +50,7 @@ jobs:
         run: npm run build
 
   sql:
-    name: Credit functions against PostgreSQL
+    name: Migrations and SQL assertions against PostgreSQL
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -64,18 +70,13 @@ jobs:
       - name: Install psql
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
-      - name: Apply schema and run the credit assertions
+      - name: Apply every migration and run every SQL assertion
         env:
           PGPASSWORD: postgres
-        run: |
-          run() { psql -h localhost -U postgres -q -v ON_ERROR_STOP=1 -f "$1"; }
-          run test/sql/harness.sql > /dev/null
-          run supabase/006_credits_and_subscription.sql > /dev/null
-          run supabase/012_spend_credits.sql > /dev/null
-          out=$( { run test/sql/credits.test.sql; run test/sql/spend.test.sql; } 2>&1 )
-          echo "$out" | grep -E 'PASS|FAIL|ERROR' | sed 's/^.*NOTICE:  //'
-          if echo "$out" | grep -qE 'FAIL|ERROR'; then exit 1; fi
-          echo "$(echo "$out" | grep -c PASS) assertions passed"
+          # The same script the local runner uses, pointed at the service container
+          # instead of a throwaway server. One list, not two.
+          PSQL: psql -h localhost -U postgres
+        run: ./test/sql/suite.sh
 
   guard:
     name: No secrets, no typographic dashes
