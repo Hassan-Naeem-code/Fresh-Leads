@@ -55,6 +55,19 @@ export interface LeadSource {
   search(params: {
     filters: string[];
     nicheLabel: string;
+    /**
+     * WHAT THE CUSTOMER ACTUALLY TYPED.
+     *
+     * Distinct from nicheLabel, which is our internal category name, and the
+     * distinction was costing real relevancy. Google Places Text Search is a natural
+     * language engine, and it was being handed our taxonomy: somebody searching
+     * "plumbers" produced the query "Home services / trades in Tampa", which returned
+     * an employment agency and two businesses categorised only as "service".
+     *
+     * OpenStreetMap ignores this and uses `filters`, because tag selectors are exact
+     * and do not benefit from prose. Places uses this and is much better for it.
+     */
+    query: string;
     area: GeoArea;
     limit: number;
   }): Promise<RawLead[]>;

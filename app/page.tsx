@@ -9,6 +9,7 @@ import { currentEmail } from "@/lib/current-user";
 import { MarketingNav } from "./MarketingNav";
 import { Reveal } from "./Reveal";
 import { HeroMock } from "./HeroMock";
+import { LiveSample } from "./LiveSample";
 import { MarketingFooter } from "./MarketingFooter";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -76,7 +77,12 @@ export default async function Landing() {
               We score digital footprints so you can know the lead quality before you pitch.
             </p>
           </Reveal>
-          <Reveal immediate delay={420}><HeroMock /></Reveal>
+          {/* The mock is now the RESTING STATE of a real search, not a substitute for
+              one. A visitor who types their own city gets three real businesses they
+              can look up, which is the one claim a vendor with bad data cannot make. */}
+          <Reveal immediate delay={420}>
+            <LiveSample mock={<HeroMock />} />
+          </Reveal>
         </header>
       </div>
 

@@ -71,6 +71,9 @@ export async function refreshCache(): Promise<RefreshSummary> {
         const leads = await osm.search({
           filters: resolved.filters,
           nicheLabel: resolved.label,
+          // OSM ignores this, but the field is required so the compiler cannot let a
+          // caller forget it where it DOES matter (Google Places).
+          query: entry.niche as string,
           area,
           limit: 60,
         });

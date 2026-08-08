@@ -1048,6 +1048,80 @@ input:-webkit-autofill:focus {
 .mkt-footmade { font-weight: 500; }
 @media (max-width: 560px) { .mkt-footmade { display: none; } }
 
+/* ---------- Live sample search in the hero ---------- */
+.ls { display: grid; gap: 16px; }
+.ls-form { display: grid; gap: 8px; justify-items: center; }
+.ls-fields {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--pill);
+  padding: 8px 8px 8px 18px; box-shadow: var(--sh-1); max-width: 100%;
+}
+.ls-input {
+  border: 0; background: none; font: inherit; font-size: 15px; color: var(--text);
+  width: 150px; padding: 8px 0; min-width: 0;
+}
+.ls-input:focus { outline: none; }
+.ls-input::placeholder { color: var(--muted); }
+.ls-in { color: var(--muted); font-size: 14px; }
+.ls-fields .go { border-radius: var(--pill); padding: 11px 20px; white-space: nowrap; }
+.ls-note { color: var(--muted); font-size: 13px; }
+@media (max-width: 560px) {
+  .ls-fields { border-radius: var(--r-lg); flex-direction: column; align-items: stretch; padding: 14px; }
+  .ls-input { width: 100%; text-align: center; }
+  .ls-fields .go { width: 100%; justify-content: center; }
+}
+.ls-examples {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center;
+  font-size: 13px; color: var(--muted); margin-bottom: 4px;
+}
+.ls-example {
+  background: none; border: 1px dashed var(--border); border-radius: var(--pill);
+  padding: 5px 12px; font-size: 12.5px; color: var(--muted); cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.ls-example:hover { color: var(--accent); border-color: var(--accent); }
+.ls-panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--sh-2); overflow: hidden; text-align: left;
+}
+.ls-bar {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border-bottom: 1px solid var(--border); background: var(--panel2);
+}
+.ls-body { padding: 16px; display: grid; gap: 10px; }
+.ls-found { font-size: 13.5px; color: var(--muted); }
+.ls-found b { color: var(--text); }
+.ls-lead {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 13px; border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.ls-leadbody { display: grid; gap: 5px; min-width: 0; }
+.ls-leadbody b { font-size: 15px; }
+.ls-cat { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ls-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ls-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  flex-wrap: wrap; padding: 14px; border-radius: var(--r-md); background: var(--panel2);
+  border: 1px solid var(--border); margin-top: 4px;
+}
+.ls-cta span { font-size: 13px; color: var(--muted); max-width: 46ch; line-height: 1.5; }
+.ls-again { display: block; margin: 0 auto 14px; font-size: 13px; }
+.ls-empty { padding: 34px 24px; display: grid; gap: 10px; place-items: center; text-align: center; color: var(--muted); }
+.ls-empty p { font-size: 14.5px; max-width: 46ch; line-height: 1.6; }
+/* The wait explains the product: these are the real stages, in order. */
+.ls-steps { padding: 26px 20px; display: grid; gap: 12px; justify-items: center; }
+.ls-steps span {
+  font-size: 13.5px; color: var(--muted); opacity: 0; animation: lsStep .5s ease forwards;
+}
+.ls-steps span:nth-child(1) { animation-delay: .1s; }
+.ls-steps span:nth-child(2) { animation-delay: 1.6s; }
+.ls-steps span:nth-child(3) { animation-delay: 4s; }
+.ls-steps span:nth-child(4) { animation-delay: 6.5s; }
+@keyframes lsStep { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ls-steps span { animation: none; opacity: 1; }
+}
+
 /* ---------- Active ICP criteria, shown because they silently filter ---------- */
 .icpactive {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
@@ -3278,3 +3352,9 @@ table { max-width: 100%; }
   margin: 6px 0 2px; padding: 12px 14px;
   background: var(--panel2); border: 1px solid var(--border); border-radius: var(--r-md);
 }
+
+/* Tier badge with no percentage, used only in the public sample. See LiveSample.tsx:
+   the attainable-relative grade contradicts the tier often enough that showing both
+   in a hero costs more trust than it buys. */
+.mock-badge.tieronly { display: grid; place-items: center; }
+.mock-badge.tieronly small { font-size: 11px; letter-spacing: .06em; opacity: 1; }

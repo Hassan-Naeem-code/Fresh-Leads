@@ -77,6 +77,8 @@ export class OverpassSource implements LeadSource {
   async search(params: {
     filters: string[];
     nicheLabel: string;
+    /** Ignored here: OSM matches on exact tag selectors, which prose cannot improve. */
+    query?: string;
     area: import("../geocode").GeoArea;
     limit: number;
   }): Promise<RawLead[]> {

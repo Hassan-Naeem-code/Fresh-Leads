@@ -24,6 +24,7 @@ export class GooglePlacesSource implements LeadSource {
   async search(params: {
     filters: string[];
     nicheLabel: string;
+    query: string;
     area: GeoArea;
     limit: number;
   }): Promise<RawLead[]> {
@@ -45,7 +46,11 @@ export class GooglePlacesSource implements LeadSource {
       if (out.length >= params.limit || Date.now() > deadline) break;
 
       const body: Record<string, unknown> = {
-        textQuery: `${params.nicheLabel} in ${params.area.displayName}`,
+        // THE CUSTOMER'S WORDS, not our category name. Places is a natural language
+        // search: "plumbers in Tampa" is a good query and "Home services / trades in
+        // Tampa" is not, and the second is what this used to send. Falls back to the
+        // label only if a caller supplies no query at all.
+        textQuery: `${params.query || params.nicheLabel} in ${params.area.displayName}`,
         maxResultCount: Math.min(params.limit - out.length, PAGE_SIZE),
         locationRestriction: {
           rectangle: {

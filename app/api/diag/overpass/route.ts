@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
     const found = await source.search({
       filters: resolved.filters,
       nicheLabel: resolved.label,
+      query: "cafes",
       area,
       limit: 20,
     });

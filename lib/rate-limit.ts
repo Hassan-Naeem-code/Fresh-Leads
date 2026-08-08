@@ -41,6 +41,24 @@ const BUCKETS = {
    * paid for.
    */
   report: { max: 100, windowS: 3600 },
+  /**
+   * The public sample search on the landing page, PER VISITOR.
+   *
+   * Unauthenticated and it crawls, which makes it the only endpoint a stranger can
+   * make us spend money on. Ten is enough for somebody genuinely trying two or three
+   * niches in their own city and nowhere near enough to be worth automating.
+   */
+  sample: { max: 10, windowS: 3600 },
+  /**
+   * The same endpoint, GLOBALLY.
+   *
+   * The per-visitor limit is keyed on an IP, and an IP is the one thing an attacker
+   * can trivially get more of. This is the limit that actually bounds the bill:
+   * whatever the distribution of callers, the platform will not run more than this
+   * many uncached samples an hour. Cache hits are checked BEFORE it, so a popular
+   * city costs nothing against the budget.
+   */
+  sample_global: { max: 120, windowS: 3600 },
 } as const;
 
 export type Verdict = { ok: true; remaining: number } | { ok: false; retryAfterS: number };

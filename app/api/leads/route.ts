@@ -405,7 +405,7 @@ export async function POST(req: NextRequest) {
         s.name === "osm" && cachedOsm.length > 0 && !cached?.stale
           ? Promise.resolve(cachedOsm)
           : Promise.race([
-          s.search({ filters: resolved.filters, nicheLabel: resolved.label, area, limit: cap }),
+          s.search({ filters: resolved.filters, nicheLabel: resolved.label, query: niche, area, limit: cap }),
           new Promise<RawLead[]>((resolve) =>
             setTimeout(() => {
               console.warn(`[leads] ${s.name} did not answer within the discovery budget`);
@@ -436,10 +436,10 @@ export async function POST(req: NextRequest) {
     // "dentists" would serve them to the next person who searched dentists alone.
     if (resolvedExtra.length > 0 && Date.now() < requestDeadline - 12_000) {
       const extraLists = await Promise.all(
-        resolvedExtra.flatMap((r) =>
+        resolvedExtra.flatMap((r, i) =>
           sources.map((s) =>
             Promise.race([
-              s.search({ filters: r.filters, nicheLabel: r.label, area, limit: cap }),
+              s.search({ filters: r.filters, nicheLabel: r.label, query: extraTargets[i], area, limit: cap }),
               new Promise<RawLead[]>((resolve) => setTimeout(() => resolve([]), 9_000)),
             ]).catch(() => [] as RawLead[])
           )
@@ -465,12 +465,15 @@ export async function POST(req: NextRequest) {
     // matches stay at the front where the scoring already puts the best fit.
     let broadened = false;
     if (resolved.qualifier && merged.length < 10 && Date.now() < requestDeadline - 18_000) {
-      const broad = resolveNiche(niche.replace(new RegExp(resolved.qualifier, "ig"), "").trim() || niche);
+      // The same words the broadened filters were derived from, so Places widens in
+      // step with OpenStreetMap rather than repeating the narrow query.
+      const broadQuery = niche.replace(new RegExp(resolved.qualifier, "ig"), "").trim() || niche;
+      const broad = resolveNiche(broadQuery);
       if (broad.filters.length && broad.filters.join() !== resolved.filters.join()) {
         const extra = await Promise.all(
           sources.map((src) =>
             Promise.race([
-              src.search({ filters: broad.filters, nicheLabel: broad.label, area, limit: cap }),
+              src.search({ filters: broad.filters, nicheLabel: broad.label, query: broadQuery, area, limit: cap }),
               new Promise<RawLead[]>((r) => setTimeout(() => r([]), 10_000)),
             ]).catch(() => [] as RawLead[])
           )
