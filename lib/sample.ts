@@ -299,6 +299,9 @@ export async function runSample(
     // real search, and the same fallback: anything we do not hold goes live.
     const covered = await coveredArea(area);
     const indexedOsm = covered ? await searchIndex(resolved.filters, area, SAMPLE_DISCOVER) : null;
+    if (indexedOsm) {
+      console.log(`[index] sample served ${indexedOsm.length} from the ${covered!.metro} index`);
+    }
 
     const cached = await readDiscovery(niche, location);
     const cachedOsm = cached?.leads ?? [];

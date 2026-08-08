@@ -172,13 +172,30 @@ export async function searchIndex(
     payload.push({ key: f.key, value: f.value, extra_key, extra_pattern });
   }
 
+  // THE SAME BREADTH THE LIVE SOURCE ASKS FOR.
+  //
+  // lib/overpass.ts requests min(max(limit * 6, 150), 500) elements, not `limit`:
+  // discovery is meant to over-fetch so that scoring, the problem filter and the
+  // ideal-customer bars all select from a real population rather than from an
+  // already-trimmed page.
+  //
+  // Honouring `limit` literally here made the index look worse than the thing it
+  // replaced. Measured on the first live run against the Austin index: "dentists in
+  // Austin" returned 113 businesses live and 46 from the index, purely because of
+  // this. An indexed lead and a live one are supposed to be indistinguishable
+  // downstream, and that has to include how many of them there are.
+  //
+  // The ceiling is higher than Overpass's 500 because reading our own table is cheap,
+  // which is the entire reason the index exists.
+  const rows = Math.min(Math.max(limit * 6, 150), 2000);
+
   const [south, north, west, east] = area.bbox;
   try {
     const admin = createAdminClient();
     const { data, error } = await admin.rpc("search_index", {
       p_south: south, p_north: north, p_west: west, p_east: east,
       p_filters: payload,
-      p_limit: limit,
+      p_limit: rows,
     });
     if (error) {
       console.error("[index] search failed, using live sources:", error.message);
