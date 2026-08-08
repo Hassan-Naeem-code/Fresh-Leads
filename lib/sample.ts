@@ -98,7 +98,7 @@ export type SampleResult = {
  * inside the product: the listing date is a real fact about the business record.
  *
  * It is wrong here, and measurably so. A live run put "EVERYDAYPLUMBER.com" at the top
- * of the hero reading "listing updated 8 years, 7 mo ago" — on a page whose entire
+ * of the hero reading "listing updated 8 years, 7 mo ago" on a page whose entire
  * argument is that our data is current, and about a business whose website we had
  * fetched and read that morning. The eight-year-old fact was true and the recent one
  * was truer.
@@ -175,7 +175,7 @@ export function looksLikeABusinessName(raw: string): boolean {
   const name = raw.trim();
   if (name.length < 3 || name.length > 90) return false;
 
-  // "Dentist in Austin.", "Coffee shop in Portland" — a category and a place, which is
+  // "Dentist in Austin.", "Coffee shop in Portland" are a category and a place, which is
   // what the search asked for rather than what any business calls itself.
   if (/^[a-z\s]+\s+in\s+[A-Z][a-z]/.test(name)) return false;
   if (/\bin\s+[A-Z][a-zA-Z]+\.?$/.test(name) && name.split(/\s+/).length <= 5) {

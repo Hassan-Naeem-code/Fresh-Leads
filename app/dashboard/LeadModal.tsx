@@ -240,7 +240,7 @@ export function LeadModal({
                     label="How they take payment"
                     value={
                       lead.profile.cashOnly === true
-                        ? (lead.profile.payments.join(", ") || "Cash only") + " — no card payments stated"
+                        ? (lead.profile.payments.join(", ") || "Cash only") + ", no card payments stated"
                         : lead.profile.payments.join(", ") || null
                     }
                   />
