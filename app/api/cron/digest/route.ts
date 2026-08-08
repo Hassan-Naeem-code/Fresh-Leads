@@ -3,6 +3,7 @@ import { runWeeklyDigest, isDigestDay } from "@/lib/digest";
 import { purgeExpired } from "@/lib/housekeeping";
 import { refreshCache } from "@/lib/cache-refresh";
 import { runQualitySample } from "@/lib/quality";
+import { cronVerdict, cronRefusal } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -18,12 +19,12 @@ export const dynamic = "force-dynamic";
 // Same secret check as the sequence cron: without it, anyone on the internet could
 // mail every customer at will.
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Not authorised" }, { status: 401 });
-    }
+  // Fails closed in production: a missing CRON_SECRET refuses the call rather than
+  // waving it through. See lib/cron-auth.ts for what an open endpoint here costs.
+  const verdict = cronVerdict(req.headers.get("authorization"));
+  if (verdict !== "allow") {
+    const r = cronRefusal(verdict, "digest");
+    return NextResponse.json(r.body, { status: r.status });
   }
 
   // ?force=1 ignores the weekday, for testing. It still respects the once-a-day guard
