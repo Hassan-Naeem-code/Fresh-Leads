@@ -136,6 +136,16 @@ export type Lead = {
   hiringUrl?: string | null;
   /** When the owner/socials/hiring crawl last ran, so we only pay for it once. */
   enrichedAt?: string | null;
+  /**
+   * What the business states about itself: founding year, licences, payment methods,
+   * service areas, team size.
+   *
+   * Read from the pages the owner crawl already fetches, so it costs nothing extra
+   * (lib/profile.ts). Every field is something they published, never something we
+   * modelled: that is what separates it from the size band in lib/size.ts, which says
+   * out loud that it is an estimate.
+   */
+  profile?: import("./profile").BusinessProfile | null;
   // scoring
   score: number;
   /**

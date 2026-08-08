@@ -8,6 +8,7 @@ import { OWNER_REVEAL_CREDITS } from "@/lib/pricing";
 import { setCredits } from "./credit-store";
 import { ReportLead } from "./ReportLead";
 import { evidenceFor, ORIGIN_LABEL } from "@/lib/evidence";
+import { hasProfileDetail } from "@/lib/profile";
 import { X, Check, User, Lock } from "../icons";
 
 // The payoff for spending a credit: everything we know about the lead, in a dialog.
@@ -212,6 +213,41 @@ export function LeadModal({
               <Fact label="Analytics installed" value={yesNo(lead.hasAnalytics)} />
               <Fact label="Copyright year" value={lead.copyrightYear ? String(lead.copyrightYear) : null} />
             </dl>
+
+            {/* WHAT THEY SAY ABOUT THEMSELVES.
+                Read from the same pages the owner crawl already fetched, so none of
+                this costs an extra request. Every line is something the business
+                published, never something we modelled: that is the difference between
+                this block and the estimated size above it, which says so out loud. */}
+            {hasProfileDetail(lead.profile) && lead.profile && (
+              <>
+                <h3 className="lm-dh">What they say about themselves</h3>
+                <dl className="lm-facts">
+                  <Fact
+                    label="In business since"
+                    value={
+                      lead.profile.establishedYear
+                        ? `${lead.profile.establishedYear}${lead.profile.yearsInBusiness ? `, about ${lead.profile.yearsInBusiness} years` : ""}`
+                        : lead.profile.yearsInBusiness
+                          ? `about ${lead.profile.yearsInBusiness} years`
+                          : null
+                    }
+                  />
+                  <Fact label="Team named on their site" value={lead.profile.teamSize ? `${lead.profile.teamSize} people` : null} />
+                  <Fact label="Licences and credentials" value={lead.profile.licenses.join(" · ") || null} />
+                  <Fact label="Areas they serve" value={lead.profile.serviceAreas.join(", ") || null} />
+                  <Fact
+                    label="How they take payment"
+                    value={
+                      lead.profile.cashOnly === true
+                        ? (lead.profile.payments.join(", ") || "Cash only") + " — no card payments stated"
+                        : lead.profile.payments.join(", ") || null
+                    }
+                  />
+                  <Fact label="Languages" value={lead.profile.languages.join(", ") || null} />
+                </dl>
+              </>
+            )}
 
             {lead.vendors && lead.vendors.length > 0 && (
               <>

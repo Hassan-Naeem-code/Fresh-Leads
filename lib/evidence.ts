@@ -220,6 +220,80 @@ export function evidenceFor(lead: Lead): EvidenceRow[] {
     });
   }
 
+  // --- What the business states about itself. Origin is always "theirs": these are
+  // their own published words, which is a different and often stronger claim than
+  // anything we measured, because a rep can quote it back to them.
+  const prof = lead.profile;
+  if (prof?.establishedYear) {
+    rows.push({
+      claim: `Trading since ${prof.establishedYear}${prof.yearsInBusiness ? `, about ${prof.yearsInBusiness} years` : ""}`,
+      how: "Stated on their own website",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "theirs",
+    });
+  } else if (prof?.yearsInBusiness) {
+    rows.push({
+      claim: `About ${prof.yearsInBusiness} years in business`,
+      how: "Stated on their own website",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "theirs",
+    });
+  }
+
+  for (const licence of prof?.licenses ?? []) {
+    rows.push({
+      claim: licence,
+      // Worth spelling out: a licence number is checkable with the issuing board,
+      // which almost nothing else on a lead is.
+      how: "Published on their site. A licence number can be checked with the state board",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "theirs",
+    });
+  }
+
+  if (prof?.cashOnly === true) {
+    rows.push({
+      claim: "Says they do not take card payments",
+      how: "Stated on their own site",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "theirs",
+    });
+  } else if (prof?.payments?.length) {
+    rows.push({
+      claim: `Takes ${prof.payments.join(", ")}`,
+      how: "Listed on their own site",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "theirs",
+    });
+  }
+
+  if (prof?.serviceAreas?.length) {
+    rows.push({
+      claim: `Serves ${prof.serviceAreas.join(", ")}`,
+      how: "The areas they list on their own site",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "theirs",
+    });
+  }
+
+  if (prof?.teamSize) {
+    rows.push({
+      claim: `${prof.teamSize} people named on their team page`,
+      // Explicitly distinguished from the size band, which is modelled from review
+      // volume and says so. This one is a count.
+      how: "Counted from the people they name, not estimated",
+      when: lead.enrichedAt ?? null,
+      check: lead.website || undefined,
+      origin: "ours",
+    });
+  }
+
   if (lead.hiring) {
     rows.push({
       claim: "Actively hiring",

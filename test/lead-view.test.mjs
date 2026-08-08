@@ -158,3 +158,48 @@ test("a lead with no findings reports zero rather than undefined", () => {
   const bare = { ...fullLead, needSignals: undefined };
   assert.equal(toLockedLead(bare, null).signalCount, 0);
 });
+
+// WHAT THE BUSINESS SAYS ABOUT ITSELF IS PAID CONTENT.
+//
+// The profile block (founding year, licences, how they take payment, service areas,
+// team size) is read from the business's own pages at unlock and is one of the most
+// sellable things on a lead. A locked lead must not carry ANY of it: a field present
+// in the payload is not hidden, however the interface chooses to render it.
+//
+// toLockedLead is an allow-list, so this is true by construction today. The test
+// exists because the next person to add a field will reach for the allow-list, and
+// this is what tells them the rule is deliberate rather than accidental.
+test("a locked lead carries none of the business profile", () => {
+  const withProfile = {
+    ...fullLead,
+    profile: {
+      establishedYear: 1976,
+      yearsInBusiness: 50,
+      licenses: ["FL License CFC019219", "BBB accredited"],
+      serviceAreas: ["Tampa", "Brandon"],
+      payments: ["Visa", "Mastercard"],
+      cashOnly: false,
+      teamSize: 12,
+      languages: ["Spanish"],
+    },
+  };
+
+  const locked = toLockedLead(withProfile, null);
+  const serialised = JSON.stringify(locked);
+
+  assert.equal(locked.profile, undefined, "the profile object must not be sent");
+  // Belt and braces: no individual value may reach the browser by another route.
+  for (const leak of ["1976", "CFC019219", "BBB", "Tampa", "Brandon", "Visa", "Spanish"]) {
+    assert.ok(!serialised.includes(leak), `locked payload leaked "${leak}"`);
+  }
+
+  // And it IS delivered once the credit is spent, or there would be nothing to sell.
+  const open = viewLead(withProfile, {
+    dbId: null,
+    leadKey: "google_places:abc123",
+    unlockedKeys: new Set(["google_places:abc123"]),
+    everythingOpen: false,
+  });
+  assert.equal(open.locked, false);
+  assert.equal(open.profile.establishedYear, 1976);
+});

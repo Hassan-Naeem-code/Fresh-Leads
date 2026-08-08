@@ -6,6 +6,7 @@ import { enrichBusiness } from "@/lib/enrich";
 import { unlockLead, hasUnlocked } from "@/lib/credits";
 import { verifyAndPersist } from "@/lib/verify/persist";
 import { stripeConfigured } from "@/lib/stripe";
+import { hasProfileDetail } from "@/lib/profile";
 import type { Lead, UnlockedLead } from "@/lib/types";
 import { hideOwner, hasOwnerDetail } from "@/lib/lead-view";
 import { writeHiring, hostKey } from "@/lib/search-cache";
@@ -137,6 +138,11 @@ export async function POST(req: NextRequest) {
         }
         // A business address found on a contact page beats having none at all.
         if (!lead.email && enrichment.scrapedEmail) lead.email = enrichment.scrapedEmail;
+        // What the business says about itself, read from the same pages the owner
+        // crawl already fetched: founding year, licences, how it takes payment, where
+        // it works, how many people it names. Free, in the sense that the bytes were
+        // already paid for (see lib/profile.ts).
+        if (hasProfileDetail(enrichment.profile)) lead.profile = enrichment.profile;
         lead.enrichedAt = new Date().toISOString();
       }
 

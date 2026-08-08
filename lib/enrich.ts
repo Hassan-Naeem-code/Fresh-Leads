@@ -1,5 +1,10 @@
 import { fetchOnce, pickBestEmail } from "./audit";
 import { verifyEmail } from "./verify/email";
+import { profileFromPages, EMPTY_PROFILE, type BusinessProfile } from "./profile";
+import { looksLikeName } from "./person-name";
+// Re-exported: callers and tests import it from here today, and moving a helper should
+// not be a breaking change for them.
+export { looksLikeName } from "./person-name";
 
 // WHO ACTUALLY OWNS THE BUSINESS, plus the two signals that sit on the same pages.
 //
@@ -39,11 +44,21 @@ export type Enrichment = {
   /** Any address scraped from the extra pages, even if not the owner's. */
   scrapedEmail: string | null;
   pagesFetched: number;
+  /**
+   * What the business says about itself: when it started, its licences, how it takes
+   * payment, where it works, how many people it names.
+   *
+   * Read from the SAME pages this module already fetches. Those seven pages were being
+   * mined for four facts and discarded, which was the cheapest unused data in the
+   * product (see lib/profile.ts).
+   */
+  profile: BusinessProfile;
 };
 
 export const EMPTY_ENRICHMENT: Enrichment = {
   ownerName: null, ownerRole: null, ownerEmail: null,
   socials: {}, hiring: null, hiringUrl: null, scrapedEmail: null, pagesFetched: 0,
+  profile: EMPTY_PROFILE,
 };
 
 /** Extra pages worth opening, in the order they are worth opening. */
@@ -153,98 +168,6 @@ function isOwnerRole(raw: string, where: "starts" | "ends"): string | null {
     if (ok) return norm;
   }
   return null;
-}
-
-/**
- * Words that look like names to a regex but are not people. Every one of these was a
- * real false positive risk: page furniture, headings, and place names all match
- * "two capitalised words" perfectly well.
- */
-/**
- * Words that never appear in a real person's name, checked PER WORD.
- *
- * Found by measuring: "Our Doctors", "Your Dentists", "The Doctors", "Us Services"
- * and "Our Expert" were all being returned as owner names from real dental sites.
- * Each has the exact shape of a name (two capitalised words, no digits) so the
- * whole-phrase stoplist below could never catch them. Pronouns, articles and role
- * nouns are the giveaway, so they are rejected wherever they appear.
- */
-const NEVER_IN_A_NAME = new Set([
-  // pronouns and articles
-  "our", "your", "the", "us", "we", "my", "their", "his", "her", "its", "a", "an",
-  // role nouns, singular and plural
-  "doctor", "doctors", "dentist", "dentists", "expert", "experts", "specialist",
-  "specialists", "provider", "providers", "physician", "physicians", "hygienist",
-  "hygienists", "stylist", "stylists", "technician", "technicians", "staff", "team",
-  "member", "members", "professional", "professionals", "surgeon", "surgeons",
-  // business words
-  "services", "service", "office", "offices", "clinic", "clinics", "practice",
-  "group", "center", "centre", "associates", "partners", "company", "solutions",
-  "dental", "medical", "health", "care", "smiles", "studio", "salon", "spa",
-  "family", "welcome", "meet", "about", "contact", "home", "menu", "hours",
-  // Measured: "Dr. Zahedi Testimonials" and "Booking How" were produced by headings
-  // sitting immediately after a name.
-  "testimonials", "reviews", "plan", "plans", "how", "booking", "book", "wellness",
-  "appointment", "appointments", "insurance", "financing", "gallery", "blog", "faq",
-  "new", "patients", "patient", "emergency", "specials", "offers",
-  // The role words themselves. "Lee, Owner" was being captured as the two-word name
-  // "Lee Owner", so the title has to be disqualifying inside a name as well as
-  // recognised beside one.
-  "owner", "owners", "founder", "founders", "president", "proprietor", "ceo",
-  "principal", "director", "manager", "managing",
-]);
-
-const NOT_A_NAME = new Set([
-  "our team", "the team", "meet the", "contact us", "about us", "our story",
-  "our mission", "read more", "learn more", "order online", "book now",
-  "customer service", "opening hours", "get in touch", "follow us",
-  "privacy policy", "terms of", "all rights", "main street", "new york",
-  "los angeles", "san diego", "san francisco", "las vegas", "united states",
-  "gift cards", "our history", "family owned", "locally owned", "the owner",
-]);
-
-const SOCIAL_PATTERNS: Array<[keyof Socials, RegExp]> = [
-  ["facebook", /https?:\/\/(?:www\.)?facebook\.com\/([A-Za-z0-9._-]{2,60})/i],
-  ["instagram", /https?:\/\/(?:www\.)?instagram\.com\/([A-Za-z0-9._]{2,40})/i],
-  ["linkedin", /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(company\/[A-Za-z0-9._-]{2,60}|in\/[A-Za-z0-9._-]{2,60})/i],
-  ["x", /https?:\/\/(?:www\.)?(?:twitter|x)\.com\/([A-Za-z0-9_]{2,20})/i],
-  ["tiktok", /https?:\/\/(?:www\.)?tiktok\.com\/(@[A-Za-z0-9._]{2,30})/i],
-  ["youtube", /https?:\/\/(?:www\.)?youtube\.com\/(@?[A-Za-z0-9._\/-]{2,60})/i],
-];
-
-const HIRING_TEXT = [
-  "we're hiring", "we are hiring", "now hiring", "join our team", "join the team",
-  "current openings", "open positions", "apply now", "job openings",
-];
-
-/** Social handles that are the platform's own furniture, not the business's page. */
-const SOCIAL_JUNK = new Set([
-  "sharer", "share", "sharer.php", "intent", "home", "profile.php", "pages",
-  "plugins", "tr", "login", "help", "privacy", "policies", "watch", "embed",
-]);
-
-/** Is this two-or-three-word capitalised run plausibly a person's name? */
-export function looksLikeName(raw: string): boolean {
-  const name = raw.trim().replace(/\s+/g, " ");
-  if (name.length < 5 || name.length > 40) return false;
-  if (/\d/.test(name)) return false;
-  if (NOT_A_NAME.has(name.toLowerCase())) return false;
-
-  const parts = name.split(" ");
-  if (parts.length < 2 || parts.length > 3) return false;
-
-  // One disqualifying word anywhere is enough. "Our Doctors" and "Us Services" both
-  // pass every structural test; only the vocabulary gives them away.
-  if (parts.some((p) => NEVER_IN_A_NAME.has(p.toLowerCase().replace(/[^a-z]/g, "")))) return false;
-
-  // Every part must read as a name: a capitalised word, or a middle initial.
-  //
-  // The inner group is what lets O'Brien, D'Angelo and Smith-Jones through: a capital
-  // is allowed again, but only straight after an apostrophe or hyphen. Requiring
-  // lowercase everywhere else is what still rejects SHOUTY HEADINGS, which otherwise
-  // look exactly like a two word name.
-  const PART = /^[A-Z][a-z\u2019'-]*(?:['\u2019-][A-Z]?[a-z]+)*$/;
-  return parts.every((p) => PART.test(p) || /^[A-Z]\.?$/.test(p));
 }
 
 const cleanText = (html: string): string =>
@@ -504,6 +427,26 @@ export function ownerFromCopyright(html: string): { name: string; role: string }
   return null;
 }
 
+const SOCIAL_PATTERNS: Array<[keyof Socials, RegExp]> = [
+  ["facebook", /https?:\/\/(?:www\.)?facebook\.com\/([A-Za-z0-9._-]{2,60})/i],
+  ["instagram", /https?:\/\/(?:www\.)?instagram\.com\/([A-Za-z0-9._]{2,40})/i],
+  ["linkedin", /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(company\/[A-Za-z0-9._-]{2,60}|in\/[A-Za-z0-9._-]{2,60})/i],
+  ["x", /https?:\/\/(?:www\.)?(?:twitter|x)\.com\/([A-Za-z0-9_]{2,20})/i],
+  ["tiktok", /https?:\/\/(?:www\.)?tiktok\.com\/(@[A-Za-z0-9._]{2,30})/i],
+  ["youtube", /https?:\/\/(?:www\.)?youtube\.com\/(@?[A-Za-z0-9._\/-]{2,60})/i],
+];
+
+const HIRING_TEXT = [
+  "we're hiring", "we are hiring", "now hiring", "join our team", "join the team",
+  "current openings", "open positions", "apply now", "job openings",
+];
+
+/** Social handles that are the platform's own furniture, not the business's page. */
+const SOCIAL_JUNK = new Set([
+  "sharer", "share", "sharer.php", "intent", "home", "profile.php", "pages",
+  "plugins", "tr", "login", "help", "privacy", "policies", "watch", "embed",
+]);
+
 export function extractSocials(html: string): Socials {
   const out: Socials = {};
   for (const [key, re] of SOCIAL_PATTERNS) {
@@ -620,6 +563,12 @@ export async function enrichBusiness(
         if (found) out.scrapedEmail = found;
       }
     }
+
+    // Everything the business states about itself, from the pages already in hand.
+    // Placed here rather than inside the loop above because several of the extractors
+    // want to see all the pages before deciding (the earliest founding year wins, and
+    // service areas accumulate across a homepage and a dedicated page).
+    out.profile = profileFromPages(pages);
 
     // Last: the sign above the door. "Edwin Webb, DDS" names the person more
     // reliably than anything on the About page, and a crawler that only reads prose
