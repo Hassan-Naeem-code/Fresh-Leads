@@ -1048,6 +1048,20 @@ input:-webkit-autofill:focus {
 .mkt-footmade { font-weight: 500; }
 @media (max-width: 560px) { .mkt-footmade { display: none; } }
 
+/* ---------- Active ICP criteria, shown because they silently filter ---------- */
+.icpactive {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 12px 0 0; padding: 12px 14px;
+  border: 1px dashed var(--border); border-radius: var(--r-md); background: var(--panel2);
+}
+.icpactive-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.icpactive-chip {
+  font-size: 12.5px; font-weight: 500; padding: 4px 10px; border-radius: var(--pill);
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+}
+.icpactive-chip.out { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 35%, transparent); }
+.icpactive .linkish { margin-left: auto; font-size: 12.5px; }
+
 /* ---------- Evidence trail: where every claim on a lead came from ---------- */
 .ev-intro { color: var(--muted); font-size: 13px; line-height: 1.6; margin: -4px 0 12px; max-width: 68ch; }
 .ev-list { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }

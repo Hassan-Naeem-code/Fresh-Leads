@@ -28,6 +28,7 @@ run "$ROOT/supabase/031_lead_reports.sql" >/dev/null
 # outright; nothing here would have noticed, because nothing here applied the file.
 run "$ROOT/supabase/032_quality_samples.sql" >/dev/null
 run "$ROOT/supabase/033_search_metrics.sql" >/dev/null
+run "$ROOT/supabase/034_icp_criteria.sql" >/dev/null
 
 if out=$( { run "$HERE/credits.test.sql"; run "$HERE/spend.test.sql"; run "$HERE/report.test.sql"; run "$HERE/quality.test.sql"; } 2>&1 ); then
   echo "$out" | grep -E 'PASS' | sed 's/^.*NOTICE:  //'

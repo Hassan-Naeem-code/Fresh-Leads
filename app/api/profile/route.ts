@@ -14,6 +14,10 @@ const Body = z.object({
   sells: z.string().max(500).optional(),
   targets: z.array(z.string().max(80)).max(12).optional(),
   location: z.string().max(160).optional(),
+  // Accepted so the dashboard can CLEAR them. An empty array is a real instruction
+  // here, distinct from omitting the field, which leaves what is stored untouched.
+  criteria: z.array(z.string().max(200)).max(12).optional(),
+  excludes: z.array(z.string().max(200)).max(12).optional(),
   /** Free-text "describe your ideal customer", parsed into the fields above. */
   describe: z.string().max(2000).optional(),
 });
@@ -52,6 +56,10 @@ export async function POST(req: NextRequest) {
         sells: icp.sells,
         targets: icp.targets,
         location: icp.location,
+        // Persisted alongside the rest, so a reload does not silently widen the next
+        // search back to the whole category (migration 034).
+        criteria: icp.criteria,
+        excludes: icp.excludes,
       });
       // `parsed` tells the UI what to prefill; `missing` tells it what to still ask.
       return NextResponse.json({ profile, parsed: icp });

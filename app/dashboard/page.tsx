@@ -110,6 +110,13 @@ export default function Home() {
         if (data.profile?.playbook) setPlaybook(data.profile.playbook);
         if (data.profile?.targets?.[0]) setNiche(data.profile.targets[0]);
         if (data.profile?.location) setLocation(data.profile.location);
+        // The qualifying requirements, restored with everything else. Without this a
+        // reload kept the niche and the playbook but silently dropped the criteria, so
+        // the next search widened back to the whole category with nothing on screen
+        // saying so, which is the exact failure the saved profile exists to prevent.
+        if (data.profile?.targets?.length) setIcpTargets(data.profile.targets);
+        if (data.profile?.criteria?.length) setIcpCriteria(data.profile.criteria);
+        if (data.profile?.excludes?.length) setIcpExcludes(data.profile.excludes);
       } catch {
         // A profile we can't load just means defaults; never block the dashboard.
       }
@@ -565,6 +572,42 @@ export default function Home() {
 
       {/* The one-box front door. Writes the same fields as the picker below. */}
       <IcpBox aiParsing={aiParsing} onApply={applyIcp} />
+
+      {/* ACTIVE REQUIREMENTS, SHOWN BECAUSE THEY ARE ACTIVE.
+          Persisting the criteria (migration 034) fixed one silent failure and created
+          another: restored from the profile on load, they narrow and re-rank every
+          later search while the box that captured them sits empty. A filter the user
+          cannot see is a filter they will read as a broken search. So they are listed
+          whenever they apply, with one click to drop them. */}
+      {(icpCriteria.length > 0 || icpExcludes.length > 0) && (
+        <div className="icpactive">
+          <span className="icpactive-label">Screening every search for</span>
+          {icpCriteria.map((c) => (
+            <span className="icpactive-chip" key={c}>{c}</span>
+          ))}
+          {icpExcludes.map((c) => (
+            <span className="icpactive-chip out" key={c}>not {c}</span>
+          ))}
+          <button
+            type="button"
+            className="linkish"
+            onClick={() => {
+              setIcpCriteria([]);
+              setIcpExcludes([]);
+              setIcpTargets([]);
+              // Cleared in the database too, or the next reload brings them back and
+              // the button looks broken.
+              void fetch("/api/profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ criteria: [], excludes: [] }),
+              }).catch(() => {});
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* WHAT DO YOU SELL. Asked before anything else, because it decides what a good
           lead even means: two sellers looking at the same business should get

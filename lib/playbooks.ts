@@ -146,4 +146,13 @@ export type BuyerProfile = {
   targets: string[];
   /** Usual search area, e.g. "Warren, MI". */
   location: string;
+  /**
+   * The qualifying requirements, in the buyer's own words, checked per business by
+   * lib/icp-match.ts. Persisted for the same reason `sells` is: they decide what a
+   * search returns, and losing them on a page reload silently widens every subsequent
+   * search back to the whole category.
+   */
+  criteria: string[];
+  /** Business kinds ruled out entirely. */
+  excludes: string[];
 };
