@@ -126,7 +126,28 @@ export async function runQualitySample(): Promise<{ sampled: number; held: numbe
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    const chosen = pool.slice(0, SAMPLE_SIZE);
+    // ALREADY SAMPLED TODAY? SKIP BEFORE SPENDING, NOT AFTER.
+    //
+    // The unique index on (lead_key, checked_on) makes a second sample of the same
+    // business on the same day impossible, so the published percentage is safe from
+    // double counting however often this runs. It does NOT protect the money: the
+    // paid Twilio and ZeroBounce lookups happen further down, and the insert that
+    // gets rejected happens after them. A retried or replayed cron therefore paid
+    // for verifications whose results were then thrown away.
+    //
+    // One cheap query closes it. The index still stands behind this as the guarantee;
+    // this is what makes the guarantee free.
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: doneToday } = await admin
+      .from("quality_samples")
+      .select("lead_key")
+      .gte("checked_at", `${today}T00:00:00.000Z`);
+    const alreadySampled = new Set((doneToday ?? []).map((r) => r.lead_key as string));
+
+    const chosen = pool.filter((u) => !alreadySampled.has(u.lead_key as string)).slice(0, SAMPLE_SIZE);
+    if (chosen.length === 0) {
+      return { sampled: 0, held: 0, skipped: "everything in the pool was already sampled today" };
+    }
 
     let sampled = 0;
     let held = 0;
