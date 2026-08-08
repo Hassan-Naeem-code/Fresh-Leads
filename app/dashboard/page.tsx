@@ -92,7 +92,7 @@ export default function Home() {
   // card-terminal reseller should never be shown "no HTTPS", and a web designer should
   // never be shown which POS a restaurant runs.
   const [playbook, setPlaybook] = useState<PlaybookId>(DEFAULT_PLAYBOOK);
-  // Claude-backed ICP parsing is only available when an API key is configured; the
+  // AI-backed ICP parsing is only available when an API key is configured; the
   // box still works without one, using keyword matching.
   const [aiParsing, setAiParsing] = useState(false);
 

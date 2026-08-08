@@ -37,7 +37,7 @@ export function IcpBox({
   aiParsing,
 }: {
   onApply: (icp: IcpResult) => void;
-  /** Claude-backed parsing is configured; otherwise a keyword parser is used. */
+  /** AI-backed parsing is configured; otherwise a keyword parser is used. */
   aiParsing: boolean;
 }) {
   const [text, setText] = useState("");
@@ -96,7 +96,7 @@ export function IcpBox({
         {aiParsing && result && !result.ai && (
           <span className="icp-hint warn">
             <AlertTriangle size={12} /> Read with basic keyword matching, the AI parser
-            didn&rsquo;t respond. Check the Claude API key and its credit balance.
+            didn&rsquo;t respond. Check the AI provider key and its credit balance.
           </span>
         )}
       </form>
