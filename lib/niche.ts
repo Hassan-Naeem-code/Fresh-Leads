@@ -12,7 +12,10 @@ const CATALOG: NicheDef[] = [
   { label: "Bars & pubs", keywords: ["bar", "pub", "tavern", "nightclub", "brewery"], filters: ['"amenity"="bar"', '"amenity"="pub"', '"amenity"="biergarten"'] },
   { label: "Salons & beauty", keywords: ["salon", "beauty", "hair", "nails", "spa", "barber", "barbershop"], filters: ['"shop"="hairdresser"', '"shop"="beauty"', '"beauty"="nails"'] },
   { label: "Dental", keywords: ["dentist", "dental", "orthodont"], filters: ['"amenity"="dentist"', '"healthcare"="dentist"'] },
-  { label: "Medical & clinics", keywords: ["doctor", "medical", "clinic", "physician", "healthcare", "practice"], filters: ['"amenity"="doctors"', '"amenity"="clinic"', '"healthcare"="doctor"'] },
+  // "practice" removed: it is a generic business word, not a medical one, and it made
+  // "law practice" resolve to Medical & clinics + Law firms, returning doctors to
+  // somebody looking for solicitors.
+  { label: "Medical & clinics", keywords: ["doctor", "medical", "clinic", "physician", "healthcare"], filters: ['"amenity"="doctors"', '"amenity"="clinic"', '"healthcare"="doctor"'] },
   { label: "Veterinary", keywords: ["vet", "veterinar", "animal hospital"], filters: ['"amenity"="veterinary"'] },
   { label: "Gyms & fitness", keywords: ["gym", "fitness", "yoga", "pilates", "crossfit", "workout"], filters: ['"leisure"="fitness_centre"', '"leisure"="sports_centre"', '"sport"="fitness"'] },
   { label: "Auto repair", keywords: ["auto", "mechanic", "car repair", "garage", "tire", "body shop"], filters: ['"shop"="car_repair"', '"shop"="tyres"'] },
@@ -22,7 +25,16 @@ const CATALOG: NicheDef[] = [
   { label: "Law firms", keywords: ["law", "lawyer", "attorney", "legal"], filters: ['"office"="lawyer"'] },
   { label: "Accounting & finance", keywords: ["accounting", "accountant", "cpa", "bookkeep", "tax", "financial"], filters: ['"office"="accountant"', '"office"="financial"', '"office"="tax_advisor"'] },
   { label: "Insurance", keywords: ["insurance"], filters: ['"office"="insurance"'] },
-  { label: "Retail & boutiques", keywords: ["retail", "store", "boutique", "shop", "clothing", "apparel"], filters: ['"shop"="clothes"', '"shop"="boutique"', '"shop"="gift"'] },
+  // "store" and "shop" removed, and this was the single most damaging entry in the
+  // catalog. They are the generic nouns that end almost every retail query, so
+  // "liquor store", "hardware store", "convenience store", "vape shop" and "print
+  // shop" all matched HERE and were then narrowed by name against clothing tags:
+  // a search for liquor stores looked for clothes shops called "liquor".
+  //
+  // Worse than useless, because matching sets generic:false, so there was no fallback
+  // to the name search and no note telling the customer the category was a guess. The
+  // specific trades those queries deserve are catalogued below instead.
+  { label: "Retail & boutiques", keywords: ["retail", "boutique", "clothing", "apparel", "clothes"], filters: ['"shop"="clothes"', '"shop"="boutique"', '"shop"="gift"'] },
   { label: "Hotels & lodging", keywords: ["hotel", "motel", "lodging", "inn", "bnb", "bed and breakfast"], filters: ['"tourism"="hotel"', '"tourism"="motel"', '"tourism"="guest_house"'] },
   { label: "Pet services", keywords: ["pet", "groomer", "grooming", "dog", "kennel"], filters: ['"shop"="pet"', '"shop"="pet_grooming"'] },
   { label: "Childcare", keywords: ["daycare", "childcare", "preschool", "nursery"], filters: ['"amenity"="childcare"', '"amenity"="kindergarten"'] },
@@ -36,7 +48,69 @@ const CATALOG: NicheDef[] = [
   { label: "Pharmacies", keywords: ["pharmacy", "chemist", "drugstore"], filters: ['"amenity"="pharmacy"'] },
   { label: "Furniture & decor", keywords: ["furniture", "home decor", "interior"], filters: ['"shop"="furniture"', '"shop"="interior_decoration"'] },
   { label: "Marketing agencies", keywords: ["marketing", "advertising", "seo", "branding", "creative agency", "ad agency"], filters: ['"office"="advertising_agency"', '"office"="marketing"'] },
-  { label: "IT & software", keywords: ["software", "it company", "tech company", "development", "developer", "web design", "web development", "saas", "app development"], filters: ['"office"="it"', '"office"="telecommunication"'] },
+  // Bare "development" removed: it belongs to property and land far more often than
+  // to software, and it sent "property development" to office=it.
+  { label: "IT & software", keywords: ["software", "it company", "tech company", "software development", "software developer", "web design", "web development", "saas", "app development"], filters: ['"office"="it"', '"office"="telecommunication"'] },
+  // ---------------------------------------------------------------------------
+  // Everything below was added after measuring how many common local trades had no
+  // category at all: 20 of 30 probed fell through to the name-match fallback, which
+  // finds a fraction of what a tag selector does.
+  //
+  // EVERY TAG HERE WAS VERIFIED against real OpenStreetMap usage before being written
+  // down (test/tools/verify-osm-tags.mjs). That is not ceremony. OSM tagging is
+  // conventional rather than specified, and the conventions are not guessable:
+  // shop=massage is real with 36,000 uses while shop=pest_control is a mistake 300
+  // people made, and healthcare=chiropractor, which sounds obviously correct, has ten
+  // uses in the entire world. A confidently wrong tag returns nothing and reads as a
+  // broken product, so the trades whose tag did not survive verification (chiropractic,
+  // pest control, towing) are deliberately absent and keep the name-match fallback.
+  // ---------------------------------------------------------------------------
+  { label: "Physical therapy", keywords: ["physio", "physical therapy", "physiotherap", "rehab"], filters: ['"healthcare"="physiotherapist"'] },
+  { label: "Massage & bodywork", keywords: ["massage", "bodywork", "masseuse"], filters: ['"shop"="massage"'] },
+  { label: "Car wash", keywords: ["car wash", "carwash", "auto detail", "detailing"], filters: ['"amenity"="car_wash"'] },
+  { label: "Locksmiths", keywords: ["locksmith", "lockout", "key cutting"], filters: ['"shop"="locksmith"', '"craft"="locksmith"', '"craft"="key_cutter"'] },
+  { label: "Self storage", keywords: ["storage", "self storage", "storage unit"], filters: ['"shop"="storage_rental"'] },
+  { label: "Print & signs", keywords: ["printer", "printing", "print", "sign", "signage", "copy", "banner"], filters: ['"shop"="copyshop"', '"shop"="printing"', '"craft"="signmaker"', '"craft"="printer"'] },
+  { label: "Liquor stores", keywords: ["liquor", "wine", "beer", "spirits", "bottle", "package"], filters: ['"shop"="alcohol"', '"shop"="wine"', '"shop"="beverages"'] },
+  { label: "Convenience stores", keywords: ["convenience", "corner", "bodega", "mini mart"], filters: ['"shop"="convenience"'] },
+  { label: "Grocery", keywords: ["grocery", "grocer", "supermarket", "produce", "market"], filters: ['"shop"="supermarket"', '"shop"="greengrocer"'] },
+  { label: "Butchers & delis", keywords: ["butcher", "deli", "delicatessen", "meat"], filters: ['"shop"="butcher"', '"shop"="deli"'] },
+  { label: "Hardware & DIY", keywords: ["hardware", "diy", "lumber", "building supply", "paint store"], filters: ['"shop"="hardware"', '"shop"="doityourself"', '"shop"="paint"'] },
+  { label: "Garden centers", keywords: ["garden center", "garden centre", "nursery plant", "landscape supply"], filters: ['"shop"="garden_centre"'] },
+  { label: "Computer & phone repair", keywords: ["computer repair", "phone repair", "pc repair", "it repair", "screen repair"], filters: ['"shop"="computer"', '"shop"="mobile_phone"'] },
+  { label: "Bike shops", keywords: ["bike", "bicycle", "cycle"], filters: ['"shop"="bicycle"'] },
+  { label: "Sporting goods", keywords: ["sporting", "sports store", "outdoor gear", "athletic"], filters: ['"shop"="sports"', '"shop"="outdoor"'] },
+  { label: "Music", keywords: ["music", "instrument", "guitar", "piano"], filters: ['"shop"="musical_instrument"', '"amenity"="music_school"'] },
+  // amenity=school is deliberately EXCLUDED. It is public schools, not businesses, and
+  // it would bury a tutoring search under every elementary school in the county.
+  { label: "Tutoring & training", keywords: ["tutor", "tutoring", "training", "language school", "test prep"], filters: ['"office"="educational_institution"', '"amenity"="language_school"'] },
+  { label: "Driving schools", keywords: ["driving school", "driving instructor", "driver training"], filters: ['"amenity"="driving_school"'] },
+  { label: "Funeral homes", keywords: ["funeral", "mortuary", "crematorium", "undertaker"], filters: ['"shop"="funeral_directors"', '"amenity"="funeral_hall"'] },
+  { label: "Travel agencies", keywords: ["travel agency", "travel agent", "tour operator"], filters: ['"shop"="travel_agency"'] },
+  { label: "Events & catering", keywords: ["catering", "caterer", "event venue", "banquet", "party rental"], filters: ['"amenity"="events_venue"', '"craft"="caterer"', '"shop"="party"'] },
+  { label: "Ice cream & desserts", keywords: ["ice cream", "gelato", "dessert", "candy", "chocolate", "confection"], filters: ['"amenity"="ice_cream"', '"shop"="confectionery"', '"shop"="chocolate"'] },
+  { label: "Pool services", keywords: ["pool service", "pool cleaning", "swimming pool", "pool builder"], filters: ['"shop"="swimming_pool"'] },
+  { label: "Painters & decorators", keywords: ["painter", "painting", "decorator", "plasterer", "drywall"], filters: ['"craft"="painter"', '"craft"="plasterer"'] },
+  { label: "Flooring & tile", keywords: ["flooring", "floor", "tile", "tiling", "carpet", "hardwood"], filters: ['"shop"="flooring"', '"shop"="carpet"', '"craft"="tiler"'] },
+  { label: "Windows & glass", keywords: ["window", "glass", "glazier", "glazing", "windshield"], filters: ['"craft"="window_construction"', '"craft"="glaziery"'] },
+  { label: "Masonry & stone", keywords: ["masonry", "mason", "stonework", "stonemason", "concrete"], filters: ['"craft"="stonemason"'] },
+  { label: "Metalwork & welding", keywords: ["welding", "welder", "metalwork", "fabrication", "blacksmith", "machine shop"], filters: ['"craft"="metal_construction"', '"craft"="blacksmith"', '"craft"="welder"'] },
+  { label: "Staffing agencies", keywords: ["staffing", "recruiting", "recruitment", "employment agency", "temp agency"], filters: ['"office"="employment_agency"'] },
+  { label: "Security services", keywords: ["security", "alarm", "surveillance", "guard"], filters: ['"office"="security"', '"shop"="security"'] },
+  { label: "Tailors & alterations", keywords: ["tailor", "alterations", "seamstress", "embroidery"], filters: ['"craft"="tailor"'] },
+  { label: "Upholstery & cabinetry", keywords: ["upholstery", "upholsterer", "cabinet", "cabinetry", "millwork"], filters: ['"craft"="upholsterer"', '"craft"="cabinet_maker"'] },
+  { label: "Antiques & resale", keywords: ["antique", "thrift", "consignment", "second hand", "resale", "vintage"], filters: ['"shop"="antiques"', '"shop"="second_hand"', '"shop"="charity"'] },
+  { label: "Bookstores", keywords: ["bookstore", "book", "bookshop"], filters: ['"shop"="books"'] },
+  { label: "Toy & craft stores", keywords: ["toy", "hobby", "craft store", "fabric", "quilting", "yarn"], filters: ['"shop"="toys"', '"shop"="craft"', '"shop"="fabric"'] },
+  { label: "Smoke & vape", keywords: ["smoke", "vape", "tobacco", "cigar", "head"], filters: ['"shop"="tobacco"', '"shop"="e-cigarette"'] },
+  { label: "Dispensaries", keywords: ["dispensary", "cannabis", "marijuana", "cbd"], filters: ['"shop"="cannabis"'] },
+  { label: "Senior care", keywords: ["senior", "assisted living", "nursing home", "elder", "home care"], filters: ['"amenity"="social_facility"'] },
+  { label: "Car rental", keywords: ["car rental", "rent a car", "vehicle rental", "truck rental"], filters: ['"amenity"="car_rental"'] },
+  { label: "Auto parts", keywords: ["auto parts", "car parts", "parts store", "spares"], filters: ['"shop"="car_parts"'] },
+  { label: "Motorcycle & powersports", keywords: ["motorcycle", "powersports", "scooter", "moped"], filters: ['"shop"="motorcycle"'] },
+  { label: "Boats & marine", keywords: ["boat", "marine", "marina", "yacht"], filters: ['"shop"="boat"'] },
+  { label: "Appliance repair", keywords: ["appliance", "washer repair", "fridge repair", "hvac repair"], filters: ['"shop"="appliance"', '"shop"="repair"', '"craft"="electronics_repair"'] },
+  { label: "Banks & credit unions", keywords: ["bank", "credit union", "savings"], filters: ['"amenity"="bank"'] },
 ];
 
 export type ResolvedNiche = {
@@ -59,6 +133,12 @@ const NOISE = new Set([
   "small", "big", "large", "independent", "cheap", "affordable", "quality",
   "companies", "company", "business", "businesses", "services", "service", "firms",
   "firm", "shops", "shop", "places", "place", "providers", "provider",
+  // The nouns that end a retail or professional query. Removing them from the
+  // CATEGORY keywords stopped "liquor store" matching clothing, but they survived as
+  // qualifiers and narrowed on the business NAME instead: "pet store" became pet shops
+  // called "store", and "law practice" became solicitors called "practice". A word
+  // that means "a business of some kind" can never be a useful narrowing term.
+  "store", "stores", "practice", "practices", "outlet", "outlets", "centre", "center",
   // Ranking words. "top rated dentists" narrowed to dentists with "rated" in their
   // name, which is nobody. These describe how a customer feels about a result, not
   // what they are looking for.
@@ -105,10 +185,29 @@ export function resolveNiche(raw: string): ResolvedNiche {
       if (w === k) return true;
       if (w.startsWith(k) && ENDINGS.has(w.slice(k.length))) return true;
       if (k.startsWith(w) && ENDINGS.has(k.slice(w.length))) return true;
-      // Different endings on the same root: plumbing and plumber, roofing and roofer.
-      // Five characters is long enough that collisions are rare and short words like
-      // "bar" and "spa" are excluded from it entirely.
-      return k.length >= 5 && w.length >= 5 && k.slice(0, 5) === w.slice(0, 5);
+      // Different endings on the same root: plumbing and plumber.
+      //
+      // A shared five-letter prefix alone is not enough, and "pest control" proved it:
+      // "control" and "contractor" both start "contr", so a pest control search
+      // resolved to Home services / trades and looked for contractors named "pest".
+      //
+      // What separates a real shared root from a coincidence is what is LEFT once the
+      // root is removed. plumbing/plumber leave "ing" and "er", which are endings.
+      // control/contractor leave "ol" and "actor", and "actor" is another word. So the
+      // remainder on both sides has to be short enough to be a suffix.
+      if (k.length < 5 || w.length < 5) return false;
+      let i = 0;
+      while (i < k.length && i < w.length && k[i] === w[i]) i++;
+      if (i < 5) return false;
+
+      const kLeft = k.length - i;
+      const wLeft = w.length - i;
+      // One word contains the other whole: "veterinar" inside "veterinarians". That is
+      // an inflection, not a coincidence, so a longer tail is fine.
+      if (kLeft === 0 || wLeft === 0) return Math.max(kLeft, wLeft) <= 5;
+      // Both sides diverge, which is where the false matches live. Only short endings
+      // are credible: "ing" and "er" are suffixes, "actor" is another word.
+      return kLeft <= 3 && wLeft <= 3;
     });
   };
 
