@@ -57,6 +57,21 @@ In the Supabase SQL editor, run these in order. Each is safe to run twice.
 | `031_lead_reports.sql` | Bad-lead reports and the automatic credit back |
 | `032_quality_samples.sql` | Measured accuracy, the numbers published at `/accuracy` |
 | `033_search_metrics.sql` | Per-search timings, so reliability can be measured |
+| `034_icp_criteria.sql` | Saved ideal-customer criteria, so they survive a reload |
+| `035_sample_searches.sql` | Cache for the public sample search on the landing page |
+| `036_business_index.sql` | The owned business index, and the areas it covers |
+
+After 036, build the index itself. It is a tool rather than a cron because it runs for
+tens of minutes against a free public API and needs to be resumable by hand:
+
+```
+node test/tools/ingest-metros.mjs            # all 20 metros, skipping fresh ones
+node test/tools/ingest-metros.mjs austin     # one metro
+```
+
+Nothing breaks before you run it. An area the index does not cover falls through to the
+live sources exactly as the product behaved before the index existed, so ingesting is a
+speed and reliability upgrade rather than a switch that has to be thrown.
 
 Migration 006 is the important one. Balances, unlocks and subscriptions all live there,
 and the guarantees that protect revenue (never charge twice for the same business, never

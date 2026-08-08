@@ -10,6 +10,7 @@ import { assessFreshness } from "./freshness";
 import { describeCurrency } from "./freshness";
 import { isRealWebsite } from "./website-kind";
 import { mapPool } from "./pool";
+import { coveredArea, searchIndex } from "./index-store";
 import { DEFAULT_PLAYBOOK } from "./playbooks";
 import type { Lead } from "./types";
 
@@ -294,12 +295,19 @@ export async function runSample(
     // The product's own discovery cache. A sample for a city somebody already paid to
     // search costs nothing, and a sample warms the cache for the next customer, so the
     // two halves of the funnel subsidise each other rather than duplicating work.
+    // The owned index first, where we hold the area. Same preference order as the
+    // real search, and the same fallback: anything we do not hold goes live.
+    const covered = await coveredArea(area);
+    const indexedOsm = covered ? await searchIndex(resolved.filters, area, SAMPLE_DISCOVER) : null;
+
     const cached = await readDiscovery(niche, location);
     const cachedOsm = cached?.leads ?? [];
 
     const lists = await Promise.all(
       sources.map((s) =>
-        s.name === "osm" && cachedOsm.length > 0 && !cached?.stale
+        s.name === "osm" && indexedOsm
+          ? Promise.resolve(indexedOsm)
+          : s.name === "osm" && cachedOsm.length > 0 && !cached?.stale
           ? Promise.resolve(cachedOsm)
           : Promise.race([
               s.search({
@@ -322,7 +330,7 @@ export async function runSample(
       };
     }
 
-    const freshOsm = lists.flat().filter((l) => l.source === "osm");
+    const freshOsm = indexedOsm ? [] : lists.flat().filter((l) => l.source === "osm");
     if (freshOsm.length > 0 && (!cachedOsm.length || cached?.stale)) {
       void writeDiscovery(niche, location, freshOsm);
     }

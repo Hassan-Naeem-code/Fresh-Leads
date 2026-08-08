@@ -29,8 +29,9 @@ run "$ROOT/supabase/031_lead_reports.sql" >/dev/null
 run "$ROOT/supabase/032_quality_samples.sql" >/dev/null
 run "$ROOT/supabase/033_search_metrics.sql" >/dev/null
 run "$ROOT/supabase/034_icp_criteria.sql" >/dev/null
+run "$ROOT/supabase/036_business_index.sql" >/dev/null
 
-if out=$( { run "$HERE/credits.test.sql"; run "$HERE/spend.test.sql"; run "$HERE/report.test.sql"; run "$HERE/quality.test.sql"; } 2>&1 ); then
+if out=$( { run "$HERE/credits.test.sql"; run "$HERE/spend.test.sql"; run "$HERE/report.test.sql"; run "$HERE/quality.test.sql"; run "$HERE/index.test.sql"; } 2>&1 ); then
   echo "$out" | grep -E 'PASS' | sed 's/^.*NOTICE:  //'
   echo
   echo "$(echo "$out" | grep -c PASS) assertions passed"

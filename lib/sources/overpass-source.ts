@@ -1,38 +1,12 @@
 import { queryOverpass, type OsmElement } from "../overpass";
 import type { LeadSource, RawLead } from "./types";
-
-// Big-brand filter: these are franchises/chains, not the independent local
-// businesses this tool targets.
-const CHAINS = [
-  "mcdonald", "burger king", "wendy", "taco bell", "subway", "chipotle",
-  "starbucks", "dunkin", "panera", "chick-fil-a", "chick fil a", "popeyes",
-  "kfc", "domino", "pizza hut", "little caesar", "jet's pizza", "jets pizza",
-  "wingstop", "a&w", "dairy queen", "dave's hot chicken", "daves hot chicken",
-  "papa john", "papa murphy", "marco's pizza", "hungry howie", "cottage inn",
-  "arby", "sonic drive", "hardee", "carl's jr", "jimmy john", "jersey mike",
-  "five guys", "culver", "white castle", "checkers", "del taco", "del boca",
-  "panda express", "raising cane", "in-n-out", "whataburger", "tim horton",
-  "qdoba", "moe's southwest", "firehouse subs", "buffalo wild wings",
-  "applebee", "olive garden", "chili's", "ihop", "denny", "outback",
-  "red lobster", "red robin", "texas roadhouse", "cracker barrel", "tgi friday",
-  "national coney", "leo's coney", "coney island",
-  "walmart", "target", "costco", "sam's club", "home depot", "lowe", "menards",
-  "best buy", "kroger", "meijer", "aldi", "dollar general", "dollar tree",
-  "family dollar", "7-eleven", "circle k", "speedway", "marathon",
-  "cvs", "walgreens", "rite aid", "planet fitness", "anytime fitness",
-  "la fitness", "orangetheory", "great clips", "supercuts", "sport clips",
-  "jiffy lube", "valvoline", "midas", "pep boys", "aamco", "monro",
-  "h&r block", "liberty tax", "state farm", "allstate", "geico", "progressive",
-  "u-haul", "enterprise rent", "hertz", "fedex", "ups store", "ace hardware",
-  "at&t", "verizon", "t-mobile", "comcast", "xfinity", "chase bank",
-  "bank of america", "wells fargo", "pnc bank", "fifth third", "huntington bank",
-];
+import { isChain } from "../chains";
 
 function toRawLead(el: OsmElement): RawLead | null {
   const t = el.tags || {};
   const name = t.name || t["brand"] || "";
   if (!name) return null;
-  if (CHAINS.some((c) => name.toLowerCase().includes(c))) return null;
+  if (isChain(name)) return null;
 
   const lat = el.lat ?? el.center?.lat ?? 0;
   const lon = el.lon ?? el.center?.lon ?? 0;

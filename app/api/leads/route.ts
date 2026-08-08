@@ -22,6 +22,7 @@ import { stripeConfigured } from "@/lib/stripe";
 import { pickSources, mergeRawLeads, type RawLead } from "@/lib/sources";
 import { verifyContact } from "@/lib/verify/contact";
 import { mapPool } from "@/lib/pool";
+import { coveredArea, searchIndex } from "@/lib/index-store";
 import { fitFor, isExcluded, fitBucket } from "@/lib/icp-match";
 import { FREE_PREVIEW_LEADS } from "@/lib/pricing";
 
@@ -383,6 +384,25 @@ export async function POST(req: NextRequest) {
     // frozen mid write.
     const cacheWrites: Promise<void>[] = [];
 
+    // THE OWNED INDEX, when we hold this area.
+    //
+    // Preference order for the OpenStreetMap half of discovery, best first:
+    //   1. our index      a local bbox query, no third party involved
+    //   2. the discovery cache  somebody already paid for this exact question
+    //   3. Overpass, live  the slow, rate-limited path this all exists to avoid
+    //
+    // Google Places is NOT in that list and is always called live: their terms permit
+    // storing a place id and coordinates and nothing else, so it can never be indexed.
+    //
+    // Every failure here returns null and falls through to the live path, so a metro we
+    // have not ingested, a stale ingest or an unreadable coverage table all behave
+    // exactly as the product did before the index existed.
+    const covered = await coveredArea(area);
+    const indexedOsm = covered ? await searchIndex(resolved.filters, area, cap) : null;
+    if (indexedOsm) {
+      console.log(`[index] ${indexedOsm.length} businesses from the ${covered!.metro} index (${covered!.ageDays}d old)`);
+    }
+
     const cached = await readDiscovery(niche, location);
     const cachedOsm = cached?.leads ?? [];
     if (cached) {
@@ -402,7 +422,9 @@ export async function POST(req: NextRequest) {
         // A fresh cache entry answers for OSM, so only Places is asked. A stale entry
         // is still SERVED, and refreshed below, rather than making this customer wait
         // for the crawl the cache exists to avoid.
-        s.name === "osm" && cachedOsm.length > 0 && !cached?.stale
+        s.name === "osm" && indexedOsm
+          ? Promise.resolve(indexedOsm)
+          : s.name === "osm" && cachedOsm.length > 0 && !cached?.stale
           ? Promise.resolve(cachedOsm)
           : Promise.race([
           s.search({ filters: resolved.filters, nicheLabel: resolved.label, query: niche, area, limit: cap }),
@@ -495,7 +517,10 @@ export async function POST(req: NextRequest) {
     // Only written when it came from a live call: re-writing what we just read would
     // extend the expiry of data nobody re-fetched, which is how a cache quietly stops
     // being a cache and becomes a stale copy.
-    const freshOsm = lists.flat().filter((l) => l.source === "osm");
+    // Only rows that actually came from a live Overpass call are worth filing: the
+    // cache exists to avoid that call, and re-filing index rows would just keep a
+    // second, staler copy of a table we already own.
+    const freshOsm = indexedOsm ? [] : lists.flat().filter((l) => l.source === "osm");
     if (freshOsm.length > 0 && (!cachedOsm.length || cached?.stale)) {
       cacheWrites.push(writeDiscovery(niche, location, freshOsm));
     }
