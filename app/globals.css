@@ -1048,6 +1048,132 @@ input:-webkit-autofill:focus {
 .mkt-footmade { font-weight: 500; }
 @media (max-width: 560px) { .mkt-footmade { display: none; } }
 
+/* ---------- Evidence trail: where every claim on a lead came from ---------- */
+.ev-intro { color: var(--muted); font-size: 13px; line-height: 1.6; margin: -4px 0 12px; max-width: 68ch; }
+.ev-list { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.ev-row {
+  display: grid; grid-template-columns: 132px 1fr auto; gap: 14px; align-items: start;
+  background: var(--panel); padding: 12px 14px;
+}
+@media (max-width: 640px) { .ev-row { grid-template-columns: 1fr; gap: 6px; } }
+.ev-origin {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  padding: 4px 8px; border-radius: var(--pill); text-align: center; white-space: nowrap;
+}
+/* We measured it ourselves: the strongest claim on the page, so it reads strongest. */
+.ev-origin.ours { background: color-mix(in srgb, var(--cool) 15%, transparent); color: var(--cool); }
+/* They published it. A fact about them, stated by them. */
+.ev-origin.theirs { background: color-mix(in srgb, var(--accent2) 13%, transparent); color: var(--accent2); }
+/* Somebody else vouched for it. Real, but a different kind of real. */
+.ev-origin.third_party { background: color-mix(in srgb, var(--warm) 15%, transparent); color: var(--warm); }
+.ev-body { display: grid; gap: 3px; min-width: 0; }
+.ev-body b { font-size: 13.5px; font-weight: 600; word-break: break-word; }
+.ev-body span { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.ev-meta { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.ev-meta time { font-size: 12px; color: var(--muted); }
+.ev-check { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 600; }
+.ev-check:hover { text-decoration: underline; }
+
+/* Section heading inside an admin page. */
+.adm-h2 { font-size: 17px; margin: 30px 0 12px; }
+
+/* ---------- Accuracy, the published proof page ---------- */
+.acc-headline {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 34px 30px; box-shadow: var(--sh-1); text-align: center;
+}
+.acc-big { display: grid; gap: 8px; place-items: center; }
+.acc-big b {
+  font-size: clamp(52px, 9vw, 92px); line-height: 1; letter-spacing: -.03em;
+  color: var(--cool); font-weight: 800;
+}
+/* The pre-publication state is deliberately not celebratory. It is an admission. */
+.acc-big.pending b { color: var(--muted); font-size: clamp(34px, 5vw, 54px); }
+.acc-big span { font-size: 15.5px; color: var(--text); max-width: 46ch; line-height: 1.55; }
+.acc-sub { margin-top: 16px; color: var(--muted); font-size: 14.5px; line-height: 1.6; }
+.acc-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px; margin-top: 18px;
+}
+.acc-stat {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 20px; display: grid; gap: 5px;
+}
+.acc-stat b { font-size: 30px; letter-spacing: -.02em; }
+.acc-stat span { font-size: 13.5px; color: var(--text); line-height: 1.45; }
+.acc-stat small { font-size: 12px; color: var(--muted); }
+/* Two columns on wide screens. In one column the 68ch measure left the right half of a
+   1140px page empty, which read as a rendering fault rather than as a choice. */
+.acc-how { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 34px; margin-top: 22px; }
+@media (max-width: 860px) { .acc-how { grid-template-columns: 1fr; gap: 18px; } }
+.acc-step { display: flex; gap: 16px; align-items: flex-start; }
+.acc-step .pr-cardicon { flex: none; margin-bottom: 0; width: 42px; height: 42px; }
+.acc-step b { font-size: 15.5px; display: block; margin-bottom: 5px; }
+.acc-step p { color: var(--muted); font-size: 14.5px; line-height: 1.6; max-width: 68ch; }
+.acc-reasons { display: flex; flex-wrap: wrap; gap: 10px; }
+.acc-reason {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 12px 16px; display: flex; align-items: baseline; gap: 8px;
+}
+.acc-reason b { font-size: 20px; color: var(--hot); }
+.acc-reason span { font-size: 13.5px; color: var(--muted); }
+.acc-cta {
+  margin-top: 44px; padding: 30px; border-radius: var(--r-lg);
+  background: var(--panel2); border: 1px solid var(--border); display: grid; gap: 10px;
+  justify-items: start;
+}
+.acc-cta b { font-size: 18px; }
+.acc-cta p { color: var(--muted); font-size: 14.5px; line-height: 1.6; max-width: 70ch; }
+.acc-cta .pr-btn { margin-top: 6px; }
+
+/* ---------- Report a bad lead, the credit-back control ---------- */
+/* Quiet until it is needed, but never hidden: a guarantee nobody can find is a
+   guarantee nobody believes. */
+.rep-open {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 14px;
+  background: none; border: 1px dashed var(--border); border-radius: var(--pill);
+  padding: 9px 14px; color: var(--muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: color .15s ease, border-color .15s ease;
+}
+.rep-open:hover { color: var(--warm); border-color: var(--warm); }
+.rep {
+  margin-top: 14px; padding: 16px; border-radius: var(--r-lg);
+  border: 1px solid var(--border); background: var(--panel2);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.rep.done { flex-direction: row; align-items: center; gap: 8px; color: var(--cool); font-size: 13.5px; font-weight: 500; }
+.rep-title { font-size: 14px; }
+.rep-reasons { display: flex; flex-wrap: wrap; gap: 7px; }
+.rep-chip {
+  border: 1px solid var(--border); background: var(--panel); color: var(--text);
+  border-radius: var(--pill); padding: 7px 12px; font-size: 12.5px; font-weight: 500;
+  cursor: pointer; transition: all .15s ease;
+}
+.rep-chip:hover { border-color: var(--accent); }
+.rep-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rep-detail {
+  width: 100%; resize: vertical; font: inherit; font-size: 13.5px; padding: 10px 12px;
+  border-radius: var(--r-md); border: 1px solid var(--border); background: var(--panel);
+  color: var(--text);
+}
+.rep-detail:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.rep-actions { display: flex; align-items: center; gap: 12px; }
+.rep-err { color: var(--hot); font-size: 13px; }
+.rep-note { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+
+/* ---------- ICP fit, how the business measured against what was asked ---------- */
+.fitrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+.fit {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 550; padding: 4px 9px; border-radius: var(--pill);
+  border: 1px solid var(--border); background: var(--panel2); color: var(--muted);
+}
+.fit.met { color: var(--cool); border-color: color-mix(in srgb, var(--cool) 40%, transparent); background: color-mix(in srgb, var(--cool) 10%, transparent); }
+.fit.failed { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 35%, transparent); background: color-mix(in srgb, var(--hot) 8%, transparent); }
+/* Unknown stays deliberately grey and quiet. It is not a finding, and styling it like
+   one would imply we checked something we did not. */
+.fit.unknown { opacity: .8; }
+
 /* ---------- Social profile links ---------- */
 .social-links { display: flex; align-items: center; gap: 10px; list-style: none; margin: 18px 0 0; padding: 0; }
 .social-link {

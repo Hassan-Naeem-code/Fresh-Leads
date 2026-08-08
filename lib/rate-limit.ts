@@ -30,6 +30,17 @@ const BUCKETS = {
   search: { max: 60, windowS: 3600 },
   /** Password sign in attempts, per address. */
   login: { max: 15, windowS: 900 },
+  /**
+   * Reporting a bad lead, which moves credits BACK to the caller.
+   *
+   * Deliberately loose. A rep working through a bought-in list can legitimately find a
+   * dozen bad numbers in an afternoon, and a limit that stops them mid-session turns
+   * our own guarantee into an obstacle. This is here to stop a script walking a balance
+   * upward, not to ration honest reports: the real control is the unique index that
+   * allows one report per business, so a loop can only ever refund leads it actually
+   * paid for.
+   */
+  report: { max: 100, windowS: 3600 },
 } as const;
 
 export type Verdict = { ok: true; remaining: number } | { ok: false; retryAfterS: number };

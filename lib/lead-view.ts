@@ -38,6 +38,11 @@ export function toLockedLead(l: Lead, dbId: string | null): LockedLead {
     // Same rule as signalCount. "This business changed something recently" is a
     // strong reason to open a lead; WHICH thing it changed is what the credit buys.
     changeCount: l.changes?.length ?? 0,
+    // Counts only. How many of THEIR criteria were met is a fact about the request;
+    // which ones, and why, quote the graded findings and stay behind the unlock.
+    ...(l.fit && !l.fit.blind
+      ? { fitMet: l.fit.met, fitChecked: l.fit.met + l.fit.failed }
+      : {}),
   };
 }
 
@@ -92,12 +97,19 @@ export function viewLead(
     everythingOpen: boolean;
     /** Businesses whose owner this user has separately paid to see. */
     ownerKeys?: Set<string>;
+    /** Businesses this user has already reported as bad. */
+    reportedKeys?: Set<string>;
   }
 ): ResultLead {
   if (opts.everythingOpen || opts.unlockedKeys.has(opts.leadKey)) {
     const ownerPaid = opts.everythingOpen || Boolean(opts.ownerKeys?.has(opts.leadKey));
     const body = ownerPaid ? { ...lead, ownerAvailable: hasOwnerDetail(lead) } : hideOwner(lead);
-    return { ...body, locked: false, dbId: opts.dbId };
+    return {
+      ...body,
+      locked: false,
+      dbId: opts.dbId,
+      reported: Boolean(opts.reportedKeys?.has(opts.leadKey)),
+    };
   }
   return toLockedLead(lead, opts.dbId);
 }

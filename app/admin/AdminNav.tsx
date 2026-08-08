@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gauge, Building, Mail, Info, Check, LifeBuoy, Clock } from "../icons";
+import { Gauge, Building, Mail, Info, Check, LifeBuoy, Clock, AlertTriangle } from "../icons";
 
 const LINKS = [
   { href: "/admin", label: "Overview", Icon: Gauge },
   { href: "/admin/users", label: "Users & plans", Icon: Building },
   { href: "/admin/activity", label: "Activity", Icon: Clock },
+  { href: "/admin/quality", label: "Quality", Icon: AlertTriangle },
   { href: "/admin/messages", label: "Messages", Icon: Mail },
   { href: "/admin/tickets", label: "Support", Icon: LifeBuoy },
   { href: "/admin/branding", label: "Branding", Icon: Info },

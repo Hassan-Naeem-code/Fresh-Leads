@@ -144,6 +144,16 @@ export type Lead = {
    * down for data we had no way to fetch (see attainableFor in lib/score.ts).
    */
   scoreMax: number;
+  /**
+   * How well this business matches what the buyer described, as opposed to how much
+   * it NEEDS what they sell.
+   *
+   * These are different questions and the product only ever answered the second one. A
+   * business with a broken website graded HOT whether or not it was the kind of
+   * business the buyer asked for, so a specific request ranked no better than a vague
+   * one. Null when the search carried no criteria (see lib/icp-match.ts).
+   */
+  fit?: import("./icp-match").IcpFit | null;
   tier: "HOT" | "WARM" | "COOL";
   scoreFactors: ScoreFactor[];
   needSignals: string[];
@@ -187,6 +197,16 @@ export type LockedLead = {
    * signalCount: enough to say there is something worth paying for, not what it is.
    */
   changeCount?: number;
+  /**
+   * How many of the buyer's own criteria this business met, and how many were checked.
+   *
+   * Safe to show before payment, and the strongest reason to pay: "meets 3 of the 4
+   * things you asked for" is a fact about their REQUEST, not a finding about the
+   * business. The reasons behind each verdict stay locked, on the same rule as
+   * signalCount, because those quote the need signals the credit buys.
+   */
+  fitMet?: number;
+  fitChecked?: number;
 };
 
 /** An unlocked lead: the full record, plus where it lives. */
@@ -199,6 +219,14 @@ export type UnlockedLead = Lead & {
    * safe to send before the extra credit is spent.
    */
   ownerAvailable?: boolean;
+  /**
+   * This customer has already reported this business as bad and been credited back.
+   *
+   * Sent so the report control can show it was handled rather than inviting a second
+   * report that the database would refuse anyway. Only ever true for the person who
+   * filed it: one customer's bad experience is not a public mark against the business.
+   */
+  reported?: boolean;
 };
 
 /**

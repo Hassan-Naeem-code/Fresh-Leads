@@ -12,7 +12,13 @@ create table public.profiles (
 );
 create table public.searches (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade
+  user_id uuid not null references auth.users(id) on delete cascade,
+  -- Mirrors the real schema. Migration 033 indexes this, so a stub without it fails to
+  -- apply, which is the harness lying about a migration rather than the migration
+  -- being wrong.
+  niche text,
+  location text,
+  scanned_at timestamptz not null default now()
 );
 create table public.leads (
   id uuid primary key default gen_random_uuid(),

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runWeeklyDigest, isDigestDay } from "@/lib/digest";
 import { purgeExpired } from "@/lib/housekeeping";
 import { refreshCache } from "@/lib/cache-refresh";
+import { runQualitySample } from "@/lib/quality";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -41,6 +42,14 @@ export async function GET(req: NextRequest) {
   // budget, so a slow refresh cannot take the digest down with it.
   const cache = await refreshCache();
 
-  console.log("[digest-cron]", JSON.stringify({ digestDay: isDigestDay(), force, ...summary, purged, cache }));
-  return NextResponse.json({ ...summary, purged, cache });
+  // ACCURACY MEASUREMENT rides along for the same reason the two above do: the plan
+  // allows two cron jobs and both are spoken for. It re-checks a random sample of the
+  // leads customers actually paid for, which is the only unbiased number we have about
+  // our own quality and the only one fit to publish (see lib/quality.ts). It owns its
+  // own budget and swallows its own failures, so a bad measurement day cannot stop the
+  // digest going out.
+  const quality = await runQualitySample();
+
+  console.log("[digest-cron]", JSON.stringify({ digestDay: isDigestDay(), force, ...summary, purged, cache, quality }));
+  return NextResponse.json({ ...summary, purged, cache, quality });
 }

@@ -45,6 +45,9 @@ export function MarketingFooter({ settings }: { settings: SiteSettings }) {
             <span className="mkt-foothead">Company</span>
             <Link href="/about">About us</Link>
             <Link href="/compare">How we compare</Link>
+            {/* The proof page. In Company rather than Legal on purpose: it is a claim
+                about us, and it is the one a sceptical buyer goes looking for. */}
+            <Link href="/accuracy">How accurate we are</Link>
             <Link href="/faq">Questions</Link>
             <Link href="/contact">Contact</Link>
             <Link href="/login">Sign in</Link>

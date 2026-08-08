@@ -6,6 +6,8 @@ import { LeadCard } from "../LeadCard";
 import { estimateSize } from "@/lib/size";
 import { OWNER_REVEAL_CREDITS } from "@/lib/pricing";
 import { setCredits } from "./credit-store";
+import { ReportLead } from "./ReportLead";
+import { evidenceFor, ORIGIN_LABEL } from "@/lib/evidence";
 import { X, Check, User, Lock } from "../icons";
 
 // The payoff for spending a credit: everything we know about the lead, in a dialog.
@@ -225,7 +227,48 @@ export function LeadModal({
                 </div>
               </>
             )}
+            {/* THE RECEIPTS.
+                Everything above is a claim. This is where each one came from, when we
+                last looked, and a link to check it without taking our word for it.
+                Anyone can print a confidence score; handing over the listing and the
+                page we read is what a vendor with something to hide cannot do. */}
+            <h3 className="lm-dh">Where this came from</h3>
+            <p className="ev-intro">
+              Only what we actually established is listed. A claim we did not make has
+              no row here, which is deliberate: we would rather show you a short list
+              you can check than a long one you cannot.
+            </p>
+            <div className="ev-list">
+              {evidenceFor(lead).map((e, i) => (
+                <div className="ev-row" key={i}>
+                  <span className={`ev-origin ${e.origin}`}>{ORIGIN_LABEL[e.origin]}</span>
+                  <div className="ev-body">
+                    <b>{e.claim}</b>
+                    <span>{e.how}</span>
+                  </div>
+                  <div className="ev-meta">
+                    {e.when && (
+                      <time dateTime={e.when}>
+                        {new Date(e.when).toLocaleDateString(undefined, {
+                          month: "short", day: "numeric", year: "numeric",
+                        })}
+                      </time>
+                    )}
+                    {e.check && (
+                      <a href={e.check} target="_blank" rel="noreferrer" className="ev-check">
+                        Check it
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* THE GUARANTEE, WHERE IT IS USED. A rep discovers a lead is wrong while
+              they are looking at it, on the phone, and this is that screen. Putting it
+              behind a support form is what made the promise in the footer decorative. */}
+          <ReportLead leadId={lead.dbId} alreadyReported={lead.reported} />
         </div>
 
         <div className="lm-foot">

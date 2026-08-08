@@ -118,6 +118,21 @@ export function LeadCard({ lead: l }: { lead: Lead }) {
           </div>
         )}
 
+        {/* HOW THIS BUSINESS MEASURED UP AGAINST WHAT THEY ASKED FOR, above the need
+            signals, because "is this the business I wanted" comes before "how badly do
+            they need me". Every criterion is listed including the ones we could not
+            decide: an unchecked requirement shown as unchecked is the difference
+            between a screen the rep can trust and one they have to re-verify. */}
+        {l.fit && l.fit.results.length > 0 && (
+          <div className="fitrow">
+            {l.fit.results.map((r, i) => (
+              <span key={i} className={`fit ${r.verdict}`} title={r.because}>
+                {r.verdict === "met" ? "✓" : r.verdict === "failed" ? "✕" : "?"} {r.text}
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="signals">
           {l.needSignals.map((s, i) => (
             <span key={i} className={`sig ${/no |not |down|outdated|insecure/i.test(s) ? "bad" : ""}`}>{s}</span>

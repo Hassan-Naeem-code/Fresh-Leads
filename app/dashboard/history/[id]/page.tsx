@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUnlockedKeys, getOwnerUnlockedKeys } from "@/lib/credits";
+import { getUnlockedKeys, getOwnerUnlockedKeys, getReportedKeys } from "@/lib/credits";
 import { stripeConfigured } from "@/lib/stripe";
 import type { Lead, ResultLead } from "@/lib/types";
 import { viewLead } from "@/lib/lead-view";
@@ -47,6 +47,7 @@ export default async function SearchDetailPage({ params }: { params: Promise<{ i
   // live search does. Without this a saved lead would show a person the customer
   // never paid for.
   const ownerKeys = await getOwnerUnlockedKeys(user.id);
+  const reportedKeys = await getReportedKeys(user.id);
   const everythingOpen = !stripeConfigured();
 
   const leads: ResultLead[] = (leadRows ?? [])
@@ -58,6 +59,7 @@ export default async function SearchDetailPage({ params }: { params: Promise<{ i
         leadKey: `${r.source}:${r.source_id}`,
         unlockedKeys: unlocked,
         ownerKeys,
+        reportedKeys,
         everythingOpen,
       });
     })

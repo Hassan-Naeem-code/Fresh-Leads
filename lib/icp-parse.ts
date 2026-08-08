@@ -22,6 +22,22 @@ export type ParsedIcp = {
   location: string;
   /** A niche string ready to drop into the search box. */
   niche: string;
+  /**
+   * The QUALITATIVE requirements, one per phrase, in the buyer's own words.
+   *
+   * This is the half of the sentence that used to be thrown away. "independent coffee
+   * shops in Austin that roast their own beans and have no online ordering" yielded
+   * targets ["coffee shops"] and location "Austin", and the two constraints that made
+   * the request specific were parsed and discarded, so the search returned every cafe
+   * in the city. lib/icp-match.ts now checks each of these against the evidence the
+   * pipeline already collects.
+   */
+  criteria: string[];
+  /**
+   * Businesses to keep OUT, kept separate from criteria because they are not a
+   * preference to be traded off. "no franchises" means do not show me franchises.
+   */
+  excludes: string[];
   /** True when Claude parsed it; false when the keyword fallback did. */
   ai: boolean;
   /** Anything the parser could not determine, so the UI can ask. */
@@ -61,19 +77,37 @@ const SCHEMA = {
       type: "string",
       description: "City/area to search, e.g. 'Warren, MI'. Empty string if not stated.",
     },
+    criteria: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Every OTHER requirement they stated about the businesses, one short phrase each, " +
+        "in their own words. e.g. ['no online ordering','at least 4 stars','family owned']. " +
+        "Keep the phrasing they used, including words like 'no' or 'without'. Do not " +
+        "include the business type or the location, which are captured above. Empty if none.",
+    },
+    excludes: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Kinds of business they explicitly do NOT want to see, e.g. ['franchises','chains']. " +
+        "Only what they ruled out outright, not preferences. Empty if none.",
+    },
     missing: {
       type: "array",
       items: { type: "string", enum: ["sells", "targets", "location"] },
       description: "Fields the description genuinely did not state. Do not guess these.",
     },
   },
-  required: ["playbook", "sells", "targets", "location", "missing"],
+  required: ["playbook", "sells", "targets", "location", "criteria", "excludes", "missing"],
   additionalProperties: false,
 };
 
 const SYSTEM = `You turn a salesperson's description of their ideal customer into search fields for a local-business lead tool.
 
-Extract only what they actually said. If they did not state a location, leave it empty and list "location" in missing, never invent a city. The playbook is about what THEY SELL, not about the businesses they are targeting: someone selling payment terminals to restaurants is payments_pos, not general_smb.`;
+Extract only what they actually said. If they did not state a location, leave it empty and list "location" in missing, never invent a city. The playbook is about what THEY SELL, not about the businesses they are targeting: someone selling payment terminals to restaurants is payments_pos, not general_smb.
+
+Capture every qualifying requirement in criteria, one phrase each, in their words. These are what makes their request specific, and dropping them means searching a whole category instead of what they asked for.`;
 
 /** Claude-backed parse. Returns null if unavailable or if the call fails. */
 async function parseWithClaude(description: string): Promise<ParsedIcp | null> {
@@ -95,12 +129,16 @@ async function parseWithClaude(description: string): Promise<ParsedIcp | null> {
     const parsed = JSON.parse(text.text) as Omit<ParsedIcp, "niche" | "ai">;
 
     const targets = (parsed.targets ?? []).map((t) => String(t).trim()).filter(Boolean);
+    const list = (v: unknown) =>
+      (Array.isArray(v) ? v : []).map((x) => String(x).trim()).filter(Boolean).slice(0, 12);
     return {
       playbook: (parsed.playbook as PlaybookId) ?? DEFAULT_PLAYBOOK,
       sells: parsed.sells ?? "",
       targets,
       location: parsed.location ?? "",
       niche: targets[0] ?? "",
+      criteria: list(parsed.criteria),
+      excludes: list(parsed.excludes),
       ai: true,
       missing: parsed.missing ?? [],
     };
@@ -147,6 +185,90 @@ function extractLocation(text: string): string {
   return m ? m[1].trim() : "";
 }
 
+/**
+ * Pull the qualifying clauses out of a sentence without an LLM.
+ *
+ * Deliberately crude, and it does not need to be better than crude. The clause markers
+ * below ("that", "who", "with", "without") are how people actually attach requirements
+ * in English, and lib/icp-match.ts already treats anything it cannot decide as unknown
+ * rather than as a failure. So a clause split that produces one piece of noise costs a
+ * line saying "we could not check this", not a wrongly rejected business.
+ *
+ * The alternative was to keep returning nothing at all without an API key, which is
+ * what made the whole box a form-filler in the first place.
+ */
+/**
+ * Clause boundaries.
+ *
+ * Two kinds, and the difference matters. Connectors are CONSUMED: "and" joins two
+ * requirements and belongs to neither. Relative markers are only split BEFORE, because
+ * "without" carries the negation that decides the whole criterion, and consuming it
+ * would turn "without a website" into "a website", which is the opposite request.
+ */
+const CLAUSE_SPLIT = /(?:[,;]|\band\b|\bbut\b)|(?=\b(?:that|which|who|whose|with|without|having)\b)/i;
+
+/** Words that carry no requirement on their own, used to tell a clause from a leftover. */
+const CLAUSE_NOISE = new Set([
+  // "at" is deliberately absent: it leads "at least 4 stars", where trimming it left
+  // the customer looking at a chip that said "least 4 stars".
+  "that", "which", "who", "whose", "the", "a", "an", "in", "of", "for", "to",
+  "is", "are", "was", "were", "be", "been", "have", "has", "had", "do", "does", "did",
+  "they", "them", "their", "it", "its", "i", "we", "our", "my", "and", "or", "but",
+  "near", "around", "based",
+]);
+
+export function extractCriteriaHeuristic(description: string, targets: string[], location: string): string[] {
+  let rest = description;
+
+  // CUT WHAT THEY SELL OFF THE FRONT.
+  //
+  // "web design for dentists in Warren MI without a website" describes the seller
+  // first and the target second, and the hinge is almost always "to" or "for". Without
+  // this the leading half survives target-stripping as "web design for in" and gets
+  // offered to the matcher as a requirement about the business.
+  //
+  // Only applied when the hinge is early enough to plausibly be that hinge, so a
+  // sentence that merely happens to contain "for" late on is left whole.
+  const hinge = rest.search(/\b(?:to|for)\s/i);
+  if (hinge > 0 && hinge < rest.length * 0.6) {
+    rest = rest.slice(rest.indexOf(" ", hinge + 1) + 1);
+  }
+
+  // Remove what the other fields already captured, so "restaurants in Austin that do
+  // catering" does not come back with "restaurants" as a requirement of itself.
+  for (const t of [...targets, location].filter(Boolean)) {
+    rest = rest.replace(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), " ");
+  }
+
+  return rest
+    .split(CLAUSE_SPLIT)
+    .map((c) =>
+      (c ?? "")
+        // The relative pronoun introduced the clause and is not part of the
+        // requirement. The negators are NOT stripped: lib/icp-match.ts reads them.
+        .replace(/^\s*(?:that|which|who|whose)\b/i, "")
+        .replace(/[^\w\s.+'-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+    )
+    // Shave dangling noise off both ends. Stripping the location out of "independent
+    // coffee shops in Portland" leaves "independent in", and the stray preposition is
+    // shown to the customer as part of what we screened on.
+    .map((c) => {
+      const w = c.split(" ");
+      while (w.length > 1 && CLAUSE_NOISE.has(w[w.length - 1].toLowerCase())) w.pop();
+      while (w.length > 1 && CLAUSE_NOISE.has(w[0].toLowerCase())) w.shift();
+      return w.join(" ");
+    })
+    // A clause is a requirement when something survives the noise. A fragment left
+    // behind by stripping the target ("in", "are") is not.
+    .filter((c) => {
+      if (c.length < 3) return false;
+      return c.split(" ").some((w) => w.length > 2 && !CLAUSE_NOISE.has(w.toLowerCase()));
+    })
+    .slice(0, 6);
+}
+
 export function parseIcpHeuristic(description: string): ParsedIcp {
   const text = description.trim();
   const lower = text.toLowerCase();
@@ -181,6 +303,12 @@ export function parseIcpHeuristic(description: string): ParsedIcp {
     targets,
     location,
     niche: targets[0] ?? "",
+    criteria: extractCriteriaHeuristic(text, targets, location),
+    // Ruling a whole class of business out is a judgement about intent, and the
+    // keyword parser has no way to tell "no franchises" (an exclusion) from "no online
+    // ordering" (a requirement). Both land in criteria, where a wrong reading costs a
+    // scoring line rather than silently deleting businesses from the result.
+    excludes: [],
     ai: false,
     missing,
   };

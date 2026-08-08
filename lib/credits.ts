@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase/admin";
+import type { ReportReason } from "./report-reasons";
 
 // Credit operations. Every one of these goes through a SQL function in
 // supabase/006_credits_and_subscription.sql, because the guarantees that protect
@@ -136,6 +137,73 @@ export async function unlockLead(
     status: (row?.status ?? "insufficient") as UnlockStatus,
     creditsLeft: row?.credits_left ?? 0,
   };
+}
+
+// Reason codes live in lib/report-reasons.ts, which has no server imports, so the
+// client-side report control can read the same list the CHECK constraint enforces.
+// Re-exported here for the server code that already imports from this file.
+export { REPORT_REASONS, isReportReason, VERIFICATION_REASONS } from "./report-reasons";
+export type { ReportReason } from "./report-reasons";
+
+export type ReportStatus = "refunded" | "already" | "not_charged" | "expired";
+
+/**
+ * Report a lead as bad and give the credit back.
+ *
+ * The footer promises we never charge for a lead we cannot verify. unlock_lead keeps
+ * that promise for the leads we can prove are bad before the rep dials; this keeps it
+ * for the ones only the rep can discover. It is a button rather than a support ticket
+ * because a promise the customer has to ask a human to honour is not a promise they
+ * will believe on the day they are deciding whether to buy.
+ *
+ * The refund is generous by design: the unlock stays, so they keep the data, and
+ * "not_owner" gives back the separate owner-reveal credit too. The cost of being wrong
+ * about a refund is one dollar. The cost of a customer believing the guarantee is
+ * theatre is the account.
+ */
+export async function reportLead(
+  userId: string,
+  leadKey: string,
+  reason: ReportReason,
+  opts: { detail?: string | null; leadId?: string | null } = {}
+): Promise<{ status: ReportStatus; refunded: number; creditsLeft: number }> {
+  const admin = createAdminClient();
+  // The credit goes back to the account it came out of, which for a team member is the
+  // team's balance and not their own. Same resolution as every charge in this file.
+  const payer = await wallet(userId);
+  const { data, error } = await admin.rpc("report_lead", {
+    p_user_id: payer,
+    p_lead_key: leadKey,
+    p_reason: reason,
+    p_detail: opts.detail?.slice(0, 2000) ?? null,
+    p_lead_id: opts.leadId ?? null,
+  });
+  if (error) {
+    console.error("[credits] report_lead failed:", error.message);
+    throw new Error("Could not file that report");
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    status: (row?.status ?? "not_charged") as ReportStatus,
+    refunded: row?.refunded ?? 0,
+    creditsLeft: row?.credits_left ?? 0,
+  };
+}
+
+/** Businesses this user has already reported, so the UI can show it was handled. */
+export async function getReportedKeys(userId: string): Promise<Set<string>> {
+  const admin = createAdminClient();
+  const payer = await wallet(userId);
+  const { data, error } = await admin
+    .from("lead_reports")
+    .select("lead_key")
+    .eq("user_id", payer);
+  if (error) {
+    // A history we cannot read costs a tick on a button. It must never break the page.
+    console.error("[credits] getReportedKeys failed:", error.message);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => r.lead_key as string));
 }
 
 /**

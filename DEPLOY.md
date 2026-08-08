@@ -36,6 +36,27 @@ In the Supabase SQL editor, run these in order. Each is safe to run twice.
 | `010_owner_unlocks.sql` | Owner reveals |
 | `011_api_keys.sql` | API keys |
 | `012_spend_credits.sql` | The general credit charge used by bulk enrichment |
+| `013_crm_connections.sql` | HubSpot and Salesforce connections |
+| `014_email_sequences.sql` | Outreach sequences |
+| `015_crm_instance_url.sql` | Salesforce instance URL |
+| `016_support_and_preferences.sql` | Support tickets and notification preferences |
+| `017_suspension_and_audit.sql` | Account suspension and the operator audit log |
+| `018_mfa.sql` | Second factor enrolment and challenges |
+| `019_triggers.sql` | Change triggers derived from snapshots |
+| `020_rate_limits.sql` | The shared rate limiter's counters |
+| `021_lock_down_profiles.sql` | Tightens row level security on profiles |
+| `022_search_cache.sql` | Cached discovery and website audits |
+| `023_hiring_signals.sql` | Remembered hiring facts |
+| `024_session_epoch.sql` | Sign-out-everywhere |
+| `025_teams.sql` | Shared balances and team membership |
+| `026_fix_team_policies.sql` | Corrects the team policies in 025 |
+| `027_team_handover.sql` | Transferring ownership of a team |
+| `028_seats.sql` | Per-seat billing |
+| `029_newsletter.sql` | Double opt-in newsletter list |
+| `030_webhooks.sql` | Outbound webhooks |
+| `031_lead_reports.sql` | Bad-lead reports and the automatic credit back |
+| `032_quality_samples.sql` | Measured accuracy, the numbers published at `/accuracy` |
+| `033_search_metrics.sql` | Per-search timings, so reliability can be measured |
 
 Migration 006 is the important one. Balances, unlocks and subscriptions all live there,
 and the guarantees that protect revenue (never charge twice for the same business, never

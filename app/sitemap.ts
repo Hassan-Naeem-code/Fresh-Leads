@@ -18,6 +18,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Pages that answer a question somebody typed into a search engine, which is
     // where most of the non-branded traffic will come from.
     { path: "/compare", priority: 0.8, changeFrequency: "monthly" },
+    // Weekly: the figures on it move as the sampling runs, and it is the page a
+    // sceptical buyer searches for by name.
+    { path: "/accuracy", priority: 0.8, changeFrequency: "weekly" },
     { path: "/integrations", priority: 0.7, changeFrequency: "monthly" },
     { path: "/faq", priority: 0.7, changeFrequency: "monthly" },
     { path: "/docs", priority: 0.7, changeFrequency: "monthly" },

@@ -28,6 +28,7 @@ export function MarketingNav({
           <Link href="/pricing" className="hideable">Pricing</Link>
           <Link href="/integrations" className="hideable">Integrations</Link>
           <Link href="/compare" className="hideable">Compare</Link>
+          <Link href="/accuracy" className="hideable">Accuracy</Link>
           <Link href="/about" className="hideable">About</Link>
           <Link href="/contact" className="hideable">Contact</Link>
           {/* Hidden below 900px: the nav already drops its text links at 720px, and

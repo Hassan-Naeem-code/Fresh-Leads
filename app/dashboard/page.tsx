@@ -119,14 +119,38 @@ export default function Home() {
     };
   }, []);
 
+  /**
+   * The qualitative half of a parsed ICP, kept so every later search on this screen
+   * still honours it.
+   *
+   * Held in state rather than passed once, because the buyer changes the playbook or
+   * pages through results after describing their ideal customer, and their
+   * requirements do not stop applying because they clicked something.
+   */
+  const [icpCriteria, setIcpCriteria] = useState<string[]>([]);
+  const [icpExcludes, setIcpExcludes] = useState<string[]>([]);
+  const [icpTargets, setIcpTargets] = useState<string[]>([]);
+
   /** Apply a parsed ICP: set the fields, then search if it gave us enough. */
   function applyIcp(icp: IcpResult) {
     setPlaybook(icp.playbook);
     setProblem("any");
     if (icp.niche) setNiche(icp.niche);
     if (icp.location) setLocation(icp.location);
+    const criteria = icp.criteria ?? [];
+    const excludes = icp.excludes ?? [];
+    const targets = icp.targets ?? [];
+    setIcpCriteria(criteria);
+    setIcpExcludes(excludes);
+    setIcpTargets(targets);
     if (icp.niche && icp.location) {
-      void run(undefined, { playbook: icp.playbook, problem: "any", niche: icp.niche, location: icp.location });
+      // Passed explicitly as well as set: this runs in the same tick, so the state
+      // above has not applied yet and run() would send the previous description's
+      // requirements with this description's niche.
+      void run(undefined, {
+        playbook: icp.playbook, problem: "any", niche: icp.niche, location: icp.location,
+        criteria, excludes, targets,
+      });
     }
   }
   const [genuineOnly, setGenuineOnly] = useState(false);
@@ -242,6 +266,10 @@ export default function Home() {
       webPresence?: "any" | "none" | "social_only" | "has_site";
       /** Where in the ranking to start. Set only by Load more. */
       offset?: number;
+      /** ICP requirements, passed explicitly when they were parsed in this same tick. */
+      criteria?: string[];
+      excludes?: string[];
+      targets?: string[];
     }
   ) {
     e?.preventDefault();
@@ -279,6 +307,13 @@ export default function Home() {
           minReviews: overrides?.minReviews ?? minReviews,
           webPresence: overrides?.webPresence ?? webPresence,
           offset: overrides?.offset ?? 0,
+          // The half of "describe your ideal customer" that used to be parsed and
+          // dropped. Ranking and the exclusion filter both run on these server-side,
+          // for the same reason the problem filter does: a locked lead ships none of
+          // the evidence they are decided from.
+          criteria: overrides?.criteria ?? icpCriteria,
+          excludes: overrides?.excludes ?? icpExcludes,
+          targets: overrides?.targets ?? icpTargets,
         }),
       });
       // Read as TEXT first, then parse.

@@ -14,7 +14,7 @@ import { viewLead } from "@/lib/lead-view";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAccess, type Access } from "@/lib/access";
-import { getUnlockedKeys, getOwnerUnlockedKeys } from "@/lib/credits";
+import { getUnlockedKeys, getOwnerUnlockedKeys, getReportedKeys } from "@/lib/credits";
 import { problemFactors, problemById } from "@/lib/problems";
 import { isRealWebsite } from "@/lib/website-kind";
 import { DEFAULT_PLAYBOOK, playbookById, type PlaybookId } from "@/lib/playbooks";
@@ -22,6 +22,7 @@ import { stripeConfigured } from "@/lib/stripe";
 import { pickSources, mergeRawLeads, type RawLead } from "@/lib/sources";
 import { verifyContact } from "@/lib/verify/contact";
 import { mapPool } from "@/lib/pool";
+import { fitFor, isExcluded, fitBucket } from "@/lib/icp-match";
 import { FREE_PREVIEW_LEADS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
@@ -214,6 +215,9 @@ export async function POST(req: NextRequest) {
       minRating,
       minReviews,
       webPresence = "any",
+      targets = [],
+      criteria = [],
+      excludes = [],
     }: {
       niche?: string;
       location?: string;
@@ -230,6 +234,17 @@ export async function POST(req: NextRequest) {
       minRating?: number;
       minReviews?: number;
       webPresence?: "any" | "none" | "social_only" | "has_site";
+      /**
+       * Every business type the buyer named, not just the first one.
+       *
+       * The ICP box parsed "dentists and orthodontists" into two targets and then
+       * searched targets[0], so half of what was asked for was silently dropped.
+       */
+      targets?: string[];
+      /** Qualitative requirements from the ICP description (lib/icp-match.ts). */
+      criteria?: string[];
+      /** Business kinds to drop outright. */
+      excludes?: string[];
     } = await req.json();
     if (!niche || !location) {
       return NextResponse.json({ error: "niche and location are required" }, { status: 400 });
@@ -317,6 +332,42 @@ export async function POST(req: NextRequest) {
     const resolved = resolveNiche(niche);
     if (resolved.generic) notes.push("Unknown niche, matched by business name, coverage may vary.");
 
+    // EVERY BUSINESS TYPE THEY ASKED FOR.
+    //
+    // "dentists and orthodontists in Austin" parsed into two targets and searched one,
+    // because the niche box holds a single string and the extra targets had nowhere to
+    // go. The buyer never learned that half their request was dropped.
+    //
+    // Bounded at three. Each extra target is another Overpass filter set and another
+    // Places text query inside the same 30 second budget, and a request naming five
+    // trades is better served by three of them properly than five of them truncated.
+    const MAX_TARGETS = 3;
+    const extraTargets = (Array.isArray(targets) ? targets : [])
+      .map((t) => String(t).trim())
+      .filter(Boolean)
+      // The primary niche is already resolved above; only genuinely new types count.
+      .filter((t) => t.toLowerCase() !== niche.trim().toLowerCase())
+      .slice(0, MAX_TARGETS - 1);
+
+    const resolvedExtra = extraTargets.map(resolveNiche);
+    if (resolvedExtra.length > 0) {
+      notes.push(
+        `Searched ${[resolved.label, ...resolvedExtra.map((r) => r.label)].join(", ")}.`
+      );
+    }
+
+    // ICP CRITERIA. The qualitative half of the buyer's description, which used to be
+    // parsed and discarded. Scored per lead below, after every signal has been
+    // collected, because fit is decided from the same evidence the grade is.
+    const wantedCriteria = (Array.isArray(criteria) ? criteria : [])
+      .map((c) => String(c).trim())
+      .filter(Boolean)
+      .slice(0, 12);
+    const wantedExcludes = (Array.isArray(excludes) ? excludes : [])
+      .map((c) => String(c).trim())
+      .filter(Boolean)
+      .slice(0, 12);
+
     // Discover from every configured source (OSM free by default; Places when keyed),
     // then merge/dedupe into one raw list.
     const sources = pickSources();
@@ -373,8 +424,35 @@ export async function POST(req: NextRequest) {
       console.log(`[leads] source ${sources[i].name}: ${lists[i]?.length ?? 0} rows`);
     }
 
-    const merged = mergeRawLeads(lists);
+    let merged = mergeRawLeads(lists);
     mark("discovery");
+
+    // The other business types they named. Run after the primary so a slow second trade
+    // costs coverage on itself rather than on the one they typed into the box, and
+    // skipped entirely when the request is already late.
+    //
+    // Kept OUT of `lists`, which is what the discovery cache is written from further
+    // down: that cache is keyed by the primary niche, and filing orthodontists under
+    // "dentists" would serve them to the next person who searched dentists alone.
+    if (resolvedExtra.length > 0 && Date.now() < requestDeadline - 12_000) {
+      const extraLists = await Promise.all(
+        resolvedExtra.flatMap((r) =>
+          sources.map((s) =>
+            Promise.race([
+              s.search({ filters: r.filters, nicheLabel: r.label, area, limit: cap }),
+              new Promise<RawLead[]>((resolve) => setTimeout(() => resolve([]), 9_000)),
+            ]).catch(() => [] as RawLead[])
+          )
+        )
+      );
+      const found = extraLists.flat().length;
+      if (found > 0) {
+        // Merged through the same deduper, so a business listed under both trades is
+        // one lead and is billed once.
+        merged = mergeRawLeads([merged, ...extraLists]);
+      }
+      console.log(`[leads] ${resolvedExtra.length} extra target(s) contributed ${found} rows`);
+    }
 
     // NARROWING MUST NOT MEAN EMPTY.
     //
@@ -631,12 +709,35 @@ export async function POST(req: NextRequest) {
       lead.scoreFactors = s.factors;
       lead.needSignals = s.signals;
       lead.pitch = s.pitch;
+      // FIT, computed last, because it reads the same evidence the grade does and every
+      // one of those signals has now been collected. Null rather than an empty result
+      // when nothing was asked for, so the card can tell "matched nothing" apart from
+      // "there was nothing to match against".
+      lead.fit = wantedCriteria.length > 0 ? fitFor(lead, wantedCriteria) : null;
     }
 
     // Only keep ACTIONABLE leads, you must be able to reach them at all.
-    const actionable = leads.filter((l) => l.phone || l.website || l.email);
+    let actionable = leads.filter((l) => l.phone || l.website || l.email);
     const dropped = leads.length - actionable.length;
     if (dropped > 0) notes.push(`${dropped} unreachable listings (no phone/site/email) were filtered out.`);
+
+    // WHAT THEY RULED OUT. A hard filter, unlike the criteria, because "no franchises"
+    // is not a preference to be outweighed by a good rating.
+    //
+    // Only a CONFIRMED match is removed. A business we cannot classify stays in the
+    // list: dropping the unknowns would empty the result the moment somebody excluded
+    // something we hold no field for, and they would read that as a broken search
+    // rather than as a filter doing its job.
+    if (wantedExcludes.length > 0) {
+      const before = actionable.length;
+      actionable = actionable.filter((l) => !isExcluded(l, wantedExcludes).excluded);
+      const cut = before - actionable.length;
+      if (cut > 0) {
+        notes.push(
+          `${cut} lead${cut === 1 ? "" : "s"} matched what you ruled out and were removed.`
+        );
+      }
+    }
 
     // PROBLEM FILTER, applied server-side. A locked lead does not carry its need
     // signals to the browser, so the client cannot do this filtering any more, and
@@ -715,9 +816,26 @@ export async function POST(req: NextRequest) {
     // Tier has to come before the percentage. A lead we could learn nothing about has a
     // ceiling of just phone + email, so having both scores 100% and used to outrank a
     // genuinely Hot lead at 86%. Tier already encodes whether there is real evidence.
+    // FIT OUTRANKS NEED, and this is the ordering change that makes a specific request
+    // worth typing.
+    //
+    // The old key was deliverable, then tier, then grade. Tier answers "how badly does
+    // this business need what you sell", which says nothing about whether it is the
+    // business you asked for. So a plumber with a broken website outranked the
+    // family-run Italian restaurant that met every criterion, and the buyer who
+    // described their ideal customer in detail got the same list as the buyer who
+    // typed one word.
+    //
+    // Fit sits directly under deliverable and above tier: match what they asked for
+    // first, then rank those by how much they need the sale. Buckets rather than the
+    // raw percentage, so the grade still does the fine ordering (see fitBucket).
+    // Leads whose fit could not be decided sit in the middle rather than at the
+    // bottom, because unproven is not the same as bad.
+    const bucketOf = (l: Lead) => (l.fit ? fitBucket(l.fit) : 1);
     matching.sort(
       (a, b) =>
         Number(b.deliverable) - Number(a.deliverable) ||
+        bucketOf(b) - bucketOf(a) ||
         TIER_RANK[b.tier] - TIER_RANK[a.tier] ||
         gradePct(b.score, b.scoreMax) - gradePct(a.score, a.scoreMax) ||
         // Ties broken deterministically, because page two is a SEPARATE request that
@@ -753,6 +871,21 @@ export async function POST(req: NextRequest) {
         `We confirm the phone and mailbox live when you open one, and you are not charged if it fails.`
     );
 
+    // WHAT THE CRITERIA ACTUALLY DID. Reported rather than left implicit: a buyer who
+    // typed four requirements and got a list needs to know how much of that list was
+    // screened on evidence and how much simply could not be checked, or the ranking
+    // looks arbitrary.
+    if (wantedCriteria.length > 0 && top.length > 0) {
+      const full = top.filter((l) => l.fit && !l.fit.blind && l.fit.failed === 0).length;
+      const unproven = top.filter((l) => !l.fit || l.fit.blind).length;
+      notes.push(
+        `Matched against ${wantedCriteria.length} thing${wantedCriteria.length === 1 ? "" : "s"} you asked for: ` +
+          `${full} of ${top.length} met everything we could check` +
+          (unproven > 0 ? `, and ${unproven} we could not check either way` : "") +
+          "."
+      );
+    }
+
     const scannedAt = new Date().toISOString();
     const matchedTags = [resolved.label, ...sources.map((s) => s.name)];
     notes.push(`Graded for: ${playbookById(playbook).label.toLowerCase()}.`);
@@ -764,7 +897,17 @@ export async function POST(req: NextRequest) {
     // leads are not unlockable, rather than offering an unlock that would fail.
     let searchId: string | null = null;
     const rowIdByLeadId = new Map<string, string>();
-    if (user && top.length > 0) {
+    // RECORDED EVEN WHEN IT FOUND NOTHING, and that is the change that matters.
+    //
+    // This used to run only when there was at least one lead to save, which meant the
+    // single most damaging outcome this product has, a search that returns nothing, was
+    // the one outcome that left no trace anywhere. Every budget in this file was tuned
+    // by guessing, because the failures were invisible.
+    //
+    // An empty search now writes its row like any other. It costs one insert, it shows
+    // honestly in history as a search that found nothing, and it is what lets
+    // lib/quality.ts state a zero-result rate instead of an impression.
+    if (user) {
       try {
         const admin = createAdminClient();
         const { data: saved, error: searchErr } = await admin
@@ -778,13 +921,20 @@ export async function POST(req: NextRequest) {
             notes,
             status: "complete",
             scanned_at: scannedAt,
+            // WHAT THIS SEARCH ACTUALLY COST US. The route has always measured itself
+            // and then discarded the measurements when the response went out.
+            duration_ms: Date.now() - startedAt,
+            discovered: merged.length,
+            returned: top.length,
+            audits_skipped: auditsSkipped,
+            stage_ms: timings,
           })
           .select("id")
           .single();
         if (searchErr) throw new Error(searchErr.message);
         searchId = saved?.id ?? null;
 
-        if (searchId) {
+        if (searchId && top.length > 0) {
           const { data: rows, error: leadsErr } = await admin
             .from("leads")
             .insert(top.map((l) => leadToRow(searchId!, user.id, l)))
@@ -807,6 +957,9 @@ export async function POST(req: NextRequest) {
     const unlocked = user ? await getUnlockedKeys(user.id) : new Set<string>();
     // Owner detail is priced separately, so it needs its own set of paid keys.
     const ownerKeys = user ? await getOwnerUnlockedKeys(user.id) : new Set<string>();
+    // Businesses they have already told us were wrong, so the report control shows it
+    // was handled instead of inviting a second report the database would refuse.
+    const reportedKeys = user ? await getReportedKeys(user.id) : new Set<string>();
     // Without Stripe configured there is nothing to sell, so a demo deployment
     // shows everything rather than locking the operator out of their own instance.
     const everythingOpen = !stripeConfigured();
@@ -827,6 +980,7 @@ export async function POST(req: NextRequest) {
         leadKey: l.id,
         unlockedKeys: unlocked,
         ownerKeys,
+        reportedKeys,
         everythingOpen,
       }),
       isNew: isNewKey(l.id),

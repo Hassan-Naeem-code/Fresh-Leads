@@ -10,6 +10,10 @@ export type IcpResult = {
   targets: string[];
   location: string;
   niche: string;
+  /** The qualifying requirements, checked per business by lib/icp-match.ts. */
+  criteria: string[];
+  /** Business kinds ruled out entirely. */
+  excludes: string[];
   ai: boolean;
   missing: string[];
 };
@@ -118,6 +122,20 @@ export function IcpBox({
               In: <b>{result.location}</b>
             </span>
           )}
+          {/* What we will actually screen each business against. Shown because it is
+              the part of their sentence that used to disappear silently: if the parser
+              read a requirement wrongly, they can see that here rather than wondering
+              why the results look off. */}
+          {(result.criteria ?? []).map((c) => (
+            <span className="icp-chip" key={c}>
+              Must: <b>{c}</b>
+            </span>
+          ))}
+          {(result.excludes ?? []).map((c) => (
+            <span className="icp-chip" key={c}>
+              Excluding: <b>{c}</b>
+            </span>
+          ))}
           {result.missing.length > 0 && (
             <span className="icp-chip warn">
               Still need {result.missing.map((m) => MISSING_LABEL[m] ?? m).join(" and ")}, fill it in

@@ -62,6 +62,15 @@ export function LockedLeadCard({
               <Building size={11} /> Contact unconfirmed
             </span>
           )}
+          {/* HOW WELL IT MATCHES WHAT THEY ASKED FOR. Safe before payment and the
+              strongest reason to spend the credit, because it is a fact about their
+              own request rather than a finding about the business. Which criteria were
+              met, and why, stay locked on the same rule as signalCount. */}
+          {typeof l.fitMet === "number" && typeof l.fitChecked === "number" && l.fitChecked > 0 && (
+            <span className={`vbadge ${l.fitMet === l.fitChecked ? "good" : ""}`}>
+              Matches {l.fitMet} of {l.fitChecked} you asked for
+            </span>
+          )}
           {l.signalCount > 0 && (
             <span className="vbadge">
               {l.signalCount} finding{l.signalCount === 1 ? "" : "s"} behind the unlock

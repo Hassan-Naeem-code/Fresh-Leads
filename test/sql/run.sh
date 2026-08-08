@@ -18,9 +18,18 @@ sleep 2
 run() { psql -h /tmp -p $PORT -U postgres -q -v ON_ERROR_STOP=1 -f "$1"; }
 run "$HERE/harness.sql" >/dev/null
 run "$ROOT/supabase/006_credits_and_subscription.sql" >/dev/null
+run "$ROOT/supabase/010_owner_unlocks.sql" >/dev/null
 run "$ROOT/supabase/012_spend_credits.sql" >/dev/null
+run "$ROOT/supabase/031_lead_reports.sql" >/dev/null
+# APPLIED, not just tested. 032 and 033 contain no functions worth asserting on, but
+# they are DDL that Postgres has to accept, and a migration nobody ever ran against a
+# real server is a migration that fails in the SQL editor instead. 032 shipped with an
+# index on `checked_at::date`, which is STABLE rather than IMMUTABLE and is rejected
+# outright; nothing here would have noticed, because nothing here applied the file.
+run "$ROOT/supabase/032_quality_samples.sql" >/dev/null
+run "$ROOT/supabase/033_search_metrics.sql" >/dev/null
 
-if out=$( { run "$HERE/credits.test.sql"; run "$HERE/spend.test.sql"; } 2>&1 ); then
+if out=$( { run "$HERE/credits.test.sql"; run "$HERE/spend.test.sql"; run "$HERE/report.test.sql"; run "$HERE/quality.test.sql"; } 2>&1 ); then
   echo "$out" | grep -E 'PASS' | sed 's/^.*NOTICE:  //'
   echo
   echo "$(echo "$out" | grep -c PASS) assertions passed"
